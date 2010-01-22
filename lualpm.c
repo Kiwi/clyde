@@ -122,6 +122,23 @@ static time_t **push_time_box(lua_State *L);
 /*
 */
 
+/* A proxy to alpm_logaction() to be called from the Lua side of the
+ * fence.  Unlike libalpm's alpm_logaction(), this function does not
+ * support a format string, but will merely concatenate its arguments
+ * into a single string instead. */
+static int
+lalpm_logaction(lua_State *L)
+{
+    char const *s;
+    lua_concat(L, lua_gettop(L));
+    s = lua_tostring(L, -1);
+    if (!s) {
+        return luaL_error(L, "arguments must be convertible to strings");
+    }
+    alpm_logaction("%s", s);
+    return 0;
+}
+
 alpm_list_t *lstring_table_to_alpm_list(lua_State *L, int narg)
 {
     alpm_list_t *newlist = NULL;
@@ -2418,6 +2435,7 @@ static luaL_Reg const pkg_funcs[] =
 
     { "strerror",                   lalpm_strerror },
     { "strerrorlast",               lalpm_strerrorlast },
+    { "logaction",                  lalpm_logaction },
     { NULL,                         NULL }
 };
 
