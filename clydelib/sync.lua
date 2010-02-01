@@ -632,7 +632,7 @@ local function aur_install(targets)
         lfs.chdir("/tmp/clyde/"..target)
         os.execute("bsdtar -xf " .. target .. ".tar.gz")
         os.execute("chmod 777 -R *")
-        os.execute("chown "..user..":users -R *")
+        os.execute("chown "..user..":users -R /tmp/clyde/*")
         --print(lfs.chdir(lfs.currentdir().. "/"..target))
         --print(lfs.currentdir())
         --os.execute("ls")
@@ -880,8 +880,10 @@ local function aur_install(targets)
 --        for i, pkg in ipairs(caninstall) do
             --repeat
 
-            print(unpack(caninstall))
-            while (next(caninstall) and next(needsdeps)) do
+--            print(unpack(caninstall))
+            local installed = 0
+            while (next(caninstall) and (installed < #needs)) do
+--            while (next(caninstall) and next(needsdeps)) do
 --                print(unpack(caninstall))
                 updateprovided(provided)
                 getalldeps(needsdeps)
@@ -905,6 +907,7 @@ local function aur_install(targets)
                     --local found, index = tblisin(caninstall, pkg)
                     --table.remove(caninstall, index)
                     print("installed " .. pkg .. " explicitly")
+                    installed = installed + 1
                     break
                     --...
                 else
@@ -919,6 +922,7 @@ local function aur_install(targets)
                     --local found, index = tblisin(caninstall, pkg)
 --                    fastremove(caninstall, pkg)
                     print("installed " .. pkg .. " as dependency")
+                    installed = installed + 1
                     break
                 end
             else
@@ -936,6 +940,7 @@ local function aur_install(targets)
 --                    print(unpack(needsdeps))
                     --local found, index = tblisin(caninstall, pkg)
                     print("installed " .. pkg .. " explicitly")
+                    installed = installed + 1
                     break
                 else
                     tblinsert(config.flags, "T_F_ALLDEPS")
@@ -951,6 +956,7 @@ local function aur_install(targets)
                     --local found, index = tblisin(caninstall, pkg)
                     --table.remove(caninstall, index)
                     print("installed " .. pkg .. " as dependency")
+                    installed = installed + 1
                     break
                 end
                 --...
