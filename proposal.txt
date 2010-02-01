@@ -1,0 +1,13 @@
+clyde proposal
+-------------------
+
+Purpose: To write a transparent pacman wrapper with support for [unsupported] and user repositories.
+	
+Reasoning: Existing AUR helpers such as yogurt, slurpy, and aurbuild are notoriously lacking in features, as well as the basic functionality of pacman itself. The more common yaourt, while supporting the full pacman feature set, is written in bash and can be painfully slow. Additionally, none include the ability to build a decent GUI around them, and all current graphical interfaces to pacman/AUR are buggy at best.
+	
+Language: Lua, because that's what Kiwi knows :P
+
+Structure: Arguments are passed to clyde in the same form as one would pass arguments to pacman (i.e.; clyde -S [package] to install a package, clyde -Syu to upgrade the system, etc). Upon receiving a command, clyde verifies the existance of a package, if one is listed. First, the official repos are checked, followed by user repositories and [unsupported]. If the package does not exist in any known repository, clyde exits with errorcode 1. If a package is found and exists in an official repository, clyde passes control of the package on to libalpm for installation. If a package is found to be in a user repository or [unsupported] and no binary is provided, clyde downloads the PKGBUILD and builds the requested package. Hooks should be in place to allow GUI developers to build an interface on top of clyde (or more appropriately lualpm, clyde's API) in the language of their choice.
+
+Conclusion: I'll expand on this brief outline significantly (to include diagramming if I feel up to it) sometime this weekend. :P
+

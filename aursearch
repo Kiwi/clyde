@@ -1,0 +1,104 @@
+#!/usr/bin/env lua
+require "socket"
+require "Json"
+local http = require "socket.http"
+local ltn12 = require "ltn12"
+local url = require "socket.url"
+local results = {}
+--require "luarocks.require"
+--require "profiler"
+local  C = {
+    ['black'] =        '\27[30m',
+    ['blackbold'] =    '\27[30;1m',
+    ['red'] =          '\27[31m',
+    ['redbold'] =     '\27[31;1m',
+    ['green'] =        '\27[32m',
+    ['greenbold'] =    '\27[32;1m',
+    ['yellow'] =       '\27[33m',
+    ['yellowbold'] =   '\27[33;1m',
+    ['blue'] =         '\27[34m',
+    ['bluebold'] =     '\27[34;1m',
+    ['magenta'] =      '\27[35m',
+    ['magentabold'] =  '\27[35;1m',
+    ['cyan'] =         '\27[36m',
+    ['cyanbold']  =    '\27[36;1m',
+    ['white'] =        '\27[37m',
+    ['whitebold'] =    '\27[37;1m',
+    ['reset'] =        '\27[0m',
+}
+local aururl = "http://aur.archlinux.org/rpc.php?"
+for k, v in pairs(C) do
+    C[k] = ""
+end
+local method = {}
+method.search = "type=search&"
+method.info = "type=info&"
+method.msearch = "type=msearch&"
+
+aururl = aururl..method.search.."arg="..url.escape(arg[1])
+
+print(aururl)
+
+
+
+
+
+local r, e = http.request {
+    url = aururl;
+    sink = ltn12.sink.table(results);
+}
+
+--print(table.concat(results))
+results = table.concat(results)
+
+jsonresults = Json.Decode(results)
+
+--print(jsonresults)
+local aurpkgs = {}
+for k,v in pairs(jsonresults.results) do
+    --io.write(k, " aur/", v.Name, " ", v.Version,"\n", v.Description, "\n")
+    --for i,w in pairs(v) do
+    --    print(i, w)
+    --end
+    --print(k, v)
+    aurpkgs[v.Name] = {['name'] = v.Name; ['version'] = v.Version; ['description'] = v.Description, ['votes'] = v.NumVotes}
+end
+
+local sorted = {}
+
+function sort(tbl)
+    local t = {}
+    for n in pairs(tbl) do table.insert(t, n) end
+    table.sort(t)
+    local i = 0
+    local iter = function()
+        i = i + 1
+        if t[i] == nil then return nil
+        else return t[i], tbl[t[i]]
+        end
+    end
+    return iter
+end
+
+--[[
+for name, line in sort(aurpkgs) do
+    print(name, line)
+end
+--]]
+function sort2(tbl)
+    local stbl = {}
+    local i = 1
+    for k, v in pairs(tbl) do
+        stbl[i] = v
+        i = i + 1
+    end
+    table.sort(stbl, function(a, b)
+        return tbl[a.name].name < tbl[b.name].name end)
+    return stbl
+end
+--profiler.start("profile")
+sorted = sort2(aurpkgs)
+--profiler.stop()
+for k,v in ipairs(sorted) do
+    io.write(C.yellowbold, k, C.magentabold, " aur/", C.whitebold, v.name, " ", C.greenbold, v.version, C.yellowbold, " (", v.votes, ")\n   ",
+    C.reset, v.description, "\n") end

@@ -1,0 +1,969 @@
+#!/usr/bin/env lua
+package.cpath = "/usr/lib/lua/5.1/?.so;"..package.cpath
+package.path ="/usr/share/lua/5.1/?.lua;"..package.path
+package.cpath = "/home/kiwi/media/programs/lua/clyde/?.so;"..package.cpath
+package.path ="/home/kiwi/media/programs/lua/clyde/?.lua;"..package.path
+local sync = require "clydelib.sync"
+local query = require "clydelib.query"
+local remove = require "clydelib.remove"
+local upgrade = require "clydelib.upgrade"
+local deptest = require "clydelib.deptest"
+local alpm = require "lualpm"
+--require "luarocks.require"
+--require "profiler"
+local util = require "clydelib.util"
+local utilcore = require "clydelib.utilcore"
+local signal = require "clydelib.signal"
+--os.remove("profile")
+--profiler.start("profile")
+--for k,v in pairs(util) do print(k,v) end
+local needs_root = util.needs_root
+local printf = util.printf
+local lprintf = util.lprintf
+local eprintf = util.eprintf
+local basename = util.basename
+local cleanup = util.cleanup
+local tblinsert = util.tblinsert
+local realpath = util.realpath
+local strsplit = util.strsplit
+local strtrim = util.strtrim
+--local gettext = utilcore.gettext
+local g = utilcore.gettext
+local bindtextdomain = utilcore.bindtextdomain
+local textdomain = utilcore.textdomain
+local geteuid = utilcore.geteuid
+--[[
+local function printf(...)
+    io.write(string.format(...))
+end
+
+local function basename(name)
+    return name:match("/(%w+)$")
+end
+
+local function cleanup(ret)
+    local release = alpm.release()
+    --TODO  logging if fail
+    if (type(config.configfile) == "userdata") then
+        config.configfile:close()
+    end
+
+    os.exit(release)
+end
+
+local function tblinsert(tbl, ins)
+    tbl[#tbl + 1] = ins
+end
+--]]
+
+local ROOTDIR = "/"
+local CONFFILE = "/etc/pacman.conf"
+local DBPATH = "/var/lib/pacman/"
+local CACHEDIR = "/var/cache/pacman/pkg/"
+local LOGFILE = "/var/log/pacman.log"
+--local clydeconf = "/home/kiwi/media/programs/lua/lualpm/config.lua"
+local clydeconf = require "clydelib.config"
+
+local PACKAGE = "clyde"
+local LOCALEDIR = "/usr/share/locale"
+--for k, v in pairs(config) do print(k, v) end
+
+local function usage(op, myname)
+	--/* prefetch some strings for usage below, which moves a lot of calls
+	 --* out of gettext. */
+    --local g = gettext
+    local str_opt = g("options")
+    local str_file = g("file(s)")
+    local str_pkg = g("package(s)")
+    local str_usg = g("usage")
+    local str_opr = g("operation")
+
+    if(op == "PM_OP_MAIN") then
+        printf("%s:  %s <%s> [...]\n", str_usg, myname, str_opr)
+        printf(g("operations:\n"))
+        printf("    %s {-h --help}\n", myname)
+        printf("    %s {-V --version}\n", myname)
+        printf("    %s {-Q --query}   [%s] [%s]\n", myname, str_opt, str_pkg)
+        printf("    %s {-R --remove}  [%s] <%s>\n", myname, str_opt, str_pkg)
+        printf("    %s {-S --sync}    [%s] [%s]\n", myname, str_opt, str_pkg)
+        printf("    %s {-U --upgrade} [%s] <%s>\n", myname, str_opt, str_file)
+        printf(g("\nuse '%s {-h --help}' with an operation for available options\n", myname))
+    else
+    if (op == "PM_OP_REMOVE") then
+        printf("%s:  %s {-R --remove} [%s] <%s>\n", str_usg, myname, str_opt, str_pkg)
+        printf("%s:\n", str_opt)
+        printf(g("  -c, --cascade        remove packages and all packages that depend on them\n"))
+        printf(g("  -d, --nodeps         skip dependency checks\n"))
+        printf(g("  -k, --dbonly         only remove database entry, do not remove files\n"))
+        printf(g("  -n, --nosave         remove configuration files as well\n"))
+        printf(g("  -s, --recursive      remove dependencies also (that won't break packages)\
+                       (-ss includes explicitly installed dependencies too)\n"))
+        printf(g("  -u, --unneeded       remove unneeded packages (that won't break packages)\n"))
+    elseif(op == "PM_OP_UPGRADE") then
+        printf("%s:  %s {-U --upgrade} [%s] <%s>\n", str_usg, myname, str_opt, str_file)
+        printf("%s:\n", str_opt)
+        printf(g("      --asdeps         install packages as non-explicitly installed\n"))
+        printf(g("      --asexplicit     install packages as explicitly installed\n"))
+        printf(g("  -d, --nodeps         skip dependency checks\n"))
+        printf(g("  -f, --force          force install, overwrite conflicting files\n"))
+    elseif(op == "PM_OP_QUERY") then
+        printf("%s:  %s {-Q --query} [%s] [%s]\n", str_usg, myname, str_opt, str_pkg)
+        printf("%s:\n", str_opt)
+        printf(g("  -c, --changelog      view the changelog of a package\n"))
+        printf(g("  -d, --deps           list packages installed as dependencies [filter]\n"))
+        printf(g("  -e, --explicit       list packages explicitly installed [filter]\n"))
+        printf(g("  -g, --groups         view all members of a package group\n"))
+        printf(g("  -i, --info           view package information (-ii for backup files)\n"))
+        printf(g("  -k, --check          check that the files owned by the package(s) are present\n"))
+        printf(g("  -l, --list           list the contents of the queried package\n"))
+        printf(g("  -m, --foreign        list installed packages not found in sync db(s) [filter]\n"))
+        printf(g("  -o, --owns <file>    query the package that owns <file>\n"))
+        printf(g("  -p, --file <package> query a package file instead of the database\n"))
+        printf(g("  -s, --search <regex> search locally-installed packages for matching strings\n"))
+        printf(g("  -t, --unrequired     list packages not required by any package [filter]\n"))
+        printf(g("  -u, --upgrades       list outdated packages [filter]\n"))
+        printf(g("  -q, --quiet          show less information for query and search\n"))
+    elseif(op == "PM_OP_SYNC") then
+	printf("%s:  %s {-S --sync} [%s] [%s]\n", str_usg, myname, str_opt, str_pkg)
+        printf("%s:\n", str_opt)
+        printf(g("      --asdeps         install packages as non-explicitly installed\n"))
+        printf(g("      --asexplicit     install packages as explicitly installed\n"))
+        printf(g("  -c, --clean          remove old packages from cache directory (-cc for all)\n"))
+        printf(g("  -d, --nodeps         skip dependency checks\n"))
+        printf(g("  -f, --force          force install, overwrite conflicting files\n"))
+        printf(g("  -g, --groups         view all members of a package group\n"))
+        printf(g("  -i, --info           view package information\n"))
+        printf(g("  -l, --list <repo>    view a list of packages in a repo\n"))
+        printf(g("  -p, --print-uris     print out URIs for given packages and their dependencies\n"))
+        printf(g("  -s, --search <regex> search remote repositories for matching strings\n"))
+        printf(g("  -u, --sysupgrade     upgrade installed packages (-uu allows downgrade)\n"))
+        printf(g("  -w, --downloadonly   download packages but do not install/upgrade anything\n"))
+        printf(g("  -y, --refresh        download fresh package databases from the server\n"))
+        printf(g("      --needed         don't reinstall up to date packages\n"))
+        printf(g("      --ignore <pkg>   ignore a package upgrade (can be used more than once)\n"))
+        printf(g("      --ignoregroup <grp>\
+                       ignore a group upgrade (can be used more than once)\n"))
+        printf(g("  -q, --quiet          show less information for query and search\n"))
+    end
+        printf(g("      --config <path>  set an alternate configuration file\n"))
+        printf(g("      --logfile <path> set an alternate log file\n"))
+        printf(g("      --noconfirm      do not ask for any confirmation\n"))
+        printf(g("      --noprogressbar  do not show a progress bar when downloading files\n"))
+        printf(g("      --noscriptlet    do not execute the install scriptlet if one exists\n"))
+        printf(g("  -v, --verbose        be verbose\n"))
+        printf(g("      --debug          display debug messages\n"))
+        printf(g("  -r, --root <path>    set an alternate installation root\n"))
+        printf(g("  -b, --dbpath <path>  set an alternate database location\n"))
+        printf(g("      --cachedir <dir> set an alternate package cache location\n"))
+    end
+end
+local function version()
+    printf("\n")
+    printf("    .--.          .---.        Clyde v0.0.1 - lualpm v0.0.1\n")
+    printf("   '-._ \\ .-.  .-|O O  | ~~    Copyright (C) 2009 Robert Djubek\n")
+    printf(g("   .-'  / '-'  '-|~~~  |  ~~~  This program may be freely redistributed under\n"))
+    printf(g("    '--'         |.-.-.| ~~    the terms of the GNU General Public License.\n"))
+    printf("\n")
+end
+
+local ranlocalize = false
+local function localize()
+    if (not ranlocalize) then
+        local ret = os.setlocale("", "all")
+        local bind = bindtextdomain(PACKAGE, LOCALEDIR)
+        local text = textdomain(PACKAGE)
+    end
+end
+
+local function getopt_long(argv, sh_opts, long_opts, option_tbl)
+    local options = {}
+    local exit = false
+    local opttbl = option_tbl
+    if not next(options) then
+    local numargs = {
+            ["no_argument"] = 0;
+            ["required_argument"] = 1;
+            ["optional_argument"] = 2;
+        }
+        for short, accept in sh_opts:gmatch("(%a)(:?:?)") do
+            options[short] = {["numarg"] = #accept, ["short"] = short}
+        end
+        for i, v in ipairs(long_opts) do
+            options[v[1]] = {["short"] = v[4], ["numarg"] = numargs[v[2]]}
+        end
+    end
+
+    local optindex = 0
+    local index = 2
+    return function()
+        while optindex < #argv do
+            optindex = optindex + 1
+            local argument = argv[optindex]
+
+            if argument == "--" then
+                optindex = optindex + 1
+                break
+            elseif argument == "-" then
+                break
+        elseif argument:sub(1,2) == "--" then
+            local pos = argument:find("=", 1, true)
+
+            if pos then
+                local option = argument:sub(3, pos -1)
+                if options[option] then
+                    if options[option].numarg > 0 then
+                        if argument:sub(pos + 1) then
+                     --   print(argument)
+--                        if argv[optindex + 1] then
+                            return options[option].short, argument:sub(pos + 1)
+                        --else
+                --         end
+                        else
+                            print(basename(argv[0]) .. ": option '--" .. option .. "' requires an argument")
+                        end
+                    else
+                        print(basename(argv[0]) .. ": option '--" .. option .. "' doesn\'t allow an argument")
+                    end
+                --elseif argv[optindex + 1] and not argv[optindex + 1]:match("^%-") then
+                --    opttbl[#opttbl + 1] = argv[optindex + 1]
+                else
+                    print(basename(argv[0]) .. ": unrecognized option '--" .. option .. "'")
+                    exit = true
+                    break
+                end
+            else
+                local option = argument:sub(3)
+                if options[option] then
+                    if options[option].numarg  == 1 then
+                        if optindex == #argv then
+                            print(basename(argv[0]) .. ": option --'" .. option .. "' requires an argument")
+                        elseif not argv[optindex + 1]:match("^%-") then
+                            if options[option].numarg == 2 then
+                                opttbl[#opttbl + 1] = argv[optindex + 1]
+                                optindex = optindex + 1
+                                return options[option].short, nil
+                            else
+                                optindex = optindex + 1
+                                return options[option].short, argv[optindex]
+                            end
+                        else
+                            print(basename(argv[0]) .. ": option --'" .. option ..  "' requires an argument")
+                        end
+                    else
+                        if argv[optindex + 1] and not argv[optindex + 1]:match("^%-") then
+                            opttbl[#opttbl + 1] = argv[optindex + 1]
+                            optindex = optindex + 1
+                            return options[option].short, nil
+                        else
+                            return options[option].short, nil
+                        end
+                    end
+                else
+                    print(basename(argv[0]) .. ": unrecognized option '--" .. option .. "'")
+                    exit = true
+                    break
+                end
+            end
+            ---[[
+        elseif argument:sub(1, 1) == "-" then
+            --print("short")
+            --for k, v in pairs(options) do print(k, v) end
+--            local j
+            for j = index, #argument do
+                local option = argument:sub(j, j)
+--                print(option)
+                if options[option] then
+                    if options[option].numarg > 0 then
+                        if optindex == #argv then
+                            print(basename(argv[0]) .. ": option requires an argument -- '" .. option .. "'")
+                        elseif not argv[optindex + 1]:match("^%-") then
+                            if options[option].numarg == 2 then
+                                opttbl[#opttbl + 1] = argv[optindex + 1]
+                                optindex = optindex + 1
+                                return options[option].short, nil
+                            else
+                                optindex = optindex + 1
+                                return options[option].short, argv[optindex]
+                            end
+                        else
+                            print(basename(argv[0]) .. ": option requires an argument -- '" .. option .. "'")
+                        end
+                    else
+                       -- if argv[optindex + 1] and not argv[optindex + 1]:match("^%-") then
+--                            opttbl[#opttbl + 1] = argv[optindex + 1]
+                       --     optindex = optindex - 1
+                       --     index = index + 1
+                            --print("HHI")
+                       --     return options[option].short, nil
+                       -- else
+                            optindex = optindex - 1
+                            index = index + 1
+                            return options[option].short, nil
+                       -- end
+                    end
+                else
+                    print(basename(argv[0]) .. ": invalid option -- '" .. option .. "'")
+                    exit = true
+                    break
+                end
+            end
+            index = 2
+            --]]
+        else
+            --if #argv <= optindex then
+                if optindex <= #argv then
+                    local option = argv[optindex]
+                    opttbl[#opttbl +1] = argv[optindex]
+                end
+            --end
+        end
+        end
+--        print(index)
+--        if exit == true then return nil end
+    end
+end
+local function parseargs()
+local longopts = {
+        {"query",      "no_argument",       0, 'Q'},
+        {"remove",     "no_argument",       0, 'R'},
+        {"sync",       "no_argument",       0, 'S'},
+        {"deptest",    "no_argument",       0, 'T'},
+        {"upgrade",    "no_argument",       0, 'U'},
+        {"version",    "no_argument",       0, 'V'},
+        {"dbpath",     "required_argument", 0, 'b'},
+        {"cascade",    "no_argument",       0, 'c'},
+        {"changelog",  "no_argument",       0, 'c'},
+        {"clean",      "no_argument",       0, 'c'},
+        {"nodeps",     "no_argument",       0, 'd'},
+        {"deps",       "no_argument",       0, 'd'},
+        {"explicit",   "no_argument",       0, 'e'},
+        {"force",      "no_argument",       0, 'f'},
+        {"groups",     "no_argument",       0, 'g'},
+        {"help",       "no_argument",       0, 'h'},
+        {"info",       "no_argument",       0, 'i'},
+        {"dbonly",     "no_argument",       0, 'k'},
+        {"check",      "no_argument",       0, 'k'},
+        {"list",       "no_argument",       0, 'l'},
+        {"foreign",    "no_argument",       0, 'm'},
+        {"nosave",     "no_argument",       0, 'n'},
+        {"owns",       "no_argument",       0, 'o'},
+        {"file",       "no_argument",       0, 'p'},
+        {"print-uris", "no_argument",       0, 'p'},
+        {"quiet",      "no_argument",       0, 'q'},
+        {"root",       "required_argument", 0, 'r'},
+        {"recursive",  "no_argument",       0, 's'},
+        {"search",     "no_argument",       0, 's'},
+        {"unrequired", "no_argument",       0, 't'},
+        {"upgrades",   "no_argument",       0, 'u'},
+        {"sysupgrade", "no_argument",       0, 'u'},
+        {"unneeded",   "no_argument",       0, 'u'},
+        {"verbose",    "no_argument",       0, 'v'},
+        {"downloadonly", "no_argument",     0, 'w'},
+        {"refresh",    "no_argument",       0, 'y'},
+        {"noconfirm",  "no_argument",       0, 'OP_NOCONFIRM'},
+        {"config",     "required_argument", 0, 'OP_CONFIG'},
+        {"ignore",     "required_argument", 0, 'OP_IGNORE'},
+        {"debug",      "optional_argument", 0, 'OP_DEBUG'},
+        {"noprogressbar", "no_argument",    0, 'OP_NOPROGRESSBAR'},
+        {"noscriptlet", "no_argument",      0, 'OP_NOSCRIPTLET'},
+--        {"ask",        "required_argument", 0, 'OP_ASK'},
+        {"cachedir",   "required_argument", 0, 'OP_CACHEDIR'},
+        {"asdeps",     "no_argument",       0, 'OP_ASDEPS'},
+        {"logfile",    "required_argument", 0, 'OP_LOGFILE'},
+        {"ignoregroup", "required_argument", 0, 'OP_IGNOREGROUP'},
+        {"needed",     "no_argument",       0, 'OP_NEEDED'},
+        {"asexplicit",     "no_argument",   0, 'OP_ASEXPLICIT'},
+--        {"arch",       "required_argument", 0, 'OP_ARCH'},
+    }
+
+
+    local settrans = function(val)
+        return function()
+            if config.op ~= true then
+                config.op = nil
+            else
+                config.op = val
+            end
+        end
+    end
+
+    local lookuptbl = {
+        ['Q'] = settrans('PM_OP_QUERY');
+        ['R'] = settrans('PM_OP_REMOVE');
+        ['S'] = settrans('PM_OP_SYNC');
+        ['T'] = settrans('PM_OP_DEPTEST');
+        ['U'] = settrans('PM_OP_UPGRADE');
+        ['V'] = function() config.version = true end;
+        ['b'] = function(opt) config.dbpath = opt end;
+
+        ['c'] = function()
+            config.op_s_clean = config.op_s_clean + 1
+            tblinsert(config.flags, "T_F_CASCADE")
+            config.op_q_changelog = true
+        end;
+        ['d'] = function()
+            config.op_q_deps = true
+            tblinsert(config.flags, "T_F_NODEPS")
+        end;
+        ['e'] = function() config.op_q_explicit = true end;
+        ['f'] = function() tblinsert(config.flags, "T_F_FORCE") end;
+        ['g'] = function() config.group = config.group + 1 end;
+        ['h'] = function() config.help = true end;
+        ['i'] = function()
+            config.op_q_info = config.op_q_info + 1
+            config.op_s_info = true
+        end;
+        ['k'] = function()
+            tblinsert(config.flags, "T_F_DBONLY")
+            config.op_q_check = true
+        end;
+        ['l'] = function() config.op_q_list = true end;
+        ['m'] = function() config.op_q_foreign = true end;
+        ['n'] = function() tblinsert(config.flags, "T_F_NOSAVE") end;
+        ['o'] = function() config.op_q_owns = true end;
+        ['p'] = function()
+            config.op_q_isfile = true
+            config.op_s_printuris = true
+            tblinsert(config.flags, "T_F_NOCONFLICTS")
+            tblinsert(config.flags, "T_F_NOLOCK")
+        end;
+        ['q'] = function() config.quiet = true end;
+        ['r'] = function(opt) config.rootdir = opt end;
+        ['s'] = function()
+            config.op_s_search = true
+            config.op_q_search = true
+            local found = false
+            for i, val in ipairs(config.flags) do
+                if (val == "T_F_RECURSE") then
+                    tblinsert(config.flags, "T_F_RECURSEALL")
+                    found = true
+                    break
+                end
+            end
+            if (not found) then
+                tblinsert(config.flags, "T_F_RECURSE")
+            end
+        end;
+        ['t'] = function() config.op_q_unrequired = true end;
+        ['u'] = function()
+            config.op_s_upgrade = config.op_s_upgrade + 1
+            config.op_q_upgrade = true
+            tblinsert(config.flags, "T_F_UNNEEDED")
+        end;
+        ['v'] = function() config.verbose = config.verbose + 1 end;
+        ['w'] = function()
+            config.op_s_downloadonly = true
+            tblinsert(config.flags, "T_F_DOWNLOADONLY")
+            tblinsert(config.flags, "T_F_NOCONFLICTS")
+        end;
+        ['y'] = function() config.op_s_sync = config.op_s_sync + 1 end;
+        ['OP_NOCONFIRM'] = function() config.noconfirm = true end;
+        ['OP_CONFIG'] = function(opt) config.configfile = opt end;
+        ['OP_IGNORE'] = function(opt)
+            if (opt) then
+                local list = strsplit(opt, ",")
+                for i, ignore in ipairs(list) do
+                    alpm.option_add_ignorepkg(ignore)
+                end
+            end
+
+        end;
+        ['OP_DEBUG'] = function(opt)
+            if (opt) then
+                if opt == '2' then
+                    tblinsert(config.logmask, "LOG_FUNCTION")
+                    tblinsert(config.logmask, "LOG_DEBUG")
+                elseif opt == '1' then
+                    tblinsert(config.logmask, "LOG_DEBUG")
+                else
+                    --TODO: logging
+                    lprintf("LOG_ERROR", g("'%s' is not a valid debug level\n"), opt)
+                    --printf("'%s' is not a valid debug level\n", opt)
+                    return 1
+                end
+            else
+                tblinsert(config.logmask, "LOG_DEBUG")
+            end
+            config.noprogressbar = true
+        end;
+        ['OP_NOPROGRESSBAR'] = function() config.noprogresbar = true end;
+        ['OP_NOSCRIPTLET'] = function() tblinsert(config.flags, "T_F_NOSCRIPTLET") end;
+--        ['OP_ASK'] = function() end;
+        ['OP_CACHEDIR'] = function(opt)
+            --TODO: logging
+            local result = alpm.option_add_cachedir(opt)
+            if (result ~= 0) then
+                lprintf("LOG_ERROR", g("problem adding cachedir '%s' (%s)\n"), opt, alpm.strerrorlast())
+                --printf("problem adding cachedir '%s' (%s)\n", opt, alpm.strerrorlast())
+                return 1
+            end
+        end;
+        ['OP_ASDEPS'] = function() tblinsert(config.flags, "T_F_ALLDEPS") end;
+        ['OP_LOGFILE'] = function(opt) config.logfile = opt end;
+        ['OP_IGNOREGROUP'] = function(opt)
+            if (opt) then
+                local list = strsplit(opt, ",")
+                for i, ignore in ipairs(list) do
+                    alpm.option_add_ignoregrp(ignore)
+                end
+            end
+
+        end;
+        ['OP_NEEDED'] = function() tblinsert(config.flags, "T_F_NEEDED") end;
+        ['OP_ASEXPLICIT'] = function() tblinsert(config.flags, "T_F_ALLEXPLICIT") end;
+--        ['OP_ARCH'] = function() end;
+    }
+    local shortopts = "RUQSTr:b:vkhscVfmnoldepqituwyg"
+    local opttable = {}
+
+    for elem, option in getopt_long(arg, shortopts, longopts, opttable) do
+        if lookuptbl[elem] then
+            lookuptbl[elem](option)
+--          TODO: check return code
+--            print(elem, option)
+        else
+            print("not implemented yet, fix this")
+        end
+    end
+
+    if (config.op == nil) then
+        lprintf("LOG_ERROR", g("only one operation may be used at a time\n"))
+        --printf("error: only one operation may be used at a time\n")
+        return 1
+    end
+
+    if (config.help) then
+        usage(config.op, basename(arg[0]))
+        return 2
+    end
+
+    if (config.version) then
+        version()
+        return 2
+    end
+
+    pm_targets = opttable
+
+    return 0
+end
+
+local ransetlibpaths = false
+local function setlibpaths()
+    if (ransetlibpaths) then return end
+    ransetlibpaths = true
+
+    local result
+
+    lprintf("LOG_DEBUG", "setlibpaths() called\n")
+    if (config.rootdir) then
+        result = alpm.option_set_root(config.rootdir)
+
+        if (result ~= 0) then
+--            TODO: logging
+            lprintf("LOG_ERROR", g("problem setting rootdir '%s' (%s)\n"), config.rootdir, alpm.strerrorlast())
+            --printf("problem setting rootdir '%s' (%s)\n", config.rootdir, alpm.strerrorlast())
+            cleanup(ret)
+        end
+
+        if (not config.dbpath) then
+            config.dbpath = alpm.option_get_root() .. DBPATH:match("/(.*)")
+        end
+
+        if (not config.logfile) then
+            config.logfile = alpm.option_get_root() .. LOGFILE:match("/(.*)")
+        end
+    end
+
+    if (config.dbpath) then
+        result = alpm.option_set_dbpath(config.dbpath)
+
+        if (result ~= 0) then
+            eprintf("LOG_ERROR", g("problem setting dbpath '%s' (%s)\n"), config.dbpath, alpm.strerorrlast)
+            --printf("problem setting dbpath '%s' (%s)\n", config.dbpath, alpm.strerorrlast)
+            cleanup(result)
+        end
+    end
+
+    if (config.logfile) then
+        result = alpm.option_set_logfile(config.logfile)
+
+        if (result ~= 0) then
+            eprintf("LOG_ERROR", g("problem setting logfile '%s' (%s)\n"), config.logfile, alpm.strerrorlast)
+            --printf("problem setting logfile '%s' (%s)\n", config.logfile, alpm.strerrorlast)
+            cleanup(result)
+        end
+    end
+
+    if (not next(alpm.option_get_cachedirs())) then
+        alpm.option_add_cachedir(CACHEDIR)
+    end
+end
+
+local function config_init()
+    config = clydeconf
+--    config = loadfile(clydeconf)()
+    tblinsert(config.logmask, "LOG_ERROR")
+    tblinsert(config.logmask, "LOG_WARNING")
+    config.configfile = CONFFILE
+end
+
+local function config_free(conf)
+    if (type(conf) ~= "table") then return end
+    for k, v in pairs(conf) do
+        k = nil
+    end
+    conf = nil
+end
+
+local function option_add_holdpkg(name)
+    tblinsert(config.holdpkg, name)
+end
+
+local function option_add_syncfirst(name)
+    tblinsert(config.syncfirst, name)
+end
+
+local function setrepeatingoption(str, option, optionfunc)
+    local options = strsplit(str, ' ')
+    for i, opt in ipairs(options) do
+        optionfunc(opt)
+        lprintf("LOG_DEBUG", "config: %s: %s\n", option, opt)
+    end
+end
+
+
+
+
+
+local function _parseconfig(file, givensection, givendb)
+    local ret
+    local cont = true
+--    local optionlookuptbl = optionlookuptbl
+--    local setrepeatingoption = setrepeatingoption
+--TODO: make sure return configcleanup() is right
+    local function configcleanup()
+        if (fp) then
+            fp:close()
+        end
+        if (section) then
+            section = nil
+        end
+        setlibpaths()
+        lprintf("LOG_DEBUG", "config: finished parsing %s\n", file)
+        --cleanup(ret)
+        cont = false
+        if (cont == false) then
+            return 1
+        else
+            return 0
+        end
+    end
+    local optionlookuptbl = {
+    ['UseSyslog'] = function() alpm.option_set_usesyslog(true)
+        lprintf("LOG_DEBUG", "config: usesyslog\n") end;
+    ['ILoveCandy'] = function() config.chomp = true
+        lprintf("LOG_DEBUG", "config: chomp\n") end;
+    ['ShowSize'] = function() config.showsize = true
+        lprintf("LOG_DEBUG", "config: showsize\n") end;
+    ['UseDelta'] = function() alpm.option_set_usedelta(true)
+        lprintf("LOG_DEBUG", "config: usedelta\n") end;
+    ['TotalDownload'] = function() config.totaldownload = true
+        lprintf("LOG_DEBUG", "config: totaldownload\n") end;
+
+    ['NoUpgrade'] = function(str)
+        setrepeatingoption(str, "NoUpgrade", alpm.option_add_noupgrade) end;
+    ['NoExtract'] = function(str)
+        setrepeatingoption(str, "NoExtract", alpm.options_add_noextract) end;
+    ['IgnorePkg'] = function(str)
+        setrepeatingoption(str, "IgnorePkg", alpm.option_add_ignorepkg) end;
+    ['IgnoreGroup'] = function(str)
+        setrepeatingoption(str, "IgnoreGroup", alpm.option_add_ignoregrp) end;
+    ['HoldPkg'] = function(str)
+        setrepeatingoption(str, "HoldPkg", option_add_holdpkg) end;
+    ['SyncFirst'] = function(str)
+        setrepeatingoption(str, "SyncFirst", option_add_syncfirst) end;
+    --['Architecture'] = function(str)
+        -- if (not alpm.option_get_arch()) then
+        --    setarch(str)
+        --    end
+    --end;
+    ['DBPath'] = function(str)
+        if (not config.dbpath) then
+            config.dbpath = str
+            lprintf("LOG_DEBUG", "config: dbpath: %s\n", str)
+        end
+    end;
+    ['CacheDir'] = function(str)
+        if (not alpm.option_add_cachedir(str)) then
+            lprintf("LOG_ERROR", g("problem adding cachedir '%s' (%s)\n"),
+                str, alpm.strerrorlast())
+            ret = 1
+            return configcleanup()
+        end
+        lprintf("LOG_DEBUG", "config: cachedir: %s\n", str)
+    end;
+    ['RootDir'] = function(str)
+        if (not config.rootdir) then
+            config.rootdir = str
+            lprintf("LOG_DEBUG", "config: rootdir: %s\n", str)
+        end
+    end;
+    ['LogFile'] = function(str)
+        if (not config.logfile) then
+            config.logfile = str
+            lprintf("LOG_DEBUG", "config: logfile: %s\n", str)
+        end
+    end;
+    --TODO: add xfercommand
+    --['XferCommand'] = function(str)
+    --config.xfercommand = str
+    --alpm.option_set_fetchcb(download_with_xfercommand)
+    --lprintf("LOG_DEBUG", config: xfercommand: %s\n")
+    --end
+    ['CleanMethod'] = function(str)
+        if (str == "KeepInstalled") then
+            config.cleanmethod = "CLEAN_KEEPINST"
+        elseif (str == "KeepCurrent") then
+            config.cleanmethod = "CLEAN_KEEPCUR"
+        else
+            lprintf("LOG_ERROR", g("invalid value for 'CleanMethod' : '%s'\n"), str)
+            ret = 1
+            return configcleanup()
+        end
+        lprintf("LOG_DEBUG", "config: cleanmethod: %s\n", str)
+    end;
+    }
+
+    local section, db
+    local linenum = 0
+    lprintf("LOG_DEBUG", "config: attempting to read file %s\n", file)
+    local fp, err = io.open(file)
+    if err then
+        lprintf("LOG_ERROR", g("config file %s could not be read.\n"), file)
+        return 1
+    end
+
+    if (givensection) then
+        section = givensection
+    end
+
+    if (givendb) then
+        db = givendb
+    end
+
+    for line in fp:lines() do
+        if (not cont) then return ret end
+        repeat
+            linenum = linenum + 1
+            line = strtrim(line)
+
+            if (#line == 0) or (line:match("^#")) then
+                break
+            end
+            local pos = line:find("#")
+            if pos then
+                line = line:sub(1, pos - 1)
+                line = strtrim(line)
+            end
+
+            if (line:sub(1,1) == '[') and (line:sub(-1) == ']') then
+                --print(line)
+                section = line:match("^%[(.+)%]$")
+                lprintf("LOG_DEBUG", "config: new section '%s'\n", section)
+                if #section == 0 then
+                    lprintf("LOG_ERROR", g("config file %s, line %d: bad section name.\n"),
+                        file, linenum)
+                    ret = 1
+                    return configcleanup()
+                end
+                if (section ~= "options") then
+                    db = alpm.db_register_sync(section)
+                    if (db == nil) then
+                        lprintf("LOG_ERROR", g("could not register '%s' database (%s)\n"),
+                            section, alpm.strerrorlast())
+                        ret = 1
+                        return configcleanup()
+                    end
+                end
+            else
+                --print(line, "line")
+                local key, str = line:match("(%S+)%s*=%s*(.*)")
+                if (not key) then key = line end
+                --print(key, str)
+                if (not section) then
+                    lprintf("LOG_ERROR", g("config file %s, line %d: All directives must belong to a section.\n"),
+                        file, linenum)
+                    ret = 1
+                    return configcleanup()
+                end
+                if (str == nil) and (section == "options") then
+                    if (optionlookuptbl[key]) then
+                        optionlookuptbl[key]()
+                    else
+                        lprintf("LOG_ERROR", g("config file %s, line %d: directive '%s' not recognized.\n"),
+                            file, linenum, key)
+                        ret = 1
+                        return configcleanup()
+                    end
+                else
+                    if (key == "Include") then
+                        lprintf("LOG_DEBUG", "config: including %s\n", str)
+                        _parseconfig(str, section, db)
+                    elseif (section == "options") then
+                        if (optionlookuptbl[key]) then
+                            optionlookuptbl[key](str)
+                        else
+                            lprintf("LOG_ERROR", g("config file %s, line %d: directive '%s' not recognized.\n"),
+                                file, linenum, key)
+                            ret = 1
+                            return configcleanup()
+                        end
+                    elseif (key == "Server")  then
+                        local temp = str:gsub("%$repo", section)
+                        --TODO: fix this when pacman adds this function...
+                        --local arch = alpm.option_get_arch()
+                        if (arch) then
+                            local server = temp:gsub("%$arch", arch)
+                        else
+                            if (temp:match("%$arch")) then
+                                lprintf("LOG_ERROR", g("The mirror '%s' contains the $arch" ..
+                                    " variable, but no Architecture is defined.\n"), str)
+                                ret = 1
+                                return configcleanup()
+                            end
+                            server = temp
+                        end
+
+                        if (db:db_setserver(server) ~= 0) then
+                            lprintf("LOG_ERROR", g("could not add server URL to database '%s': %s (%s)\n"),
+                                db:db_get_name(), server, alpm.strerrorlast())
+                            ret = 1
+                            return configcleanup()
+                        end
+
+                        server = nil
+                    else
+                        lprintf("LOG_ERROR", g("config file %s, line %d: directive '%s' not recognized.\n"),
+                            file, linenum, key)
+                        ret = 1
+                        return configcleanup()
+                    end
+                end
+            end
+        until 1
+    end
+    return configcleanup()
+end
+
+local function parseconfig(file)
+    return _parseconfig(file, nil, nil)
+end
+
+
+function main()
+    local ret = 0
+    signal.signal("SIGINT", function()
+        printf("\nInterrupt signal received\n\n")
+        if (alpm.trans_interrupt() == 0) then
+            return
+        end
+        util.trans_release()
+        cleanup(2)
+    end)
+    signal.signal("SIGTERM", function()
+        cleanup(15)
+    end)
+
+    local myuid = geteuid()
+    localize()
+    alpm.initialize()
+    config_init()
+    alpm.option_set_root(ROOTDIR)
+    alpm.option_set_dbpath(DBPATH)
+    alpm.option_set_logfile(LOGFILE)
+    ret = parseargs()
+    if (ret ~= 0) then
+        cleanup(ret)
+    end
+    ret = parseconfig(CONFFILE)
+    if (ret ~= 0) then
+        --cleanup(ret)
+    end
+    --setlibpaths()
+
+    if (myuid > 0 and needs_root()) then
+        lprintf("LOG_ERROR", g("you cannot perform this operation unless you are root.\n"))
+        cleanup(1)
+    end
+
+
+    if (config.verbose > 0) then
+        printf("Root      : %s\n", alpm.option_get_root())
+        printf("Conf File : %s\n", config.configfile)
+        printf("DB Path   : %s\n", alpm.option_get_dbpath())
+        printf("Cache Dirs: ")
+        local cachedirs = alpm.option_get_cachedirs()
+        for i, v in ipairs(cachedirs) do
+            printf("%s  ", v)
+        end
+        print()
+        printf("Lock File : %s\n", alpm.option_get_lockfile())
+        printf("Log File  : %s\n", alpm.option_get_logfile())
+        printf("Targets   : ")
+        local targets = pm_targets or {}
+        for i, v in ipairs(targets) do
+            printf("%s  ", v)
+        end
+        print()
+    end
+
+    db_local = alpm.db_register_local()
+    --core = alpm.db_register_sync("core")
+    --extra = alpm.db_register_sync("extra")
+    --local server = "ftp://mirror.cs.vt.edu/pub/ArchLinux/extra/os/x86_64"
+    --extra:db_setserver(server)
+    --community = alpm.db_register_sync("community")
+    if (not db_local) then
+        eprintf("LOG_ERROR", g("could not register 'local' database (%s)\n"), alpm.strerrorlast())
+        --printf("could not register 'local' database (%s)\n", alpm.strerrorlast())
+        cleanup(1)
+    end
+    local lookuptbl = {
+        ['PM_OP_QUERY'] = function() query.main(pm_targets) end;
+--        ['PM_OP_QUERY'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/query.lua") end;
+        ['PM_OP_UPGRADE'] = function() upgrade.main(pm_targets) end;
+--        ['PM_OP_UPGRADE'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/upgrade.lua") end;
+        ['PM_OP_REMOVE'] = function() remove.main(pm_targets) end;
+--        ['PM_OP_REMOVE'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/remove.lua") end;
+        ['PM_OP_SYNC'] = function() sync.main(pm_targets) end;
+--        ['PM_OP_SYNC'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/sync.lua") end;
+        ['PM_OP_DEPTEST'] = function() deptest.main(pm_targets) end;
+--        ['PM_OP_DEPTEST'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/deptest.lua") end;
+    }
+    if (config.op ~= true) then
+        lookuptbl[config.op]()
+    else
+        --TODO: error logging and error message...
+        eprintf("LOG_ERROR", g("no operation specified (use -h for help)\n"))
+        --printf("error: no operation specified (use -h for help)\n")
+        ret = 1
+    end
+--    print(alpm.release())
+
+
+
+    --print("HI")
+    cleanup(ret)
+end
+
+main()
+--alpm.release()
+
+
+--profiler.stop()
+
+
+
+--cleanup()
+--for k,v in pairs(config) do print(k, v) end
+--print(config.op, config.op_q_changelog, config.op_q_deps, config.op_q_explicit)
