@@ -626,6 +626,7 @@ local function aur_install(targets)
     local function download_extract(target)
         local user = os.getenv("SUDO_USER") or "root"
         local host = "aur.archlinux.org"
+        print(target)
         aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
         aur.dispatcher()
 --        print(string.format("/packages/%s/%s.tar.gz", target, target))
@@ -715,8 +716,9 @@ local function aur_install(targets)
         pkgbuild = pkgbuild:gsub("makedepends=%((.-)%)", "")
         local depends = pkgbuild:match("depends=%((.-)%)") or ""
 --        print(target, depends, "target, depends")
-        depends = depends:gsub("[\"']", "")
-        makedepends = makedepends:gsub("[\"']", "")
+        depends = depends:gsub("[\"'\\\t%s]", " ")
+        makedepends = makedepends:gsub("[\"'\\\t%s]", " ")
+
 --        print(depends, makedepends, "depends", "makedepends")
 --        print(depends)
         ret = strsplit(depends, " ") or {}
