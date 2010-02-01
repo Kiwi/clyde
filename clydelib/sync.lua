@@ -624,7 +624,7 @@ local function aur_install(targets)
     updateprovided(provided)
 
     local function download_extract(target)
-        local user = os.getenv("SUDO_USER")
+        local user = os.getenv("SUDO_USER") or "root"
         local host = "aur.archlinux.org"
         aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
         aur.dispatcher()
@@ -649,7 +649,6 @@ local function aur_install(targets)
         else
             local response = noyes("Running makepkg as root is a bad idea! Continue anyway?")
             if (response)  then
-                --print(response)
                 result = os.execute("makepkg -f --asroot "..mkpkgopts)
             else
                 cleanup(1)
