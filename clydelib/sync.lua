@@ -1,6 +1,10 @@
 module(..., package.seeall)
 package.cpath = "/usr/lib/lua/5.1/?.so;"..package.cpath
 package.path ="/usr/share/lua/5.1/?.lua;"..package.path
+--local tar = require "ltar"
+local yajl = require "yajl"
+local zlib = require "zlib"
+--local gzip = require "gzip"
 local lfs = require "lfs"
 local alpm = require "lualpm"
 local util = require "clydelib.util"
@@ -43,7 +47,7 @@ local dump_pkg_sync = packages.dump_pkg_sync
 
 local tblsort = table.sort
 local tblconcat = table.concat
-local Json = require "clydelib.Json"
+--local Json = require "clydelib.Json"
 require "socket"
 local http = require "socket.http"
 local url = require "socket.url"
@@ -55,6 +59,43 @@ local aurmethod = {
     ['info'] = "type=info&";
     ['msearch'] = "type=msearch&";
 }
+yajl.to_value = function (string)
+   local result
+   local stack = {
+      function(val) result = val end
+   }
+   local obj_key
+   local events = {
+      value = function(_, val)
+                 stack[#stack](val)
+              end,
+      open_array = function()
+                      local arr = {}
+                      local idx = 1
+                      stack[#stack](arr)
+                      table.insert(stack, function(val)
+                                             arr[idx] = val
+                                             idx = idx + 1
+                                          end)
+                   end,
+      open_object = function()
+                      local obj = {}
+                      stack[#stack](obj)
+                      table.insert(stack, function(val)
+                                             obj[obj_key] = val
+                                          end)
+                   end,
+      object_key = function(_, val)
+                     obj_key = val
+                  end,
+      close = function()
+                stack[#stack] = nil
+             end,
+   }
+
+   yajl.parser({ events = events })(string)
+   return result
+end
 
 local function sortaur(tbl)
     local stbl = {}
@@ -122,6 +163,7 @@ local function sync_search(syncs, targets)
     local found = false
     local ret
     local localdb = alpm.option_get_localdb()
+    if (not config.op_s_search_aur_only) then
 --    local pkgcache = localdb:db_get_pkgcache()
     for i, db in ipairs(syncs) do
         repeat
@@ -176,19 +218,46 @@ local function sync_search(syncs, targets)
 
         until 1
     end
-
+end
     if (next(targets)) then
         local searchurl = aururl..aurmethod.search.."arg="..url.escape(targets[1])
         if (#targets[1] < 2) then
             lprintf("LOG_WARNING", "First query arg too small to search AUR\n")
             return (not found)
         end
+        local head = {
+            ["Accept-Encoding"] = "gzip";
+        }
+        local sinktbl = {}
+--        print(fd, err)
         local r, e = http.request {
             url = searchurl;
-            sink = ltn12.sink.table(aurresults);
+--            sink = ltn12.sink.file(fd);
+            sink = ltn12.sink.table(sinktbl);
+--sink = ltn12.sink.table(aurresults);
+            headers = head;
         }
-        aurresults = tblconcat(aurresults)
-        local jsonresults = Json.Decode(aurresults)
+--        print("decompressing", os.time())
+--        gd = zlib.inflate(io.open("/tmp/gzip", "rb"))
+
+        local inflated = zlib.inflate(tblconcat(sinktbl))
+--        local gd = gzip.open("/tmp/gzip")
+
+--        print("done decompessiong", os.time())
+--        print("reading decompressed stream", os.time())
+        aurresults = inflated:read("*a")
+        --print(aurresults)
+        local jsonresults = yajl.to_value(aurresults)
+--        aurresults = {gd:read("*a")}
+--        print("done reading", os.time())
+--        print(#aurresults)
+        --for k, v in pairs(aurresults.results) do print(k, v) end
+--        print("concating", os.time())
+        --aurresults = tblconcat(aurresults)
+--        print("done concating", os.time())
+--        print("decoding", os.time())
+--        local jsonresults = Json.Decode(aurresults)
+--        print("done decoding", os.time())
         local aurpkgs = {}
         if (type(jsonresults.results) ~= "table") then
             jsonresults.results = {}
@@ -472,13 +541,20 @@ local function sync_aur_trans(targets)
                     if (not found) then
                         printf("%s group not found, searching AUR...\n", targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
+                        local head = {
+                            ["Accept-Encoding"] = "gzip";
+                        }
                         inforesults = {}
                         local r, e = http.request {
                             url = infourl;
                             sink = ltn12.sink.table(inforesults);
+                            headers = head;
                         }
-                        inforesults = tblconcat(inforesults)
-                        local jsonresults = Json.Decode(inforesults)
+                        local inflated = zlib.inflate(tblconcat(inforesults))
+                        inforesults = inflated:read("*a")
+                        local jsonresults = yajl.to_value(inforesults)
+--                        inforesults = tblconcat(inforesults)
+--                        local jsonresults = Json.Decode(inforesults)
                         if (type(jsonresults.results) ~= "table") then
                             jsonresults.results = {}
                         end
@@ -626,7 +702,7 @@ local function aur_install(targets)
     local function download_extract(target)
         local user = os.getenv("SUDO_USER") or "root"
         local host = "aur.archlinux.org"
-        print(target)
+        --print(target)
         aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
         aur.dispatcher()
 --        print(string.format("/packages/%s/%s.tar.gz", target, target))
@@ -703,12 +779,18 @@ local function aur_install(targets)
         end
 
         local host = "aur.archlinux.org"
-        local pkgbuild = {}
+        local pkgbuild
+        local sinktbl = {}
+        local head = {
+            ["Accept-Encoding"] = "gzip";
+        }
         http.request {
             url = "http://"..host.."/packages/"..target.."/"..target.."/PKGBUILD";
-            sink = ltn12.sink.table(pkgbuild)
+            sink = ltn12.sink.table(sinktbl);
+            headers = head;
         }
-        pkgbuild = table.concat(pkgbuild)
+        local inflated = zlib.inflate(tblconcat(sinktbl))
+        pkgbuild = inflated:read("*a")
 --        print(pkgbuild)
 
         pkgbuild = pkgbuild:gsub("#.-\n", "\n")
@@ -1077,13 +1159,20 @@ local function sync_trans(targets)
                     if (not found) then
                         printf("%s group not found, searching AUR...\n", targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
+                        local head = {
+                            ["Accept-Encoding"] = "gzip";
+                        }
                         inforesults = {}
                         local r, e = http.request {
                             url = infourl;
                             sink = ltn12.sink.table(inforesults);
+                            headers = head;
                         }
-                        inforesults = tblconcat(inforesults)
-                        local jsonresults = Json.Decode(inforesults)
+                        local inflated = zlib.inflate(tblconcat(inforesults))
+                        inforesults = inflated:read("*a")
+                        local jsonresults = yajl.to_value(inforesults)
+--                        inforesults = tblconcat(inforesults)
+--                        local jsonresults = Json.Decode(inforesults)
                         if (type(jsonresults.results) ~= "table") then
                             jsonresults.results = {}
                         end
