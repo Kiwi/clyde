@@ -324,6 +324,14 @@ local function getopt_long(argv, sh_opts, long_opts, option_tbl)
 end
 local function parseargs()
 local longopts = {
+    --[[
+    --clyde specific options
+    --]]
+        {"aur",         "no_argument",      0,  'a'},
+    --[[
+    --pacman feature functions
+    --]]
+
         {"query",      "no_argument",       0, 'Q'},
         {"remove",     "no_argument",       0, 'R'},
         {"sync",       "no_argument",       0, 'S'},
@@ -388,6 +396,17 @@ local longopts = {
     end
 
     local lookuptbl = {
+        --[[
+        --clyde specific options
+        --]]
+        ['a'] = function()
+            config.op_s_search_aur_only = true
+            config.op_s_upgrade_aur = true
+        end;
+        --[[
+        --pacman feature functions
+        --]]
+
         ['Q'] = settrans('PM_OP_QUERY');
         ['R'] = settrans('PM_OP_REMOVE');
         ['S'] = settrans('PM_OP_SYNC');
@@ -514,6 +533,8 @@ local longopts = {
 --        ['OP_ARCH'] = function() end;
     }
     local shortopts = "RUQSTr:b:vkhscVfmnoldepqituwyg"
+    local clydeshortopts = "a"
+    shortopts = shortopts..clydeshortopts
     local opttable = {}
 
     for elem, option in getopt_long(arg, shortopts, longopts, opttable) do
