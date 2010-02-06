@@ -1,7 +1,7 @@
 clyde proposal
 -------------------
 
-Purpose: To write a transparent pacman wrapper with support for [unsupported] and user repositories.
+Purpose: To write a transparent makepkg wrapper with support for [unsupported] and user repositories.
 	
 Reasoning: Existing AUR helpers such as yogurt, slurpy, and aurbuild are notoriously lacking in features, as well as the basic functionality of pacman itself. The more common yaourt, while supporting the full pacman feature set, is written in bash and can be painfully slow. Additionally, none include the ability to build a decent GUI around them, and all current graphical interfaces to pacman/AUR are buggy at best.
 	
