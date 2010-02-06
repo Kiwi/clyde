@@ -9,14 +9,9 @@ local remove = require "clydelib.remove"
 local upgrade = require "clydelib.upgrade"
 local deptest = require "clydelib.deptest"
 local alpm = require "lualpm"
---require "luarocks.require"
---require "profiler"
 local util = require "clydelib.util"
 local utilcore = require "clydelib.utilcore"
 local signal = require "clydelib.signal"
---os.remove("profile")
---profiler.start("profile")
---for k,v in pairs(util) do print(k,v) end
 local needs_root = util.needs_root
 local printf = util.printf
 local lprintf = util.lprintf
@@ -27,51 +22,23 @@ local tblinsert = util.tblinsert
 local realpath = util.realpath
 local strsplit = util.strsplit
 local strtrim = util.strtrim
---local gettext = utilcore.gettext
 local g = utilcore.gettext
 local bindtextdomain = utilcore.bindtextdomain
 local textdomain = utilcore.textdomain
 local geteuid = utilcore.geteuid
---[[
-local function printf(...)
-    io.write(string.format(...))
-end
 
-local function basename(name)
-    return name:match("/(%w+)$")
-end
-
-local function cleanup(ret)
-    local release = alpm.release()
-    --TODO  logging if fail
-    if (type(config.configfile) == "userdata") then
-        config.configfile:close()
-    end
-
-    os.exit(release)
-end
-
-local function tblinsert(tbl, ins)
-    tbl[#tbl + 1] = ins
-end
---]]
 
 local ROOTDIR = "/"
 local CONFFILE = "/etc/pacman.conf"
 local DBPATH = "/var/lib/pacman/"
 local CACHEDIR = "/var/cache/pacman/pkg/"
 local LOGFILE = "/var/log/pacman.log"
---local clydeconf = "/home/kiwi/media/programs/lua/lualpm/config.lua"
 local clydeconf = require "clydelib.config"
 
 local PACKAGE = "clyde"
 local LOCALEDIR = "/usr/share/locale"
---for k, v in pairs(config) do print(k, v) end
 
 local function usage(op, myname)
-	--/* prefetch some strings for usage below, which moves a lot of calls
-	 --* out of gettext. */
-    --local g = gettext
     local str_opt = g("options")
     local str_file = g("file(s)")
     local str_pkg = g("package(s)")
@@ -213,19 +180,13 @@ local function getopt_long(argv, sh_opts, long_opts, option_tbl)
                 if options[option] then
                     if options[option].numarg > 0 then
                         if argument:sub(pos + 1) then
-                     --   print(argument)
---                        if argv[optindex + 1] then
                             return options[option].short, argument:sub(pos + 1)
-                        --else
-                --         end
                         else
                             print(basename(argv[0]) .. ": option '--" .. option .. "' requires an argument")
                         end
                     else
                         print(basename(argv[0]) .. ": option '--" .. option .. "' doesn\'t allow an argument")
                     end
-                --elseif argv[optindex + 1] and not argv[optindex + 1]:match("^%-") then
-                --    opttbl[#opttbl + 1] = argv[optindex + 1]
                 else
                     print(basename(argv[0]) .. ": unrecognized option '--" .. option .. "'")
                     exit = true
@@ -264,14 +225,9 @@ local function getopt_long(argv, sh_opts, long_opts, option_tbl)
                     break
                 end
             end
-            ---[[
         elseif argument:sub(1, 1) == "-" then
-            --print("short")
-            --for k, v in pairs(options) do print(k, v) end
---            local j
             for j = index, #argument do
                 local option = argument:sub(j, j)
---                print(option)
                 if options[option] then
                     if options[option].numarg > 0 then
                         if optindex == #argv then
@@ -289,17 +245,9 @@ local function getopt_long(argv, sh_opts, long_opts, option_tbl)
                             print(basename(argv[0]) .. ": option requires an argument -- '" .. option .. "'")
                         end
                     else
-                       -- if argv[optindex + 1] and not argv[optindex + 1]:match("^%-") then
---                            opttbl[#opttbl + 1] = argv[optindex + 1]
-                       --     optindex = optindex - 1
-                       --     index = index + 1
-                            --print("HHI")
-                       --     return options[option].short, nil
-                       -- else
-                            optindex = optindex - 1
-                            index = index + 1
-                            return options[option].short, nil
-                       -- end
+                        optindex = optindex - 1
+                        index = index + 1
+                        return options[option].short, nil
                     end
                 else
                     print(basename(argv[0]) .. ": invalid option -- '" .. option .. "'")
@@ -308,17 +256,13 @@ local function getopt_long(argv, sh_opts, long_opts, option_tbl)
                 end
             end
             index = 2
-            --]]
         else
-            --if #argv <= optindex then
-                if optindex <= #argv then
-                    local option = argv[optindex]
-                    opttbl[#opttbl +1] = argv[optindex]
-                end
-            --end
+            if optindex <= #argv then
+                local option = argv[optindex]
+                opttbl[#opttbl +1] = argv[optindex]
+            end
         end
-        end
---        print(index)
+    end
         if exit == true then cleanup(1) return nil end
     end
 end
@@ -497,7 +441,6 @@ local longopts = {
                 else
                     --TODO: logging
                     lprintf("LOG_ERROR", g("'%s' is not a valid debug level\n"), opt)
-                    --printf("'%s' is not a valid debug level\n", opt)
                     return 1
                 end
             else
@@ -513,7 +456,6 @@ local longopts = {
             local result = alpm.option_add_cachedir(opt)
             if (result ~= 0) then
                 lprintf("LOG_ERROR", g("problem adding cachedir '%s' (%s)\n"), opt, alpm.strerrorlast())
-                --printf("problem adding cachedir '%s' (%s)\n", opt, alpm.strerrorlast())
                 return 1
             end
         end;
@@ -541,7 +483,6 @@ local longopts = {
         if lookuptbl[elem] then
             lookuptbl[elem](option)
 --          TODO: check return code
---            print(elem, option)
         else
             print("not implemented yet, fix this")
         end
@@ -549,7 +490,6 @@ local longopts = {
 
     if (config.op == nil) then
         lprintf("LOG_ERROR", g("only one operation may be used at a time\n"))
-        --printf("error: only one operation may be used at a time\n")
         return 1
     end
 
@@ -582,7 +522,6 @@ local function setlibpaths()
         if (result ~= 0) then
 --            TODO: logging
             lprintf("LOG_ERROR", g("problem setting rootdir '%s' (%s)\n"), config.rootdir, alpm.strerrorlast())
-            --printf("problem setting rootdir '%s' (%s)\n", config.rootdir, alpm.strerrorlast())
             cleanup(ret)
         end
 
@@ -600,7 +539,6 @@ local function setlibpaths()
 
         if (result ~= 0) then
             eprintf("LOG_ERROR", g("problem setting dbpath '%s' (%s)\n"), config.dbpath, alpm.strerorrlast)
-            --printf("problem setting dbpath '%s' (%s)\n", config.dbpath, alpm.strerorrlast)
             cleanup(result)
         end
     end
@@ -610,7 +548,6 @@ local function setlibpaths()
 
         if (result ~= 0) then
             eprintf("LOG_ERROR", g("problem setting logfile '%s' (%s)\n"), config.logfile, alpm.strerrorlast)
-            --printf("problem setting logfile '%s' (%s)\n", config.logfile, alpm.strerrorlast)
             cleanup(result)
         end
     end
@@ -622,7 +559,6 @@ end
 
 local function config_init()
     config = clydeconf
---    config = loadfile(clydeconf)()
     tblinsert(config.logmask, "LOG_ERROR")
     tblinsert(config.logmask, "LOG_WARNING")
     config.configfile = CONFFILE
@@ -788,7 +724,6 @@ local function _parseconfig(file, givensection, givendb)
             end
 
             if (line:sub(1,1) == '[') and (line:sub(-1) == ']') then
-                --print(line)
                 section = line:match("^%[(.+)%]$")
                 lprintf("LOG_DEBUG", "config: new section '%s'\n", section)
                 if #section == 0 then
@@ -807,10 +742,8 @@ local function _parseconfig(file, givensection, givendb)
                     end
                 end
             else
-                --print(line, "line")
                 local key, str = line:match("(%S+)%s*=%s*(.*)")
                 if (not key) then key = line end
-                --print(key, str)
                 if (not section) then
                     lprintf("LOG_ERROR", g("config file %s, line %d: All directives must belong to a section.\n"),
                         file, linenum)
@@ -939,52 +872,28 @@ function main()
     end
 
     db_local = alpm.db_register_local()
-    --core = alpm.db_register_sync("core")
-    --extra = alpm.db_register_sync("extra")
-    --local server = "ftp://mirror.cs.vt.edu/pub/ArchLinux/extra/os/x86_64"
-    --extra:db_setserver(server)
-    --community = alpm.db_register_sync("community")
     if (not db_local) then
         eprintf("LOG_ERROR", g("could not register 'local' database (%s)\n"), alpm.strerrorlast())
-        --printf("could not register 'local' database (%s)\n", alpm.strerrorlast())
         cleanup(1)
     end
     local lookuptbl = {
         ['PM_OP_QUERY'] = function() query.main(pm_targets) end;
---        ['PM_OP_QUERY'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/query.lua") end;
         ['PM_OP_UPGRADE'] = function() upgrade.main(pm_targets) end;
---        ['PM_OP_UPGRADE'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/upgrade.lua") end;
         ['PM_OP_REMOVE'] = function() remove.main(pm_targets) end;
---        ['PM_OP_REMOVE'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/remove.lua") end;
         ['PM_OP_SYNC'] = function() sync.main(pm_targets) end;
---        ['PM_OP_SYNC'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/sync.lua") end;
         ['PM_OP_DEPTEST'] = function() deptest.main(pm_targets) end;
---        ['PM_OP_DEPTEST'] = function() dofile("/home/kiwi/media/programs/lua/lualpm/deptest.lua") end;
     }
     if (config.op ~= true) then
         lookuptbl[config.op]()
     else
         --TODO: error logging and error message...
         eprintf("LOG_ERROR", g("no operation specified (use -h for help)\n"))
-        --printf("error: no operation specified (use -h for help)\n")
         ret = 1
     end
---    print(alpm.release())
 
 
 
-    --print("HI")
     cleanup(ret)
 end
 
 main()
---alpm.release()
-
-
---profiler.stop()
-
-
-
---cleanup()
---for k,v in pairs(config) do print(k, v) end
---print(config.op, config.op_q_changelog, config.op_q_deps, config.op_q_explicit)
