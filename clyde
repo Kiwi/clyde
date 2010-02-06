@@ -319,7 +319,7 @@ local function getopt_long(argv, sh_opts, long_opts, option_tbl)
         end
         end
 --        print(index)
---        if exit == true then return nil end
+        if exit == true then cleanup(1) return nil end
     end
 end
 local function parseargs()
