@@ -247,7 +247,7 @@ end
 --        print("reading decompressed stream", os.time())
         aurresults = inflated:read("*a")
         --print(aurresults)
-        local jsonresults = yajl.to_value(aurresults)
+        local jsonresults = yajl.to_value(aurresults) or {}
 --        aurresults = {gd:read("*a")}
 --        print("done reading", os.time())
 --        print(#aurresults)
@@ -552,7 +552,7 @@ local function sync_aur_trans(targets)
                         }
                         local inflated = zlib.inflate(tblconcat(inforesults))
                         inforesults = inflated:read("*a")
-                        local jsonresults = yajl.to_value(inforesults)
+                        local jsonresults =  yajl.to_value(inforesults) or {}
 --                        inforesults = tblconcat(inforesults)
 --                        local jsonresults = Json.Decode(inforesults)
                         if (type(jsonresults.results) ~= "table") then
