@@ -702,17 +702,12 @@ local function aur_install(targets)
     local function download_extract(target)
         local user = os.getenv("SUDO_USER") or "root"
         local host = "aur.archlinux.org"
-        --print(target)
         aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
         aur.dispatcher()
---        print(string.format("/packages/%s/%s.tar.gz", target, target))
         lfs.chdir("/tmp/clyde/"..target)
         os.execute("bsdtar -xf " .. target .. ".tar.gz")
-        os.execute("chmod 777 -R *")
-        os.execute("chown "..user..":users -R /tmp/clyde/*")
-        --print(lfs.chdir(lfs.currentdir().. "/"..target))
-        --print(lfs.currentdir())
-        --os.execute("ls")
+        os.execute("chown "..user..":users -R /tmp/clyde")
+        os.execute("chmod 700 -R /tmp/clyde/"..target)
     end
     --download_extract("clamz")
 
