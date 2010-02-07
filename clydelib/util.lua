@@ -322,32 +322,24 @@ function string_display(title, string)
     printf("\n")
 end
 
+local function checkempty(tbl)
+    for i, v in ipairs(tbl) do
+        if v ~= string.rep(" ", #v) then
+            return false
+        end
+    end
+    return true
+end
+
 function list_display(title, list)
     local len, cols
     if (title and type(title) == "string") then
         len = #title
         printf("%s ", title)
     end
-    if (not next(list)) then
+    if (not next(list) or checkempty(list)) then
         printf("%s\n", "None")
     else
-        --[[
-        for i, val in ipairs(list) do
-            cols = len
-            local vallen = #val
-            vallen = vallen + 2
-            local maxcols = getcols()
-            if (vallen + cols > maxcols) then
-                cols = len
-                printf("\n")
-                for i=1, len do
-                    printf(" ")
-                end
-            end
-            printf("%s  ", val)
-            cols = cols + vallen
-        end
-        --]]
         local str = table.concat(list, "  ")
         indentprint(str, len, 2)
         printf("  ")
@@ -362,7 +354,7 @@ function list_display_linebreak(title, list)
         printf("%s ", title)
     end
 
-    if (not next(list)) then
+    if (not next(list) or checkempty(list)) then
         printf("%s\n", "None")
     else
         indentprint(list[1], len)
@@ -525,7 +517,7 @@ end
 function getbasharray(file, str)
     return io.popen(string.format([[
         /bin/bash -c '. %s
-        echo "${%s}"'
+        echo "${%s[@]}"'
         ]], file, str)):read("*l")
 end
 
