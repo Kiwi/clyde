@@ -522,6 +522,20 @@ function mkversion(s)
         return t;
 end
 
+function getbasharray(file, str)
+    return io.popen(string.format([[
+        /bin/bash -c '. %s
+        echo "${%s}"'
+        ]], file, str)):read("*l")
+end
+
+function getpkgbuildarray(carch, pkgbuild, str)
+    return io.popen(string.format([[
+        /bin/bash -c 'CARCH=%s
+        . %s
+        echo "${%s[@]}"'
+        ]], carch, pkgbuild, str)):read("*l")
+end
 --a = mkversion "2.0.3"
 --b = mkversion "2.1.0"
 
