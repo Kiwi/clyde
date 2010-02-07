@@ -345,9 +345,21 @@ local function sync_info(syncs, targets)
                     end
                 end
                 if (not foundpkg) then
-                    eprintf("LOG_ERROR", g("package '%s' was not found\n"), pkgstr)
+                    local infourl = aururl..aurmethod.info.."arg="..url.escape(target)
+                    local inforesults = aur.getgzip(infourl)
+                    local jsonresults = yajl.to_value(inforesults)
+
+                    if (type(jsonresults.results) ~= "table") then
+                        jsonresults.results = {}
+                    end
+
+                    if (jsonresults.results.Name) then
+                            packages.dump_pkg_sync_aur(target)
+                    else
+                        eprintf("LOG_ERROR", g("package '%s' was not found\n"), pkgstr)
                     --printf("error: package '%s' was not found\n", pkgstr)
-                    ret = ret + 1
+                        ret = ret + 1
+                    end
                 end
             end
         end
@@ -427,7 +439,6 @@ local function sync_aur_trans(targets)
     local found
     local transret
     local data = {}
-    local inforesults = {}
     local aurpkgs = {}
     local sync_dbs = alpm.option_get_syncdbs()
     local function transcleanup()
@@ -1013,7 +1024,6 @@ local function sync_trans(targets)
     local found
     local transret
     local data = {}
-    local inforesults = {}
     local aurpkgs = {}
     local sync_dbs = alpm.option_get_syncdbs()
     local function transcleanup()
