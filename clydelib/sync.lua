@@ -755,10 +755,44 @@ local function aur_install(targets)
         end
     end
 --installpkgs({"clamz"})
+
+    local function bgetcarch(makepkg)
+        return io.popen(string.format([[
+        /bin/bash -c '. %s
+        echo "$CARCH"'
+        ]], makepkg)):read("*l")
+    end
+
+    local function bgetdepends(carch, pkgbuild)
+        return io.popen(string.format([[
+        /bin/bash -c 'CARCH=%s
+        . %s
+        echo "${depends[@]}"
+        '
+        ]], carch, pkgbuild)):read("*l")
+    end
+
+    local function bgetmakedepends(carch, pkgbuild)
+        return io.popen(string.format([[
+        /bin/bash -c 'CARCH=%s
+        . %s
+        echo "${makedepends[@]}"
+        '
+        ]], carch, pkgbuild)):read("*l")
+    end
+
+    local function bgetoptdepends(carch, pkgbuild)
+        return io.popen(string.format([[
+        /bin/bash -c 'CARCH=%s
+        . %s
+        echo "${optdepends[@]}"
+        '
+        ]], carch, pkgbuild)):read("*l")
+    end
+
     local function getdepends(target)
-        local ret = {}
-        local ret2 = {}
-        if provided[target] then return {}, {} end
+        local ret, ret2, ret3 = {}, {}, {}
+        if provided[target] then return {}, {}, {} end
         local sync_dbs = alpm.option_get_syncdbs()
         for i, db in ipairs(sync_dbs) do
             local package = db:db_get_pkg(target)
@@ -769,7 +803,7 @@ local function aur_install(targets)
                     tblinsert(ret, dep:dep_compute_string())
                 end
                 --print("HI")
-                return ret, {}
+                return ret, {}, {}
             end
         end
 
@@ -788,6 +822,16 @@ local function aur_install(targets)
         pkgbuild = inflated:read("*a")
 --        print(pkgbuild)
 
+        local tmp = os.tmpname()
+        local tmpfile = io.open(tmp, "w")
+        tmpfile:write(pkgbuild)
+        tmpfile:close()
+        local carch = bgetcarch("/etc/makepkg.conf")
+        local depends = bgetdepends(carch, tmp)
+        local makedepends = bgetmakedepends(carch, tmp)
+        local optdepends = bgetoptdepends(carch, tmp)
+--[[        tmpfile:write(pkgbuild)
+
         pkgbuild = pkgbuild:gsub("#.-\n", "\n")
         local makedepends = pkgbuild:match("makedepends=%((.-)%)") or ""
         pkgbuild = pkgbuild:gsub("makedepends=%((.-)%)", "")
@@ -798,11 +842,13 @@ local function aur_install(targets)
 
 --        print(depends, makedepends, "depends", "makedepends")
 --        print(depends)
+--        ]]
         ret = strsplit(depends, " ") or {}
         ret2 = strsplit(makedepends, " ") or {}
+        ret3 = strsplit(optdepends, " ") or {}
 --        print("RET", unpack(ret))
 --        print("RET2",unpack(ret2))
-        return ret, ret2
+        return ret, ret2, ret3
     end
 
 --    updateprovided(provided)
