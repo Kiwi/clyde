@@ -35,6 +35,8 @@ local trans_init = util.trans_init
 local yesno = util.yesno
 local noyes = util.noyes
 local trans_release = util.trans_release
+local getbasharray = util.getbasharray
+local getpkgbuildarray = util.getpkgbuildarray
 local access = utilcore.access
 local strerror = utilcore.strerror
 local g = utilcore.gettext
@@ -756,40 +758,6 @@ local function aur_install(targets)
     end
 --installpkgs({"clamz"})
 
-    local function bgetcarch(makepkg)
-        return io.popen(string.format([[
-        /bin/bash -c '. %s
-        echo "$CARCH"'
-        ]], makepkg)):read("*l")
-    end
-
-    local function bgetdepends(carch, pkgbuild)
-        return io.popen(string.format([[
-        /bin/bash -c 'CARCH=%s
-        . %s
-        echo "${depends[@]}"
-        '
-        ]], carch, pkgbuild)):read("*l")
-    end
-
-    local function bgetmakedepends(carch, pkgbuild)
-        return io.popen(string.format([[
-        /bin/bash -c 'CARCH=%s
-        . %s
-        echo "${makedepends[@]}"
-        '
-        ]], carch, pkgbuild)):read("*l")
-    end
-
-    local function bgetoptdepends(carch, pkgbuild)
-        return io.popen(string.format([[
-        /bin/bash -c 'CARCH=%s
-        . %s
-        echo "${optdepends[@]}"
-        '
-        ]], carch, pkgbuild)):read("*l")
-    end
-
     local function getdepends(target)
         local ret, ret2, ret3 = {}, {}, {}
         if provided[target] then return {}, {}, {} end
@@ -826,10 +794,10 @@ local function aur_install(targets)
         local tmpfile = io.open(tmp, "w")
         tmpfile:write(pkgbuild)
         tmpfile:close()
-        local carch = bgetcarch("/etc/makepkg.conf")
-        local depends = bgetdepends(carch, tmp)
-        local makedepends = bgetmakedepends(carch, tmp)
-        local optdepends = bgetoptdepends(carch, tmp)
+        local carch = getbasharray("/etc/makepkg.conf", "CARCH")
+        local depends = getpkgbuildarray(carch, tmp, "depends")
+        local makedepends = getpkgbuildarray(carch, tmp, "makedepends")
+        local optdepends = getpkgbuildarray(carch, tmp, "optdepends")
         os.remove(tmp)
 --[[        tmpfile:write(pkgbuild)
 
