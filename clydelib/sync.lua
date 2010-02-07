@@ -830,6 +830,7 @@ local function aur_install(targets)
         local depends = bgetdepends(carch, tmp)
         local makedepends = bgetmakedepends(carch, tmp)
         local optdepends = bgetoptdepends(carch, tmp)
+        os.remove(tmp)
 --[[        tmpfile:write(pkgbuild)
 
         pkgbuild = pkgbuild:gsub("#.-\n", "\n")
