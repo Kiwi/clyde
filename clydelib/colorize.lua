@@ -2,7 +2,7 @@ local pairs = pairs
 local tostring = tostring
 local setmetatable = setmetatable
 
-module 'colorize'
+module(..., package.seeall)
 
 local colormt = {}
 
