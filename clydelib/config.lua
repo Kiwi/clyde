@@ -1,14 +1,14 @@
 
 return {
-    --[[
-    --clyde specific options
-    --]]
+--[[
+--clyde specific options
+--]]
 ['op_s_search_aur_only'] = false;
 ['op_s_upgrade_aur'] = false;
-
-    --[[
-    --pacman feature functions
-    --]]
+['op_use_color'] = nil;
+--[[
+--pacman feature functions
+--]]
 ['op'] = true;
 ['quiet'] = false;
 ['verbose'] = 0;
