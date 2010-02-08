@@ -193,9 +193,9 @@ local function sync_search(syncs, targets)
                 if (not config.quiet) then
                     local dbcolor = dbcolors[db:db_get_name()] or C.magb
                     if (localdb:db_get_pkg(pkg:pkg_get_name())) then
-                        printf("%s/%s %s %s", dbcolor(db:db_get_name()), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold.."[installed]"..C.reset)
+                        printf("%s%s %s %s", dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold.."[installed]"..C.reset)
                     else
-                        printf("%s/%s %s", dbcolor(db:db_get_name()), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
+                        printf("%s%s %s", dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
                     end
                 else
                     printf("%s", C.bright(pkg:pkg_get_name()))
@@ -221,7 +221,7 @@ local function sync_search(syncs, targets)
                     end
 
                     printf("\n    ")
-                    indentprint(pkg:pkg_get_desc(), 3)
+                    indentprint(C.italic(pkg:pkg_get_desc()), 3)
                 end
                 printf("\n")
             end
@@ -259,7 +259,7 @@ end
                     printf("%s%s %s %s\n    ", C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."("..pkg.votes..")"..C.reset)
 --                    printf("aur/%s %s (%s)\n    ", pkg.name, pkg.version, pkg.votes)
                 end
-                indentprint(pkg.description, 3)
+                indentprint(C.italic(pkg.description), 3)
                 printf("\n")
             else
                 printf("%s\n", C.bright(pkg.name))
