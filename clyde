@@ -672,11 +672,11 @@ local function _parseconfig(file, givensection, givendb)
         end
     end;
     --TODO: add xfercommand
-    --['XferCommand'] = function(str)
-    --config.xfercommand = str
-    --alpm.option_set_fetchcb(download_with_xfercommand)
-    --lprintf("LOG_DEBUG", config: xfercommand: %s\n")
-    --end
+    ['XferCommand'] = function(str)
+        config.xfercommand = str
+        --alpm.option_set_fetchcb(download_with_xfercommand)
+        lprintf("LOG_DEBUG", "config: xfercommand: %s\n", str)
+    end;
     ['CleanMethod'] = function(str)
         if (str == "KeepInstalled") then
             config.cleanmethod = "CLEAN_KEEPINST"
