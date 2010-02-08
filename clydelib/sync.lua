@@ -347,7 +347,7 @@ local function sync_info(syncs, targets)
                 if (not foundpkg) then
                     local infourl = aururl..aurmethod.info.."arg="..url.escape(target)
                     local inforesults = aur.getgzip(infourl)
-                    local jsonresults = yajl.to_value(inforesults)
+                    local jsonresults = yajl.to_value(inforesults) or {}
 
                     if (type(jsonresults.results) ~= "table") then
                         jsonresults.results = {}
@@ -1109,7 +1109,7 @@ local function sync_trans(targets)
                         printf("%s group not found, searching AUR...\n", targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
                         local inforesults = aur.getgzip(infourl)
-                        local jsonresults = yajl.to_value(inforesults)
+                        local jsonresults = yajl.to_value(inforesults) or {}
 
                         if (type(jsonresults.results) ~= "table") then
                             jsonresults.results = {}
