@@ -192,12 +192,9 @@ local function query_search(targets)
         if (not config.quiet) then
             if packages[name] then
                 local dbcolor = dbcolors[packages[name]] or C.magb
-
                 printf("%s%s %s", dbcolor(packages[name].."/"), C.bright(name), C.greb(pkg:pkg_get_version()))
             else
-
                 printf("%s%s %s", C.yelb("local/"), C.bright(name), C.greb(pkg:pkg_get_version()))
-            --printf("local/%s %s", pkg:pkg_get_name(), pkg:pkg_get_version())
             end
         else
             printf("%s", C.bright(name))
@@ -360,8 +357,29 @@ local function check(pkg)
     end
 end
 
+local dbcolors = {
+        extra = C.greb;
+        core = C.redb;
+        community = C.magb;
+    }
+
+local packagetbl = {}
+local repos = {}
+
 --display
 local function display(pkg)
+    if (not next(packagetbl)) then
+
+        repos = alpm.option_get_syncdbs()
+
+        for i, repo in ipairs(repos) do
+            local pkgcache = repo:db_get_pkgcache()
+            for l, pkg in ipairs(pkgcache) do
+                packagetbl[pkg:pkg_get_name()] = repo:db_get_name()
+            end
+        end
+    end
+
     ret = 0
     if (config.op_q_info ~= 0) then
         if (config.op_q_isfile) then
@@ -382,17 +400,21 @@ local function display(pkg)
     end
     if (config.op_q_info == 0 and not config.op_q_list
             and not config.op_q_changelog and not config.op_q_check) then
+        local name = pkg:pkg_get_name()
         if (not config.quiet) then
-            printf("%s %s\n", pkg:pkg_get_name(), pkg:pkg_get_version(pkg))
+            local dbcolor = dbcolors[packagetbl[name]] or C.magb
+            if packagetbl[name] then
+                printf("%s%s %s\n", dbcolor(packagetbl[name].."/"), C.bright(name), C.greb(pkg:pkg_get_version(pkg)))
+            else
+                printf("%s%s %s\n", C.yelb("local/"), C.bright(name), C.greb(pkg:pkg_get_version(pkg)))
+            end
         else
-            printf("%s\n", pkg:pkg_get_name())
+            printf("%s\n", C.bright(name))
         end
     end
 
     return ret
 end
-
-
 
 
 
