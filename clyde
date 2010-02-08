@@ -3,6 +3,7 @@ package.cpath = "/usr/lib/lua/5.1/?.so;"..package.cpath
 package.path ="/usr/share/lua/5.1/?.lua;"..package.path
 package.cpath = "/home/kiwi/media/programs/lua/clyde/?.so;"..package.cpath
 package.path ="/home/kiwi/media/programs/lua/clyde/?.lua;"..package.path
+colorize = require "clydelib.colorize"
 local sync = require "clydelib.sync"
 local query = require "clydelib.query"
 local remove = require "clydelib.remove"
@@ -272,6 +273,8 @@ local longopts = {
     --clyde specific options
     --]]
         {"aur",         "no_argument",      0,  'a'},
+        {"nocolor",     "no_argument",      0,  'OP_NOCOLOR'},
+        {"color",       "no_argument",      0,  'OP_COLOR'},
     --[[
     --pacman feature functions
     --]]
@@ -346,6 +349,14 @@ local longopts = {
         ['a'] = function()
             config.op_s_search_aur_only = true
             config.op_s_upgrade_aur = true
+        end;
+        ['OP_NOCOLOR'] = function()
+            config.op_use_color = false
+            colorize.disable()
+        end;
+        ['OP_COLOR'] = function()
+            config.op_use_color = true
+            colorize.enable()
         end;
         --[[
         --pacman feature functions
@@ -815,6 +826,10 @@ end
 
 
 function main()
+    config_init()
+    if (utilcore.isatty(1) == 0 and not config.op_use_color) then
+        colorize.disable()
+    end
     local ret = 0
     signal.signal("SIGINT", function()
         printf("\nInterrupt signal received\n\n")
@@ -831,7 +846,6 @@ function main()
     local myuid = geteuid()
     localize()
     alpm.initialize()
-    config_init()
     alpm.option_set_root(ROOTDIR)
     alpm.option_set_dbpath(DBPATH)
     alpm.option_set_logfile(LOGFILE)
