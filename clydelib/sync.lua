@@ -193,9 +193,12 @@ local function sync_search(syncs, targets)
                 if (not config.quiet) then
                     local dbcolor = dbcolors[db:db_get_name()] or C.magb
                     if (localdb:db_get_pkg(pkg:pkg_get_name())) then
+<<<<<<< HEAD
                         printf("%s%s %s %s", dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold.."[installed]"..C.reset)
                     else
                         printf("%s%s %s", dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
+=======
+>>>>>>> [sync.lua] -Ss colors
                     end
                 else
                     printf("%s", C.bright(pkg:pkg_get_name()))
