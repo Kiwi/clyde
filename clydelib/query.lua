@@ -1,6 +1,7 @@
 module(..., package.seeall)
 local lfs = require "lfs"
 local alpm = require "lualpm"
+local C = colorize
 local util = require "clydelib.util"
 local utilcore = require "clydelib.utilcore"
 local packages = require "clydelib.packages"
@@ -157,9 +158,22 @@ end
 
 --]]
 local function query_search(targets)
+    local dbcolors = {
+        extra = C.greb;
+        core = C.redb;
+        community = C.magb;
+    }
     local searchlist
     local freelist
---    local grp
+    local packages = {}
+    local repos = alpm.option_get_syncdbs()
+
+    for i, repo in ipairs(repos) do
+        local pkgcache = repo:db_get_pkgcache()
+        for l, pkg in ipairs(pkgcache) do
+            packages[pkg:pkg_get_name()] = repo:db_get_name()
+        end
+    end
 
     if (targets and next(targets)) then
         searchlist = db_local:db_search(targets)
@@ -174,10 +188,19 @@ local function query_search(targets)
     end
 
     for i, pkg in ipairs(searchlist) do
+        local name = pkg:pkg_get_name()
         if (not config.quiet) then
-            printf("local/%s %s", pkg:pkg_get_name(), pkg:pkg_get_version())
+            if packages[name] then
+                local dbcolor = dbcolors[packages[name]] or C.magb
+
+                printf("%s%s %s", dbcolor(packages[name].."/"), C.bright(name), C.greb(pkg:pkg_get_version()))
+            else
+
+                printf("%s%s %s", C.yelb("local/"), C.bright(name), C.greb(pkg:pkg_get_version()))
+            --printf("local/%s %s", pkg:pkg_get_name(), pkg:pkg_get_version())
+            end
         else
-            printf("%s", pkg:pkg_get_name())
+            printf("%s", C.bright(name))
         end
 
         if (not config.quiet and config.showsize) then
@@ -190,18 +213,18 @@ local function query_search(targets)
             local grp = pkg:pkg_get_groups()
             if (next(grp)) then
                 local size = #grp
-                printf(" (")
+                printf(C.blub.." (")
                 for i, group in ipairs(grp) do
                     printf("%s", group)
                     if i < size then
                         printf(" ")
                     end
                 end
-                printf(")")
+                printf(")"..C.reset)
             end
 
             printf("\n    ")
-            indentprint(pkg:pkg_get_desc(), 3)
+            indentprint(C.italic(pkg:pkg_get_desc()), 3)
         end
         print()
     end
