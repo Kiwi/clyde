@@ -70,7 +70,16 @@ local colors = {
 
 }
 
-for c, v in pairs(colors) do
-    _M[c] = makecolor(v)
+function enable()
+    for k, v in pairs(colors) do
+        _M[k] = makecolor(v)
+    end
 end
 
+function disable()
+    for k, v in pairs(colors) do
+        _M[k] = makecolor("")
+    end
+end
+
+enable()
