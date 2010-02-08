@@ -29,6 +29,7 @@ local colors = {
     ['clear'] =     '\27[0m',
     ['bright'] =    '\27[1m',
     ['dim'] =       '\27[2m',
+    ['italic']=     '\27[3m',
     ['under'] =     '\27[4m',
     ['blink'] =     '\27[5m',
     ['reverse'] =   '\27[7m',
