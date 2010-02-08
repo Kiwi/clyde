@@ -249,6 +249,7 @@ pkg)
     --TODO add dump_pkg_backups
     printf("\n")
 --    depstrings = nil
+    os.remove(tmp)
 end
 
 
