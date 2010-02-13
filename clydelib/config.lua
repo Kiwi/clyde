@@ -5,11 +5,11 @@ return {
     --]]
 ['op_s_search_aur_only'] = false;
 ['op_s_upgrade_aur'] = false;
-
+['op_use_color'] = nil;
     --[[
     --pacman feature functions
     --]]
-['op'] = true;
+['op'] = "PM_OP_MAIN";
 ['quiet'] = false;
 ['verbose'] = 0;
 ['version'] = false;
