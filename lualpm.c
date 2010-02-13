@@ -1481,10 +1481,6 @@ static alpm_list_t **push_alpmlist_box(lua_State *L)
 static int lalpm_initialize(lua_State *L)
 {
     const int result = alpm_initialize();
-    if (!lua_pushthread(L)) {
-        luaL_error(L, "Can only initialize alpm from the main thread.");
-    }
-    GlobalState = L;
     lua_pushnumber(L, result);
     return 1;
 }
@@ -2322,6 +2318,11 @@ static luaL_Reg const pkg_funcs[] =
 
 int luaopen_lualpm(lua_State *L)
 {
+    if (!lua_pushthread(L)) {
+        luaL_error(L, "Can only initialize alpm from the main thread.");
+    }
+    GlobalState = L;
+
     lua_newtable(L);
     luaL_register(L, NULL, pkg_funcs);
 
