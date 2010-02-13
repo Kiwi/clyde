@@ -2,6 +2,7 @@
  * gcc -W -Wall -lalpm `pkg-config --cflags lua` -fPIC -shared -o lualpm.so lualpm.c
  * gcc -W -Wall -O2 -lalpm `pkg-config --cflags lua` -fPIC -shared -o lualpm.so lualpm.c -pedantic -std=c99  -D_GNU_SOURCE
  */
+#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
@@ -15,6 +16,20 @@
 
 #include <alpm.h>
 #include <alpm_list.h>
+
+/* A global is required for alpm C -> Lua gateways to get their Lua
+ * goodness from.  Unfortunately alpm callbacks have no userdata or
+ * other pointer which the client could use to send their own
+ * parameters in. */
+static lua_State *GlobalState;
+
+static int
+push_string(lua_State *L, char const *s)
+{
+    if (!s) lua_pushnil(L);
+    else lua_pushstring(L, s);
+    return 1;
+}
 
 typedef struct changelog {
     void *fp;
@@ -1466,8 +1481,11 @@ static alpm_list_t **push_alpmlist_box(lua_State *L)
 static int lalpm_initialize(lua_State *L)
 {
     const int result = alpm_initialize();
+    if (!lua_pushthread(L)) {
+        luaL_error(L, "Can only initialize alpm from the main thread.");
+    }
+    GlobalState = L;
     lua_pushnumber(L, result);
-
     return 1;
 }
 
@@ -1915,9 +1933,140 @@ static int lalpm_trans_get_pkgs(lua_State *L)
 
     return 1;
 }
-void noop_progress_fun(pmtransprog_t t, char const *s, int a, int b, int c)
+
+static int
+push_pmtransprog(lua_State *L, pmtransprog_t t)
 {
-    printf("%d %s %d %d %d hello from progress_cb\n", t, s, a, b, c);
+    switch (t) {
+#define f(x) case PM_TRANS_PROGRESS_ ## x: return push_string(L, "T_P_" #x)
+        f(ADD_START);
+        f(UPGRADE_START);
+        f(REMOVE_START);
+        f(CONFLICTS_START);
+#undef f
+    default:
+        assert(0 && "[BUG] unexpected pmtransprog_t");
+    }
+    return 0;
+}
+
+static void
+log_internal_error(const char *message, const char *context)
+{
+    /* TODO: send the error message to the libalpm logger here? */
+    fprintf(stderr, "lualpm %s: %s\n", context, message);
+}
+
+static void
+handle_pcall_error_unprotected(
+    lua_State  *L,
+    int         err,
+    const char *context)
+{
+    switch (err) {
+    case 0:                     /* success */
+        break;
+    case LUA_ERRMEM:
+        log_internal_error("lualpm: ran out of memory calling Lua", context);
+        break;
+    case LUA_ERRERR:
+    case LUA_ERRRUN:
+        /* If a pcall fails it will push an error message or error
+         * object on the stack.  The following usage of lua_type()
+         * and lua_tostring() is safe by inspection of the Lua source
+         * code -- this particular usage cannot throw Lua errors. */
+        if (lua_type(L, -1) == LUA_TSTRING) {
+            char const *msg = lua_tostring(L, -1);
+            log_internal_error(msg, context);
+        }
+        else {
+            log_internal_error("lualpm: error calling Lua "
+                               "(received a non-string error object)",
+                               context);
+        }
+    default:
+        log_internal_error("lualpm: unknown error while calling Lua",
+                           context);
+    }
+}
+
+/* We use addresses of structs describing a callback as the key to a
+ * callback in the Lua registry. */
+typedef struct {
+    const char *name;
+} callback_key_t;
+
+static callback_key_t trans_cb_progress_key[1] = {{ "transaction progress" }};
+static callback_key_t trans_cb_event_key[1] = {{ "transaction event" }};
+static callback_key_t trans_cb_conv_key[1] = {{ "transaction conversation" }};
+
+static void
+register_callback(lua_State *L, callback_key_t *key, int narg)
+{
+    lua_pushlightuserdata(L, key);
+    lua_pushvalue(L, narg);
+    lua_settable(L, LUA_REGISTRYINDEX);
+}
+
+static void
+get_callback(lua_State *L, callback_key_t *key)
+{
+    lua_pushlightuserdata(L, key);
+    lua_gettable(L, LUA_REGISTRYINDEX);
+    if (lua_isnil(L, -1)) {
+        luaL_error(L, "no %s callback set!", key->name);
+    }
+}
+
+struct progress_cb_args {
+    pmtransprog_t  progress_type;
+    const char    *pkg_name;
+    int            percent;
+    int            pkg_count;
+    int            pkg_current;
+};
+
+/* This is a protected gateway for the progress callback.  It receives
+ * the progress callback arguments on the stack as a lightuserdata
+ * pointing to a struct progress_cb_args. */
+static int
+progress_cb_gateway_protected(lua_State *L)
+{
+    struct progress_cb_args *args = lua_touserdata(L, 1);
+
+    /* We'll look for a callback to call in the registry. */
+    get_callback(L, trans_cb_progress_key);
+    push_pmtransprog(L, args->progress_type);
+    push_string(L, args->pkg_name);
+    lua_pushnumber(L, args->percent);
+    lua_pushnumber(L, args->pkg_count);
+    lua_pushnumber(L, args->pkg_current);
+    lua_call(L, 3, 0);
+
+    return 0;
+}
+
+/* This is called by libalpm whenever a transaction progress event
+ * occurs.  The context of the call is such that no Lua API functions
+ * which may throw errors are allowed since that would cause a setjmp
+ * past libalpm's call frames.  Instead we wrap the arguments into a
+ * struct and transfer control to a protected gateway for further
+ * processing. */
+static void
+progress_cb_gateway_unprotected(pmtransprog_t t, const char *s, int a, int b, int c)
+{
+    lua_State *L = GlobalState;
+    struct progress_cb_args args[1];
+    int err;
+    assert(L && "[BUG] no global Lua state in progress callback");
+    args->progress_type = t;
+    args->pkg_name = s;
+    args->percent = a;
+    args->pkg_count = b;
+    args->pkg_current = c;
+    err = lua_cpcall(L, progress_cb_gateway_protected, args);
+    if (err)
+        handle_pcall_error_unprotected(L, err, "progress callback");
 }
 
 /* int alpm_trans_init(pmtranstype_t type, pmtransflag_t flags,
@@ -1927,12 +2076,13 @@ static int lalpm_trans_init(lua_State *L)
 {
     pmtranstype_t type = lstring_to_transtype(L, 1);
     pmtransflag_t flags = lstring_table_to_transflag(L, 2);
-    alpm_trans_cb_event cb_event = NULL;
-    alpm_trans_cb_conv conv = NULL;
-    alpm_trans_cb_progress cb_progress = NULL;
-    //alpm_trans_cb_progress cb_progress = noop_progress_fun;
-//    printf("HI");
-    const int result = alpm_trans_init(type, flags, cb_event, conv, cb_progress);
+    register_callback(L, trans_cb_event_key, 3);
+    register_callback(L, trans_cb_conv_key, 4);
+    register_callback(L, trans_cb_progress_key, 5);
+    const int result = alpm_trans_init(type, flags,
+                                       NULL,
+                                       NULL,
+                                       progress_cb_gateway_unprotected);
     lua_pushnumber(L, result);
     return 1;
 }
