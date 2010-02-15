@@ -1592,13 +1592,14 @@ dl_cb_gateway_protected(lua_State *L)
 
     return 0;
 }
+
 static void
 dl_cb_gateway_unprotected(const char *f, off_t x, off_t t)
 {
     lua_State *L = GlobalState;
     struct dl_cb_args args[1];
     int err;
-    assert(L && "[BUG] no global Lua state in progress callback");
+    assert(L && "[BUG] no global Lua state in download progress callback");
     args->filename = f;
     args->xfered = x;
     args->total = t;
@@ -1607,6 +1608,7 @@ dl_cb_gateway_unprotected(const char *f, off_t x, off_t t)
         handle_pcall_error_unprotected(L, err, "download callback");
     }
 }
+
 static int lalpm_option_set_dlcb(lua_State *L)
 {
     register_callback(L, dl_cb_key, 1);
@@ -1620,9 +1622,44 @@ static int lalpm_option_set_dlcb(lua_State *L)
 
 /* alpm_cb_totaldl alpm_option_get_totaldlcb(); */
 /* void alpm_option_set_totaldlcb(alpm_cb_totaldl cb); */
+static callback_key_t totaldl_cb_key[1] = {{ "total download progress" }};
 
+struct totaldl_cb_args {
+    off_t       total;
+};
 
+static int
+totaldl_cb_gateway_protected(lua_State *L)
+{
+    struct dl_cb_args *args = lua_touserdata(L, 1);
+    get_callback(L, totaldl_cb_key);
+    lua_pushnumber(L, args->total);
+    lua_call(L, 1, 0);
 
+    return 0;
+}
+
+static void
+totaldl_cb_gateway_unprotected(off_t t)
+{
+    lua_State *L = GlobalState;
+    struct totaldl_cb_args args[1];
+    int err;
+    assert(L && "[BUG] no global Lua state in total download progress callback");
+    args->total = t;
+    err = lua_cpcall(L, dl_cb_gateway_protected, args);
+    if (err) {
+        handle_pcall_error_unprotected(L, err, "total download callback");
+    }
+}
+
+static int lalpm_option_set_totaldlcb(lua_State *L)
+{
+    register_callback(L, dl_cb_key, 1);
+    alpm_option_set_totaldlcb(totaldl_cb_gateway_unprotected);
+
+    return 0;
+}
 
 /* const char *alpm_option_get_root(); */
 static int lalpm_option_get_root(lua_State *L)
@@ -2322,7 +2359,7 @@ static luaL_Reg const pkg_funcs[] =
 //    { "option_get_fetchcb",         lalpm_option_get_fetchcb },
 //    { "option_set_fetchcb",         lalpm_option_set_fetchb },
 //    { "option_get_totaldlcb",       lalpm_option_get_totaldlcb },
-//    { "option_set_totaldlcb",       lalpm_option_set_totaldlcb },
+    { "option_set_totaldlcb",       lalpm_option_set_totaldlcb },
     { "option_get_root",            lalpm_option_get_root }, /* works */
     { "option_set_root",            lalpm_option_set_root }, /* works */
     { "option_get_dbpath",          lalpm_option_get_dbpath }, /* works */
