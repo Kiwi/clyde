@@ -35,20 +35,18 @@ local prevpercent = 0
 local on_progress = 0
 local output
 
+local last_time = 0
 function get_update_timediff(first_call)
     local retval = 0.0
-    local first_call = false
-    local last_time = 0
-    return function()
-        if(not first_call) then
-            first_call = true
+    return function(first_call)
+        if(first_call) then
             last_time = socket.gettime()
         else
             local this_time = socket.gettime()
             local diff_time = this_time - last_time
             retval = diff_time
 
-            if (retval < .02) then
+            if (retval < .2) then
                 retval = 0.0
             else
                 last_time = this_time
@@ -61,11 +59,10 @@ function get_update_timediff(first_call)
 end
 
 
-     local    lasthash, mouth = 0, 0
+local lasthash, mouth = 0, 0
 function fill_progress(bar_percent, disp_percent, proglen)
     local C = colorize
 
---    return function(bar_percent, disp_percent, proglen)
         local hashlen = proglen - 8
         local hash = math.floor(bar_percent * hashlen / 100)
 
@@ -83,20 +80,20 @@ function fill_progress(bar_percent, disp_percent, proglen)
                     elseif (i == hashlen - hash ) then
                         if (lasthash == hash) then
                             if (mouth ~= 0) then
-                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("C").."\27[K")
+                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("C"))
 --                                printf("\27[1;33m∩ C\27[m")
                             else
-                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("c").."\27[K")
+                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("c"))
 --                                printf("\27[1;33m∩ c\27[m")
                             end
                         else
                             lasthash = hash
                             if mouth == 1 then mouth = 0 else mouth = 1 end
                             if (mouth ~= 0) then
-                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("C").."\27[K")
+                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("C"))
 --                                printf("\27[1;33m∩ C\27[m")
                             else
-                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("c").."\27[K")
+                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("c"))
 --                                printf("\27[1;33m∩ c\27[m")
                             end
                         end
@@ -115,9 +112,12 @@ function fill_progress(bar_percent, disp_percent, proglen)
             end
             printf("]\27[K")
         end
---        printf("\27[K")
         if (proglen > 5) then
-            printf(" %3d%%", disp_percent)
+            if (disp_percent ~= 100 and config.chomp) then
+                printf("\27[3D] %3d%% ", disp_percent)
+            else
+                printf(" %3d%%", disp_percent)
+            end
         end
         if (bar_percent == 100) then
             printf("\n")
@@ -129,9 +129,8 @@ function fill_progress(bar_percent, disp_percent, proglen)
             end
         end
         io.stdout:flush()
---    end
 end
-f = {}
+
 function cb_trans_progress(event, pkgname, percent, howmany, remain)
     local timediff
     local infolen = 50
@@ -185,8 +184,6 @@ function cb_trans_progress(event, pkgname, percent, howmany, remain)
         padwid = 0
     end
     printf("(%d/%d) %s %s", remain, howmany, wcstr, string.rep(" ", padwid ))
-    --f[remain] = f[remain] or fill_progress(percent, percent, getcols() - infolen - 3)
-    ---f[remain](percent, percent, getcols() - infolen  - 3)
     fill_progress(percent, percent, getcols() - infolen)
 
     if (percent == 100) then
@@ -198,18 +195,13 @@ function cb_trans_progress(event, pkgname, percent, howmany, remain)
 end
 
 
---(3/3) checking for file conflicts                   [-------------------------------------------] 100%
---(1/3) upgrading lua                                 [-------------------------------------------] 100%
---(2/3) upgrading luafilesystem                       [-------------------------------------------] 100%
---(3/3) upgrading luasocket                           [-------------------------------------------] 100%
-
-
 function cb_dl_total(total)
     list_total = total
     if (total == 0) then
         list_xfered = 0
     end
 end
+
 
 function cb_dl_progress(filename, file_xfered, file_total)
     local infolen = 50
@@ -218,9 +210,9 @@ function cb_dl_progress(filename, file_xfered, file_total)
 
     local totaldownload = false
     local xfered, total
+    local file_percent, total_percent = 0, 0
     local rate, timediff, f_xfered = 0.0, 0.0, 0.0
     local eta_h, eta_m, eta_s = 0, 0, 0
-    local file_percent, total_percent = 0, 0
     local rate_size, xfered_size = "K", "K"
 
     if (config.noprogressbar or file_total == -1) then
@@ -337,4 +329,3 @@ function cb_dl_progress(filename, file_xfered, file_total)
         fill_progress(file_percent, file_percent, getcols() - infolen)
     end
 end
-
