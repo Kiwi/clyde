@@ -315,7 +315,7 @@ function cb_dl_progress(filename, file_xfered, file_total)
         f_xfered = f_xfered / 1024
         xfered_size = "M"
         if (f_xfered > 2048) then
-            f_xfered = x_fered / 1024
+            f_xfered = f_xfered / 1024
             xfered_size = "G"
         end
     end
