@@ -1647,7 +1647,7 @@ totaldl_cb_gateway_unprotected(off_t t)
     int err;
     assert(L && "[BUG] no global Lua state in total download progress callback");
     args->total = t;
-    err = lua_cpcall(L, dl_cb_gateway_protected, args);
+    err = lua_cpcall(L, totaldl_cb_gateway_protected, args);
     if (err) {
         handle_pcall_error_unprotected(L, err, "total download callback");
     }
@@ -1655,7 +1655,7 @@ totaldl_cb_gateway_unprotected(off_t t)
 
 static int lalpm_option_set_totaldlcb(lua_State *L)
 {
-    register_callback(L, dl_cb_key, 1);
+    register_callback(L, totaldl_cb_key, 1);
     alpm_option_set_totaldlcb(totaldl_cb_gateway_unprotected);
 
     return 0;
