@@ -3,15 +3,16 @@ package.cpath = "/usr/lib/lua/5.1/?.so;"..package.cpath
 package.path ="/usr/share/lua/5.1/?.lua;"..package.path
 package.cpath = "/home/kiwi/media/programs/lua/clyde/?.so;"..package.cpath
 package.path ="/home/kiwi/media/programs/lua/clyde/?.lua;"..package.path
+local util = require "clydelib.util"
 local sync = require "clydelib.sync"
 local query = require "clydelib.query"
 local remove = require "clydelib.remove"
 local upgrade = require "clydelib.upgrade"
 local deptest = require "clydelib.deptest"
 local alpm = require "lualpm"
-local util = require "clydelib.util"
 local utilcore = require "clydelib.utilcore"
 local signal = require "clydelib.signal"
+local callback = require "clydelib.callback"
 local needs_root = util.needs_root
 local printf = util.printf
 local lprintf = util.lprintf
@@ -832,6 +833,7 @@ function main()
     localize()
     alpm.initialize()
     config_init()
+    alpm.option_set_dlcb(callback.cb_dl_progress)
     alpm.option_set_root(ROOTDIR)
     alpm.option_set_dbpath(DBPATH)
     alpm.option_set_logfile(LOGFILE)
