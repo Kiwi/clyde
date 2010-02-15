@@ -870,7 +870,10 @@ function main()
     if (ret ~= 0) then
         --cleanup(ret)
     end
-    --setlibpaths()
+
+    if (config.totaldownload) then
+        alpm.option_set_totaldlcb(callback.cb_dl_total)
+    end
 
     if (myuid > 0 and needs_root()) then
         lprintf("LOG_ERROR", g("you cannot perform this operation unless you are root.\n"))
