@@ -2,7 +2,7 @@ local pairs = pairs
 local tostring = tostring
 local setmetatable = setmetatable
 
-module 'colorize'
+module(..., package.seeall)
 
 local colormt = {}
 
@@ -29,6 +29,7 @@ local colors = {
     ['clear'] =     '\27[0m',
     ['bright'] =    '\27[1m',
     ['dim'] =       '\27[2m',
+    ['italic']=     '\27[3m',
     ['under'] =     '\27[4m',
     ['blink'] =     '\27[5m',
     ['reverse'] =   '\27[7m',
@@ -70,7 +71,16 @@ local colors = {
 
 }
 
-for c, v in pairs(colors) do
-    _M[c] = makecolor(v)
+function enable()
+    for k, v in pairs(colors) do
+        _M[k] = makecolor(v)
+    end
 end
 
+function disable()
+    for k, v in pairs(colors) do
+        _M[k] = makecolor("")
+    end
+end
+
+enable()
