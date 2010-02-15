@@ -74,13 +74,13 @@ local function clyde_remove(targets)
                     local packages = grp:grp_get_pkgs()
                     local pkgnames = {}
                     for i, pkgname in ipairs(packages) do
-                        tblinsert(pkgnames, pkg:pkg_get_name())
+                        tblinsert(pkgnames, pkgname:pkg_get_name())
                     end
                     printf(g(":: group %s:\n"), targ)
                     list_display("   ", pkgnames)
                     local all = yesno(g("    Remove whole content?"))
                     for i, pkgn in ipairs(pkgnames) do
-                        if (all or yesno(g(":: Remove %s from group %s?", pkgn, targ))) then
+                        if (all or yesno(g(":: Remove %s from group %s?"), pkgn, targ)) then
                             if (alpm.trans_addtarget(pkgn) == -1) then
                                 eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
                                 retval = 1
