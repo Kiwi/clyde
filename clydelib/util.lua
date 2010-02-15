@@ -1,6 +1,7 @@
 local alpm = require "lualpm"
 local lfs = require "lfs"
 local utilcore = require "clydelib.utilcore"
+local callback = require "clydelib.callback"
 --local io = io
 --local os = os
 --local string = string
@@ -222,7 +223,7 @@ function eprintf(level, format, ...)
 end
 
 function trans_init(ttype, flags)
-    local ret  = alpm.trans_init(ttype, flags, nil, nil, nil)
+    local ret  = alpm.trans_init(ttype, flags, nil, nil, callback.cb_trans_progress)
     if (ret == -1) then
         printf("error: failed to init transaction(%s)\n", alpm.strerrorlast())
         if (alpm.strerrorlast() == "unable to lock database") then
@@ -332,7 +333,7 @@ local function checkempty(tbl)
 end
 
 function list_display(title, list)
-    local len, cols
+    local len, cols = 0, 0
     if (title and type(title) == "string") then
         len = #title
         printf("%s ", title)
@@ -340,9 +341,20 @@ function list_display(title, list)
     if (not next(list) or checkempty(list)) then
         printf("%s\n", "None")
     else
-        local str = table.concat(list, "  ")
-        indentprint(str, len, 2)
-        printf("  ")
+        cols = len
+        for i, str in ipairs(list) do
+            local s = #str + 2
+            local maxcols = getcols()
+            if (s + cols > maxcols) then
+                cols = len
+                printf("\n")
+                for j = 1, len  do
+                    printf(" ")
+                end
+            end
+            printf("%s  ", str)
+            cols = cols + s
+        end
         printf("\n")
     end
 end
