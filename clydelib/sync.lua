@@ -7,6 +7,7 @@ local zlib = require "zlib"
 --local gzip = require "gzip"
 local lfs = require "lfs"
 local alpm = require "lualpm"
+local C = colorize
 local util = require "clydelib.util"
 local utilcore = require "clydelib.utilcore"
 local packages = require "clydelib.packages"
@@ -59,42 +60,43 @@ local aurmethod = {
     ['info'] = "type=info&";
     ['msearch'] = "type=msearch&";
 }
-yajl.to_value = function (string)
-   local result
-   local stack = {
-      function(val) result = val end
-   }
-   local obj_key
-   local events = {
-      value = function(_, val)
-                 stack[#stack](val)
-              end,
-      open_array = function()
-                      local arr = {}
-                      local idx = 1
-                      stack[#stack](arr)
-                      table.insert(stack, function(val)
-                                             arr[idx] = val
-                                             idx = idx + 1
-                                          end)
-                   end,
-      open_object = function()
-                      local obj = {}
-                      stack[#stack](obj)
-                      table.insert(stack, function(val)
-                                             obj[obj_key] = val
-                                          end)
-                   end,
-      object_key = function(_, val)
-                     obj_key = val
-                  end,
-      close = function()
-                stack[#stack] = nil
-             end,
-   }
 
-   yajl.parser({ events = events })(string)
-   return result
+yajl.to_value = function (string)
+    local result
+    local stack = {
+        function(val) result = val end
+    }
+    local obj_key
+    local events = {
+        value = function(_, val)
+            stack[#stack](val)
+        end,
+        open_array = function()
+            local arr = {}
+            local idx = 1
+            stack[#stack](arr)
+            table.insert(stack, function(val)
+                    arr[idx] = val
+                    idx = idx + 1
+                    end)
+        end,
+        open_object = function()
+            local obj = {}
+            stack[#stack](obj)
+            table.insert(stack, function(val)
+                    obj[obj_key] = val
+                    end)
+        end,
+        object_key = function(_, val)
+            obj_key = val
+        end,
+        close = function()
+            stack[#stack] = nil
+        end,
+    }
+
+    yajl.parser({ events = events })(string)
+    return result
 end
 
 local function sortaur(tbl)
@@ -160,6 +162,12 @@ end
 
 
 local function sync_search(syncs, targets)
+    local dbcolors = {
+        extra = C.greb;
+        core = C.redb;
+        community = C.magb;
+    }
+    local yelbold = C.yel..C.onblab..C.reverse
     local found = false
     local ret
     local localdb = alpm.option_get_localdb()
@@ -181,14 +189,16 @@ local function sync_search(syncs, targets)
             end
 
             for i, pkg in ipairs(ret) do
+                --TODO: show versions if different
                 if (not config.quiet) then
+                    local dbcolor = dbcolors[db:db_get_name()] or C.magb
                     if (localdb:db_get_pkg(pkg:pkg_get_name())) then
-                        printf("%s/%s %s [installed]", db:db_get_name(), pkg:pkg_get_name(), pkg:pkg_get_version())
+                        printf("%s%s %s %s", dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold.."[installed]"..C.reset)
                     else
-                        printf("%s/%s %s", db:db_get_name(), pkg:pkg_get_name(), pkg:pkg_get_version())
+                        printf("%s%s %s", dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
                     end
                 else
-                    printf("%s", pkg:pkg_get_name())
+                    printf("%s", C.bright(pkg:pkg_get_name()))
                 end
 
                 if (not config.quiet and config.showsize) then
@@ -200,18 +210,18 @@ local function sync_search(syncs, targets)
                 if (not config.quiet) then
                     local grp = pkg:pkg_get_groups()
                     if (next(grp)) then
-                        printf(" (")
+                        printf(C.blub.." (")
                         for i, group in ipairs(grp) do
                             printf("%s", group)
                             if (i < #grp) then
                                 printf(" ")
                             end
                         end
-                        printf(")")
+                        printf(")"..C.reset)
                     end
 
                     printf("\n    ")
-                    indentprint(pkg:pkg_get_desc(), 3)
+                    indentprint(C.italic(pkg:pkg_get_desc()), 3)
                 end
                 printf("\n")
             end
@@ -240,16 +250,19 @@ end
         prune(aurpkgs, targets)
         local sortedpkgs = sortaur(aurpkgs)
         for i, pkg in ipairs(sortedpkgs) do
+            --TODO: same as above
             if (not config.quiet) then
                 if (localdb:db_get_pkg(pkg.name)) then
-                    printf("aur/%s %s [installed] (%s)\n    ", pkg.name, pkg.version, pkg.votes)
+                    printf("%s%s %s %s %s\n    ", C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."[installed]"..C.reset, yelbold.."("..pkg.votes..")"..C.reset)
+--                    printf("aur/%s %s [installed] (%s)\n    ", pkg.name, pkg.version, pkg.votes)
                 else
-                    printf("aur/%s %s (%s)\n    ", pkg.name, pkg.version, pkg.votes)
+                    printf("%s%s %s %s\n    ", C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."("..pkg.votes..")"..C.reset)
+--                    printf("aur/%s %s (%s)\n    ", pkg.name, pkg.version, pkg.votes)
                 end
-                indentprint(pkg.description, 3)
+                indentprint(C.italic(pkg.description), 3)
                 printf("\n")
             else
-                printf("%s\n", pkg.name)
+                printf("%s\n", C.bright(pkg.name))
             end
         end
     end
