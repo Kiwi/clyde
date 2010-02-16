@@ -4,9 +4,9 @@ local lfs = require "lfs"
 local socket = require "socket"
 local http = require "socket.http"
 local ltn12 = require "ltn12"
-
 local zlib = require "zlib"
 local yajl = require "yajl"
+local C = colorize
 
 function download(host, file)
     local filename = file:match(".+/(.+)$")
@@ -30,13 +30,11 @@ function download(host, file)
                 local progress = received / size * 100
                 local hashes = string.rep("#", progress / 2)
                 local endpipe = string.rep(" ", 50 - #hashes).."|"
-                io.write(string.format("Downloading %s %d%%\n%s%s\27[1A\r", filename, progress, hashes, endpipe))
-
             return chunk end,
             ltn12.sink.file(f)
             ),
 }
-io.write("\n\n")
+io.write(string.format(C.greb("==>")..C.whib(" Downloading %s\n\n"),filename))
 end
 
 aurthreads = {}    -- list of all live threads
@@ -48,7 +46,6 @@ function get (host, file)
       -- insert it in the list
       table.insert(aurthreads, co)
 end
-
 
 function dispatcher ()
     while true do
