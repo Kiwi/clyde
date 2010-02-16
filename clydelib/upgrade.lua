@@ -1,14 +1,10 @@
 module(..., package.seeall)
-package.cpath = "/usr/lib/lua/5.1/?.so;"..package.cpath
-package.path ="/usr/share/lua/5.1/?.lua;"..package.path
 local lfs = require "lfs"
 local alpm = require "lualpm"
 local util = require "clydelib.util"
 local utilcore = require "clydelib.utilcore"
 local packages = require "clydelib.packages"
---require "luarocks.require"
---require "profiler"
---profiler.start("profile")
+local C = colorize
 local eprintf = util.eprintf
 local lprintf = util.lprintf
 local printf = util.printf
@@ -33,7 +29,6 @@ local trans_release = util.trans_release
 local access = utilcore.access
 local strerror = utilcore.strerror
 local g = utilcore.gettext
---local strsplit = util.strsplit
 local pm_targets = pm_targets
 local community = community
 local dump_pkg_changelog = packages.dump_pkg_changelog
@@ -65,7 +60,6 @@ local function clyde_upgrade(targets)
     end
     targets = nil
     targets = tblstrdup(temptargs)
---    temptargs = nil
 
     if (trans_init("T_T_UPGRADE", config.flags) == -1) then
         return 1
@@ -81,7 +75,6 @@ local function clyde_upgrade(targets)
     end
 
     transret, data = alpm.trans_prepare(data)
-    --for i, v in ipairs(data) do print(i, v) end
 
     if (transret == -1) then
         eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), alpm.strerrorlast())
@@ -90,19 +83,19 @@ local function clyde_upgrade(targets)
                 local dep = miss:miss_get_dep()
                 local depstring = dep:dep_compute_string()
 
-                printf(g(":: %s: requires %s\n", miss:miss_get_target(), depstring))
+                printf(g(C.blub("::")..C.whib(" %s: requires %s\n"), miss:miss_get_target(), depstring))
                 depstring = nil
             end
         elseif (alpm.strerrorlast() == g("conflicting dependencies")) then
             for i, conflict in ipairs(data) do
-                printf(g(":: %s: conflicts with %s\n"), conflict:conflict_get_package1(),
+                printf(g(C.blub("::")..C.whib(" %s: conflicts with %s\n")), conflict:conflict_get_package1(),
                     conflict:conflict_get_package2())
             end
         elseif (alpm.strerrorlast() == g("conflicting files")) then
             for i, conflict in ipairs(data) do
                 --TODO: figure out how to do this...
             end
-            printf(g("\nerrors occurred, no packages were upgraded.\n"))
+            printf(g(C.redb("\n==>")..C.whib(" errors occurred, no packages were upgraded.\n")))
         end
     trans_release()
     data = nil
@@ -119,22 +112,11 @@ local function clyde_upgrade(targets)
 
 end
 
-
-
 function main(targets)
---    local result, err = pcall(clyde_upgrade, targets)
-    --result = true
     result = clyde_upgrade(targets)
---local err = ""
     if (not result) then
-        --if (err:match("interrupted!")) then
-        --    printf("\nInterrupt signal received\n\n")
-        --    cleanup(result)
-        --else
-            --printf("%s\n", err)
-        --end
         result = 1
     end
-    
+
     return result
 end
