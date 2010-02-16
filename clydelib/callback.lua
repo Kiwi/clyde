@@ -29,7 +29,6 @@ local list_xfered = 0
 local list_total = 0
 local initial_time
 
-
 local prevpercent = 0
 
 local on_progress = 0
@@ -57,7 +56,6 @@ function get_update_timediff(first_call)
         return retval
     end
 end
-
 
 local lasthash, mouth = 0, 0
 function fill_progress(bar_percent, disp_percent, proglen)
@@ -194,7 +192,6 @@ function cb_trans_progress(event, pkgname, percent, howmany, remain)
     end
 end
 
-
 function cb_dl_total(total)
     list_total = total
     if (total == 0) then
@@ -202,9 +199,8 @@ function cb_dl_total(total)
     end
 end
 
-
 function cb_dl_progress(filename, file_xfered, file_total)
-    local infolen = 50
+    local infolen = 48
     local filenamelen = infolen - 27
     local fname, len, wclen, padwid, wcfname
 
