@@ -16,62 +16,13 @@ local eprintf = util.eprintf
 local g = utilcore.gettext
 local access = utilcore.access
 local strerror = utilcore.strerror
---local strsplit = util.strsplit
 local pm_targets = pm_targets
 local community = community
 local dump_pkg_changelog = packages.dump_pkg_changelog
 local dump_pkg_files = packages.dump_pkg_files
 local extra = extra
 local core = core
---[[
-local function query_fileowner(targets)
-    local ret = 0
---printf(realpath("clyde"))
-    for i, filepath in ipairs(targets) do
-        local found = false
-        local file, err = lfs.attributes(filepath)
 
-        if (not file) then
-            printf("error: failed to read file '%s': %s\n", filepath, err)
-            break
-        end
-
-        if (file and file.mode == "directory") then
-            printf("error: cannot determine ownership of a directory\n")
-            ret = ret + 1
-        else
-        --local bname = basename(filepath)
-
-        --local root = alpm.option_get_root()
-
-        local pkgcache = db_local:db_get_pkgcache()
-        filepath = filepath:gsub("^/","")
-
-            for i, pkg in ipairs(pkgcache) do
-                if found then break end
-                files = pkg:pkg_get_files()
-                for i, pkgfile in ipairs(files) do
-                    if found then break end
-                    if (filepath == pkgfile) then
-                        if (not config.quiet) then
-                            printf("/%s is owned by %s %s\n", filepath, pkg:pkg_get_name(), pkg:pkg_get_version())
-                        else
-                            printf("%s\n", pkg:pkg_get_name())
-                        end
-                        found = true
-                    end
-                end
-            end
-            if (not found) then
-                printf("No package owns %s\n", filepath)
-                ret = ret + 1
-            end
-        end
-    end
-    return ret
-end
---]]
----[[
 local function query_fileowner(targets)
     local ret = 0
     local found = 0
@@ -99,13 +50,11 @@ local function query_fileowner(targets)
             end
             if bfound then
                 break
-                --a = a + 1
-                --print("could have broke".. a)
             end
         end
         if (found == #targets) then break end
-
     end
+
     for i, filepath in ipairs(gsubtargets) do
         local file, err = lfs.attributes("/"..filepath)
         if (not file) then
@@ -113,9 +62,7 @@ local function query_fileowner(targets)
             if (not file) then
                 local result
                 result, err = access("/"..filepath, "R_OK")
-
                 eprintf("LOG_ERROR", g("failed to read file '%s': %s\n"), filepath, strerror(err))
-            --printf("error: failed to read file '%s': %s\n", filepath, strerror(err))
                 break
             else
                 localfile = true
@@ -123,10 +70,8 @@ local function query_fileowner(targets)
         end
         if (file and file.mode == "directory") then
             eprintf("LOG_ERROR", g("cannot determine ownership of a directory\n"))
-            --printf("error: cannot determine ownership of a directory\n")
             ret = ret + 1
         else
-            --filepath = filepath:gsub("^/","")
             local filepathfull
             if localfile then
                 filepathfull = lfs.currentdir():gsub("^/", "") .. "/" .. filepath
@@ -148,7 +93,6 @@ local function query_fileowner(targets)
                 end
 
                 eprintf("LOG_ERROR", g("No package owns %s\n"), filepath)
-                --printf("error: No package owns /%s\n", filepath)
                 ret = ret + 1
             end
         end
@@ -156,7 +100,6 @@ local function query_fileowner(targets)
     return ret
 end
 
---]]
 local function query_search(targets)
     local dbcolors = {
         extra = C.greb;
@@ -232,7 +175,6 @@ local function query_search(targets)
     return 0
 end
 
---query group
 local function query_group(targets)
     local ret = 0
 
@@ -262,14 +204,11 @@ local function query_group(targets)
                 end
             else
                 eprintf("LOG_ERROR", g("group \"%s\" was not found\n"), grpname)
-                --printf("error: group \"%s\" was not found\n", grpname)
             end
         end
     end
     return ret
 end
-
-
 
 local function is_foreign(pkg)
     local pkgname = pkg:pkg_get_name()
@@ -290,7 +229,6 @@ local function is_foreign(pkg)
     return false
 end
 
--- is unrequired
 local function is_unrequired(pkg)
     local requiredby = pkg:pkg_compute_requiredby()
     if (not next(requiredby)) then
@@ -321,18 +259,11 @@ local function filter(pkg)
     return true
 end
 
-
---check
 local function check(pkg)
---    local root = alpm.option_get_root()
---    local rootlen = #root
---    local allfiles = 0
     local errors = 0
-
     local pkgname = pkg:pkg_get_name()
     local files = pkg:pkg_get_files()
     for i, filepath in ipairs(files) do
-        --local file, err = lfs.symlinkattributes("/"..path)
         local file, err = utilcore.lstat("/"..filepath)
         if (file ~= 0) then
             if (config.quiet) then
@@ -366,7 +297,6 @@ local dbcolors = {
 local packagetbl = {}
 local repos = {}
 
---display
 local function display(pkg)
     if (not next(packagetbl)) then
 
@@ -386,7 +316,6 @@ local function display(pkg)
            packages.dump_pkg_full(pkg, 0)
         else
             packages.dump_pkg_full(pkg, config.op_q_info)
---            dump_pkg_files(pkg)
         end
     end
     if (config.op_q_list) then
@@ -416,64 +345,40 @@ local function display(pkg)
     return ret
 end
 
-
-
-
-
-
-
-
-
---community = alpm.db_register_sync("extra")
---community = community
---query_fileowner(pm_targets)
---query_search(pm_targets)
 local function clyde_query(targets)
     local ret = 0
     local match = false
     local pkg, value
 
     if (config.op_q_search) then
---        print("search")
         ret = query_search(targets)
         return ret
     end
 
     if (config.group > 0) then
---        print("group")
         ret = query_group(targets)
         return ret
     end
 
     if (config.op_q_foreign) then
---        print("foreign")
         local sync_dbs = alpm.option_get_syncdbs()
---        for k, v in pairs(sync_dbs) do print (k, v) end
         if (sync_dbs == nil or #sync_dbs == 0) then
             eprintf("LOG_ERROR", g("no usable package repositories configured.\n"))
-            --printf("error: no usable package repositories configured.\n")
             return 1
         end
     end
 
     if (not next(targets)) then
---        print("no targets")
         if (config.op_q_isfile or config.op_q_owns) then
             eprintf("LOG_ERROR", g("no targets specified (use -h for help)\n"))
-            --printf("error: no targets specified (use -h for help)\n")
             return 1
         end
 
         local pkgcache = db_local:db_get_pkgcache()
 
         for k, pkg in ipairs(pkgcache) do
---            filter(pkg)
-           -- printf("OHHHII")
-            --print("filter")
-            --print("filter")
             if (filter(pkg)) then
                 value = display(pkg)
-               -- display(pkg)
                 if (value ~= 0) then
                     ret = 1
                 end
@@ -499,10 +404,8 @@ local function clyde_query(targets)
             pkg = db_local:db_get_pkg(strname)
         end
 
-        --filter(pkg)
         if (pkg == nil) then
             eprintf("LOG_ERROR", g("package \"%s\" not found\n"), strname)
-            --printf("error: package \"%s\" not found\n", strname)
             ret = 1
             cont = false
         end
@@ -528,24 +431,9 @@ local function clyde_query(targets)
 
     return ret
 end
---for k, v in pairs(pm_targets) do print(k, v) end
---[[
-local result, err = pcall(clyde_query, pm_targets)
 
-if (not result) then
-    if (err:match("interrupted!")) then
-        printf("\nInterrupt signal received\n\n")
-    else
-        printf(err)
-    end
-end
---]]
-
-
---clyde_query(pm_targets)
 function main(targets)
     local result, err = pcall(clyde_query, targets)
---local err = ""
     if (not result) then
         if (err:match("interrupted!")) then
             printf("\nInterrupt signal received\n\n")
@@ -555,27 +443,3 @@ function main(targets)
         end
     end
 end
-
-
-
-
-
-
-
-
-
-
---print("HI")
---[[
-local tbl = alpm.option_get_syncdbs() --for k,v in ipairs(tbl) do print(k, v:db_get_name()) end
---print("HI")
-for k, v in pairs(tbl) do print(k, v:db_get_name()) end
---print("HI")
-local  t, hmm, hmm1 = alpm.sync_newversion( tbl)
---for k, v in pairs(t) do print(k, v:db_get_name()) end
---print("HI")
-print(#tbl, #t)
-print(hmm, hmm1)
-for k, v in ipairs(t) do print(k," OH HI",  v:db_get_name()) end
---hurr(tbl)
---]]
