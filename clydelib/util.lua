@@ -2,12 +2,7 @@ local alpm = require "lualpm"
 local lfs = require "lfs"
 local utilcore = require "clydelib.utilcore"
 local callback = require "clydelib.callback"
---local io = io
---local os = os
---local string = string
 module(..., package.seeall)
-
---module("util")
 
 function printf(...)
     io.write(string.format(...))
@@ -33,7 +28,6 @@ function strcasecmp(str1, str2)
         eprintf("LOG_ERROR", "invalid useage of strcasecmp")
     end
 end
-
 
 -- Split text into a list consisting of the strings in text,
 -- separated by strings matching delimiter (which may be a pattern). 
@@ -80,14 +74,12 @@ function cleanup(ret)
     if (type(config.configfile) == "userdata") then
         config.configfile:close()
     end
---    return true
     os.exit(release)
 end
 
 function realpath(file)
     return lfs.currentdir() .. "/" .. file
 end
-
 
 function getcols()
     if (0 == utilcore.isatty(1)) then
@@ -252,14 +244,10 @@ function needs_root()
             and not config.op_s_search and not config.op_s_printuris)))) then
         return true
     else
-        --print(config.op)
-        --print(config.op_s_clean, config.op_s_sync, config.group, config.op_s_info, config.op_q_list, config.op_s_search, config.op_s_printuris)
         return false
     end
 end
 
-
----[[
 function indentprint(str, indent, space)
     if (not str or type(str) ~= "string") then
         return
@@ -291,14 +279,8 @@ function indentprint(str, indent, space)
             local remainlen = 0
             for j = i, len do
                 remainlen = remainlen + #words[j] + space
-                --printf(" ")
             end
-            --printf(count + #words[i])
-            --if remainlen + indent > cols or i == len then
-
-                --print(count + indent)
                 printf(" ")
-            --end
             printf("%s", words[i])
             if i ~= len then
                 printf((" "):rep(space))
@@ -526,6 +508,11 @@ function mkversion(s)
         return t;
 end
 
+--a = mkversion "2.0.3"
+--b = mkversion "2.1.0"
+
+--print(a > b, a == b, a < b)
+
 function getbasharray(file, str)
     return io.popen(string.format([[
         /bin/bash -c '. %s
@@ -540,8 +527,3 @@ function getpkgbuildarray(carch, pkgbuild, str)
         echo "${%s[@]}"'
         ]], carch, pkgbuild, str)):read("*l")
 end
---a = mkversion "2.0.3"
---b = mkversion "2.1.0"
-
---print(a > b, a == b, a < b)
-
