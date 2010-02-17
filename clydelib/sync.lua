@@ -165,7 +165,6 @@ local function sync_search(syncs, targets)
             if (next(targets)) then
                 ret = db:db_search(targets)
             else
-                --ret = pkgcache
                 ret = db:db_get_pkgcache()
             end
 
@@ -446,7 +445,7 @@ local function sync_aur_trans(targets)
     if (config.op_s_upgrade > 0) then
         printf(g(C.blub("::")..C.whib(" Starting full system upgrade..\n")))
         --TODO implement this in lualpm
-        --TODO this is actually in laulpm now just need to come back and add this and test
+        --TODO this is actually in lualpm now just need to come back and add this and test
 --        alpm.logaction("starting full system upgrade\n")
         local op_s_upgrade
         if (config.op_s_upgrade >= 2) then
@@ -833,7 +832,6 @@ local function aur_install(targets)
                     sync_aur_trans({pkg})
                     updateprovided(provided)
                     getalldeps(needsdeps)
-                    print("installed " .. pkg .. " explicitly")
                     installed = installed + 1
                     break
                 else
@@ -853,13 +851,11 @@ local function aur_install(targets)
                                 and not (tblisin(config.flagsdupe, "T_F_ALLDEPS"))))  then
                     --install as explicit
                     download_extract(pkg)
-                    --print(unpack(caninstall))
                     customizepkg(pkg)
                     makepkg(pkg)
                     installpkgs(pkg)
                     updateprovided(provided)
                     getalldeps(needsdeps)
-                    print("installed " .. pkg .. " explicitly")
                     installed = installed + 1
                     break
                 else
@@ -974,13 +970,10 @@ local function sync_trans(targets)
                         if (jsonresults.results.Name) then
                             found = true
                             tblinsert(aurpkgs, targ)
---                            print("adding pkg")
                         end
 
                     end
                     local pkgs = db_local:db_get_pkgcache()
---                    print(unpack(pkgs))
---                    for k, v in ipairs(pkgs) do print(v:pkg_get_name()) end
 
                     if (not found) then
                         eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
