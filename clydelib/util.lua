@@ -516,7 +516,7 @@ end
 
 function getbasharray(file, str)
     return io.popen(string.format([[
-        /bin/bash -c '. %s
+        /bin/bash -c '. %s &> /dev/null
         echo "${%s[@]}"'
         ]], file, str)):read("*l")
 end
