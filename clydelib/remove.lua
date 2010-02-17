@@ -1,14 +1,9 @@
 module(..., package.seeall)
-package.cpath = "/usr/lib/lua/5.1/?.so;"..package.cpath
-package.path ="/usr/share/lua/5.1/?.lua;"..package.path
 local lfs = require "lfs"
 local alpm = require "lualpm"
 local util = require "clydelib.util"
 local utilcore = require "clydelib.utilcore"
 local packages = require "clydelib.packages"
---require "luarocks.require"
---require "profiler"
---profiler.start("profile")
 local eprintf = util.eprintf
 local lprintf = util.lprintf
 local printf = util.printf
@@ -33,7 +28,6 @@ local trans_release = util.trans_release
 local access = utilcore.access
 local strerror = utilcore.strerror
 local g = utilcore.gettext
---local strsplit = util.strsplit
 local pm_targets = pm_targets
 local community = community
 local dump_pkg_changelog = packages.dump_pkg_changelog
