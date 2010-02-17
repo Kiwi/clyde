@@ -433,13 +433,10 @@ local function clyde_query(targets)
 end
 
 function main(targets)
-    local result, err = pcall(clyde_query, targets)
+    local result = clyde_query(targets)
     if (not result) then
-        if (err:match("interrupted!")) then
-            printf("\nInterrupt signal received\n\n")
-            cleanup(result)
-        else
-            --printf("%s\n", err)
-        end
+        result = 1
     end
+
+    return result
 end

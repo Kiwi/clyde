@@ -149,19 +149,10 @@ local function clyde_remove(targets)
     removecleanup()
 end
 
-
-
 function main(targets)
-    --local result, err = pcall(clyde_remove, targets)
-    result = true
-    clyde_remove(targets)
---local err = ""
+    local result = clyde_remove(targets)
     if (not result) then
-        if (err:match("interrupted!")) then
-            printf("\nInterrupt signal received\n\n")
-            cleanup(result)
-        else
-            --printf("%s\n", err)
-        end
+        result = 1
     end
+    return result
 end

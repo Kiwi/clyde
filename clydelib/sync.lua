@@ -1184,5 +1184,6 @@ function main(targets)
     if (not result) then
         result = 1
     end
+
     return result
 end
