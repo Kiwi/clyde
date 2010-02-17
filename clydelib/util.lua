@@ -30,7 +30,7 @@ function strcasecmp(str1, str2)
 end
 
 -- Split text into a list consisting of the strings in text,
--- separated by strings matching delimiter (which may be a pattern). 
+-- separated by strings matching delimiter (which may be a pattern).
 -- example: strsplit("Anna, Bob, Charlie,Dolores", ",%s*")
 function strsplit(text, delimiter)
     local strfind = string.find
@@ -69,12 +69,13 @@ function basename(name)
 end
 
 function cleanup(ret)
-    local release = alpm.release()
-    --TODO  logging if fail
+    if (alpm.release() == -1) then
+        lprintf("LOG_ERROR", alpm.strerrorlast())
+    end
     if (type(config.configfile) == "userdata") then
         config.configfile:close()
     end
-    os.exit(release)
+    os.exit(ret)
 end
 
 function realpath(file)
