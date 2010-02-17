@@ -1,6 +1,4 @@
 #!/usr/bin/env lua
-package.cpath = "/usr/lib/lua/5.1/?.so;"..package.cpath
-package.path ="/usr/share/lua/5.1/?.lua;"..package.path
 package.cpath = "/home/kiwi/media/programs/lua/clyde/?.so;"..package.cpath
 package.path ="/home/kiwi/media/programs/lua/clyde/?.lua;"..package.path
 colorize = require "clydelib.colorize"
@@ -145,6 +143,7 @@ local function version()
     printf(C.yelb("    '--'   ")..C.yel("      |.-.-.|")..C.gre(" ~~    ").."the terms of the GNU General Public License.\n")
     printf("\n")
 end
+
 local ranlocalize = false
 local function localize()
     if (not ranlocalize) then
@@ -474,7 +473,6 @@ local longopts = {
         ['OP_NOSCRIPTLET'] = function() tblinsert(config.flags, "T_F_NOSCRIPTLET") end;
 --        ['OP_ASK'] = function() end;
         ['OP_CACHEDIR'] = function(opt)
-            --TODO: logging
             local result = alpm.option_add_cachedir(opt)
             if (result ~= 0) then
                 lprintf("LOG_ERROR", g("problem adding cachedir '%s' (%s)\n"), opt, alpm.strerrorlast())
@@ -542,7 +540,6 @@ local function setlibpaths()
         result = alpm.option_set_root(config.rootdir)
 
         if (result ~= 0) then
---            TODO: logging
             lprintf("LOG_ERROR", g("problem setting rootdir '%s' (%s)\n"), config.rootdir, alpm.strerrorlast())
             cleanup(ret)
         end
@@ -610,15 +607,9 @@ local function setrepeatingoption(str, option, optionfunc)
     end
 end
 
-
-
-
-
 local function _parseconfig(file, givensection, givendb)
     local ret
     local cont = true
---    local optionlookuptbl = optionlookuptbl
---    local setrepeatingoption = setrepeatingoption
 --TODO: make sure return configcleanup() is right
     local function configcleanup()
         if (fp) then
@@ -629,14 +620,15 @@ local function _parseconfig(file, givensection, givendb)
         end
         setlibpaths()
         lprintf("LOG_DEBUG", "config: finished parsing %s\n", file)
-        --cleanup(ret)
         cont = false
-        if (cont == false) then
-            return 1
-        else
-            return 0
-        end
+        return ret
+        --if (cont == false) then
+        --    return 1
+        --else
+        --    return 0
+        --end
     end
+
     local optionlookuptbl = {
     ['UseSyslog'] = function() alpm.option_set_usesyslog(true)
         lprintf("LOG_DEBUG", "config: usesyslog\n") end;
@@ -835,7 +827,6 @@ local function parseconfig(file)
     return _parseconfig(file, nil, nil)
 end
 
-
 function main()
     config_init()
     if (utilcore.isatty(1) == 0 and not config.op_use_color) then
@@ -868,7 +859,7 @@ function main()
     end
     ret = parseconfig(CONFFILE)
     if (ret ~= 0) then
-        --cleanup(ret)
+        cleanup(ret)
     end
 
     if (config.totaldownload) then
@@ -879,7 +870,6 @@ function main()
         lprintf("LOG_ERROR", g("you cannot perform this operation unless you are root.\n"))
         cleanup(1)
     end
-
 
     if (config.verbose > 0) then
         printf("Root      : %s\n", alpm.option_get_root())
@@ -914,16 +904,21 @@ function main()
         ['PM_OP_DEPTEST'] = function() deptest.main(pm_targets) end;
     }
     if (config.op ~= "PM_OP_MAIN") then
-        lookuptbl[config.op]()
+         ret = lookuptbl[config.op]()
     else
-        --TODO: error logging and error message...
         eprintf("LOG_ERROR", g("no operation specified (use -h for help)\n"))
         ret = 1
     end
 
+    if (alpm.release() == -1) then
+        printf("LOG_ERROR", alpm.strerrorlast())
+    end
 
+    if (type(config.configfile) == "userdata") then
+        config.configfile:close()
+    end
 
-    cleanup(ret)
+    return ret
 end
 
-main()
+return main()
