@@ -608,7 +608,7 @@ local function setrepeatingoption(str, option, optionfunc)
 end
 
 local function _parseconfig(file, givensection, givendb)
-    local ret
+    local ret = 0
     local cont = true
 --TODO: make sure return configcleanup() is right
     local function configcleanup()
@@ -844,7 +844,6 @@ function main()
     signal.signal("SIGTERM", function()
         cleanup(15)
     end)
-
     local myuid = geteuid()
     localize()
     alpm.initialize()
@@ -857,6 +856,7 @@ function main()
     if (ret ~= 0) then
         cleanup(ret)
     end
+
     ret = parseconfig(CONFFILE)
     if (ret ~= 0) then
         cleanup(ret)
