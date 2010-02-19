@@ -653,29 +653,29 @@ local function aur_install(targets)
     local function customizepkg(target)
         lfs.chdir("/tmp/clyde/"..target.."/"..target)
         if (not config.noconfirm) then
-        local fd = io.popen("echo $SHELL")
-        local shell = basename(fd:read("*l"))
-        fd:close()
-        local shellrc = "$HOME/."..shell.."rc"
-        local editor = getbasharray(shellrc, "EDITOR") or "nano"
-        printf(C.blink..C.redb("    ( Unsupported package: Potentially dangerous! )"))
-        printf("\n")
-        repeat
-            local response = yesno(C.yelb("==> ")..C.whib("Edit the PKGBUILD (highly recommended for security reasons)?"))
-            if (response) then
-                os.execute(editor.." PKGBUILD")
-            end
-        until not response
-        local instfile = getbasharray("PKGBUILD", "install")
-        if (instfile and #instfile > 0) then
+            local fd = io.popen("echo $SHELL")
+            local shell = basename(fd:read("*l"))
+            fd:close()
+            local shellrc = "$HOME/."..shell.."rc"
+            local editor = getbasharray(shellrc, "EDITOR") or "nano"
+            printf(C.blink..C.redb("    ( Unsupported package: Potentially dangerous! )"))
+            printf("\n")
             repeat
-                local response = yesno(C.yelb("==> ")..C.whib("Edit "..instfile.." (highly recommended for security reasons)?"))
+                local response = yesno(C.yelb("==> ")..C.whib("Edit the PKGBUILD (highly recommended for security reasons)?"))
                 if (response) then
-                    os.execute(editor.." "..instfile)
+                    os.execute(editor.." PKGBUILD")
                 end
             until not response
+            local instfile = getbasharray("PKGBUILD", "install")
+            if (instfile and #instfile > 0) then
+                repeat
+                    local response = yesno(C.yelb("==> ")..C.whib("Edit "..instfile.." (highly recommended for security reasons)?"))
+                    if (response) then
+                        os.execute(editor.." "..instfile)
+                    end
+                until not response
+            end
         end
-    end
     end
 
     local function makepkg(target)
