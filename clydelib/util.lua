@@ -515,24 +515,33 @@ end
 --print(a > b, a == b, a < b)
 
 function getbasharray(file, str)
-    return io.popen(string.format([[
+    local fd = io.popen(string.format([[
         /bin/bash -c '. %s &> /dev/null
         echo "${%s[@]}"'
-        ]], file, str)):read("*l")
+        ]], file, str))
+    local ret = fd:read("*l")
+    fd:close()
+    return ret
 end
 
 function getpkgbuildarray(carch, pkgbuild, str)
-    return io.popen(string.format([[
+    local fd =  io.popen(string.format([[
         /bin/bash -c 'CARCH=%s
         . %s
         echo "${%s[@]}"'
-        ]], carch, pkgbuild, str)):read("*l")
+        ]], carch, pkgbuild, str))
+    local ret = fd:read("*l")
+    fd:close()
+    return ret
 end
 
 function getbasharrayuser(file, str, user)
-    return io.popen(string.format([[
+    local fd =  io.popen(string.format([[
         /bin/bash -c 'export USER=%s
         . %s &> /dev/null
         echo "${%s[@]}"'
-        ]], user, file, str)):read("*l")
+        ]], user, file, str))
+    local ret = fd:read("*l")
+    fd:close()
+    return ret
 end
