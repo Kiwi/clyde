@@ -30,6 +30,7 @@ local yesno = util.yesno
 local noyes = util.noyes
 local trans_release = util.trans_release
 local getbasharray = util.getbasharray
+local getbasharrayuser = util.getbasharrayuser
 local getpkgbuildarray = util.getpkgbuildarray
 local access = utilcore.access
 local strerror = utilcore.strerror
@@ -650,27 +651,31 @@ local function aur_install(targets)
     end
 
     local function customizepkg(target)
-	lfs.chdir("/tmp/clyde/"..target.."/"..target)
-	local shell = basename(io.popen("echo $SHELL"):read("*l"))
+        lfs.chdir("/tmp/clyde/"..target.."/"..target)
+        if (not config.noconfirm) then
+        local fd = io.popen("echo $SHELL")
+        local shell = basename(fd:read("*l"))
+        fd:close()
         local shellrc = "$HOME/."..shell.."rc"
-	local editor = getbasharray(shellrc, "EDITOR") or "vim"
-	printf(C.blink..C.redb("    ( Unsupported package: Potentially dangerous! )"))
-	printf("\n")
+        local editor = getbasharray(shellrc, "EDITOR") or "nano"
+        printf(C.blink..C.redb("    ( Unsupported package: Potentially dangerous! )"))
+        printf("\n")
         repeat
-	local response = yesno(C.yelb("==> ")..C.whib("Edit the PKGBUILD (highly recommended for security reasons)?"))
-	    if (response) then
+            local response = yesno(C.yelb("==> ")..C.whib("Edit the PKGBUILD (highly recommended for security reasons)?"))
+            if (response) then
                 os.execute(editor.." PKGBUILD")
             end
-	until not response
-	local instfile = getbasharray("PKGBUILD", "install")
-	    if (string.len(instfile) > 0) then
-                repeat
-                    local response = yesno(C.yelb("==> ")..C.whib("Edit "..instfile.." (highly recommended for security reasons)?"))
-                        if (response) then
-		            os.execute(editor.." "..instfile)
-		        end
-		until not response
-	    end
+        until not response
+        local instfile = getbasharray("PKGBUILD", "install")
+        if (instfile and #instfile > 0) then
+            repeat
+                local response = yesno(C.yelb("==> ")..C.whib("Edit "..instfile.." (highly recommended for security reasons)?"))
+                if (response) then
+                    os.execute(editor.." "..instfile)
+                end
+            until not response
+        end
+    end
     end
 
     local function makepkg(target)
@@ -697,12 +702,13 @@ local function aur_install(targets)
         if (type(targets) ~= "table") then
             targets = {targets}
         end
-        local packagedir = util.getbasharrayuser("/etc/makepkg.conf", "PKGDEST", os.getenv("SUDO_USER"))
+        local user = os.getenv("SUDO_USER") or "root"
+        local packagedir = getbasharrayuser("/etc/makepkg.conf", "PKGDEST", user)
                 or "/tmp/clyde/"..target.."/"..target
-                print(packagedir)
 
         local pkgs = {}
         local toinstall = {}
+
         for i, target in ipairs(targets) do
             lfs.chdir(packagedir)
             for file in lfs.dir(lfs.currentdir()) do
@@ -722,10 +728,8 @@ local function aur_install(targets)
                 local comp = alpm.pkg_vercmp(pkgver, toinstall[indx][pacname].ver)
                 if comp == 1 then
                     toinstall[indx][pacname].fname = pkg
-                    print(pkg, pkgver)
                 end
             else
-                print(pkg, pkgver)
                 toinstall[#toinstall+1] = {}
                 toinstall[#toinstall][pacname] = {['fname'] = pkg; ['ver'] = pkgver}
             end
