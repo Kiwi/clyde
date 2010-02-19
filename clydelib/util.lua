@@ -528,3 +528,11 @@ function getpkgbuildarray(carch, pkgbuild, str)
         echo "${%s[@]}"'
         ]], carch, pkgbuild, str)):read("*l")
 end
+
+function getbasharrayuser(file, str, user)
+    return io.popen(string.format([[
+        /bin/bash -c 'export USER=%s
+        . %s &> /dev/null
+        echo "${%s[@]}"'
+        ]], user, file, str)):read("*l")
+end
