@@ -697,9 +697,14 @@ local function aur_install(targets)
         if (type(targets) ~= "table") then
             targets = {targets}
         end
+        local packagedir = util.getbasharrayuser("/etc/makepkg.conf", "PKGDEST", os.getenv("SUDO_USER"))
+                or "/tmp/clyde/"..target.."/"..target
+                print(packagedir)
+
         local pkgs = {}
+        local toinstall = {}
         for i, target in ipairs(targets) do
-            lfs.chdir("/tmp/clyde/"..target.."/"..target)
+            lfs.chdir(packagedir)
             for file in lfs.dir(lfs.currentdir()) do
                 local pkg = file:match(".-%.pkg%.tar%.gz")
                 if (pkg) then
@@ -707,7 +712,33 @@ local function aur_install(targets)
                 end
             end
         end
-        local ret = upgrade.main(pkgs)
+
+        for i, pkg in ipairs(pkgs) do
+            local loaded, err = alpm.pkg_load(pkg, false)
+            local pkgver = loaded:pkg_get_version()
+            local pacname = loaded:pkg_get_name()
+            local found, indx = tblisin(toinstall, pacname)
+            if found then
+                local comp = alpm.pkg_vercmp(pkgver, toinstall[indx][pacname].ver)
+                if comp == 1 then
+                    toinstall[indx][pacname].fname = pkg
+                    print(pkg, pkgver)
+                end
+            else
+                print(pkg, pkgver)
+                toinstall[#toinstall+1] = {}
+                toinstall[#toinstall][pacname] = {['fname'] = pkg; ['ver'] = pkgver}
+            end
+        end
+
+        for i, pkgtbl in ipairs(toinstall) do
+            for l, pkg in pairs(pkgtbl) do
+                toinstall[i] = pkg.fname
+                break
+            end
+        end
+
+        local ret = upgrade.main(toinstall)
         if (ret ~= 0) then
             cleanup(ret)
         end
