@@ -111,7 +111,7 @@ function fill_progress(bar_percent, disp_percent, proglen)
             printf("]\27[K")
         end
         if (proglen > 5) then
-            if (disp_percent ~= 100 and config.chomp) then
+            if (bar_percent ~= 100 and config.chomp) then
                 printf("\27[3D] %3d%% ", disp_percent)
             else
                 printf(" %3d%%", disp_percent)
@@ -200,7 +200,7 @@ function cb_dl_total(total)
 end
 
 function cb_dl_progress(filename, file_xfered, file_total)
-    local infolen = 48
+    local infolen = 50
     local filenamelen = infolen - 27
     local fname, len, wclen, padwid, wcfname
 
