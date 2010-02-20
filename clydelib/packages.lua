@@ -13,6 +13,8 @@ local string_display = util.string_display
 local list_display = util.list_display
 local list_display_linebreak = util.list_display_linebreak
 local pm_targets = pm_targets
+local db_local = db_local
+local C = colorize
 
 module(..., package.seeall)
 
@@ -209,4 +211,203 @@ function dump_pkg_changelog(pkg)
 
     pkg:pkg_changelog_close(changelog)
     printf("\n")
+end
+
+local function get_real_size(paccache)
+    local totalsize = 0
+    for i, pkg in ipairs(paccache) do
+        local pkgfiles = pkg:pkg_get_files()
+        for i, file in ipairs(pkgfiles) do
+            local attr = lfs.symlinkattributes("/"..file)
+
+            if (attr and (attr.mode == "file" or attr.mode == "link")) then
+                totalsize = totalsize + attr.size
+            end
+        end
+        printf(C.greb("\27[sReal space used by installed packages: ")) printf(C.yelb("%d M"), totalsize / 1024^2) printf(C.greb(" progression ")) printf(C.yelb("%d/%d\27[u"), i, #paccache)
+        io.stdout:flush()
+    end
+
+    printf(C.greb("Real space used by installed packages: ")) printf(C.yelb("%d M \27[K"), totalsize / 1024^2)
+end
+
+local function get_theoretical_size(paccache)
+    local totalsize = 0
+    for i, pkg in ipairs(paccache) do
+        totalsize = totalsize + pkg:pkg_get_isize()
+        printf(C.greb("\27[sTheoretical space used by installed packages: ")) printf(C.yelb("%d M"), totalsize / 1024^2) printf(C.greb(" progression ")) printf(C.yelb("%d/%d\27[u"), i, #paccache)
+
+        io.stdout:flush()
+    end
+
+    printf(C.greb("Theoretical space used by installed packages: ")) printf(C.yelb("%d M \27[K"), totalsize / 1024^2)
+end
+
+local function get_size_cachedirs()
+    local cachedirs = alpm.option_get_cachedirs()
+    local totalsize = 0
+    for i, cachedir in ipairs(cachedirs) do
+        for file in lfs.dir(cachedir) do
+            if ((file ~= ".") and (file ~= "..")) then
+                local filepath = cachedir.."/"..file
+                local attr = lfs.symlinkattributes(filepath)
+                if (attr and (attr.mode == "file" or attr.mode == "link")) then
+                    totalsize = totalsize + attr.size
+                end
+            end
+        end
+    end
+
+    printf(C.yelb("%d M"), totalsize / 1024^2)
+end
+
+local function list_package_numbers(syncdbs, paccache)
+    local tblinsert = table.insert
+    local reponames = {}
+    local packagetbl = {}
+
+    for i, repo in ipairs(syncdbs) do
+        local pkgcache = repo:db_get_pkgcache()
+        local dbname = repo:db_get_name()
+        reponames[dbname] = 0
+        for l, pkg in ipairs(pkgcache) do
+            packagetbl[pkg:pkg_get_name()] = dbname
+        end
+    end
+
+    for i, pkg in ipairs(paccache) do
+        if (packagetbl[pkg:pkg_get_name()]) then
+            reponames[packagetbl[pkg:pkg_get_name()]] = reponames[packagetbl[pkg:pkg_get_name()]] + 1
+        end
+    end
+
+    local displaystring = ""
+    local numinrepos = 0
+    for i, db in ipairs(syncdbs) do
+        local repos = db:db_get_name()
+        if reponames[repos] then
+            displaystring = displaystring..string.format("%s %s,@", repos, C.yelb("("..reponames[repos]..")"))
+            numinrepos = numinrepos + reponames[repos]
+        end
+
+    end
+
+    local others = #paccache - numinrepos
+    displaystring = displaystring:sub(1, #displaystring - 1).."@others* ".. C.yelb("("..others..")")
+    local displaytbl = strsplit(displaystring, "@")
+
+    list_display("", displaytbl, true, 13)
+end
+
+local function is_unrequired(pkg)
+    local requiredby = pkg:pkg_compute_requiredby()
+    if (not next(requiredby)) then
+        return true
+    else
+        return false
+    end
+end
+
+local function filter(pkg)
+    if (pkg:pkg_get_reason() ~= "P_R_DEPEND") then
+        return false
+    end
+
+    if (not is_unrequired(pkg)) then
+        return false
+    end
+
+    return true
+end
+
+local function get_orphans(paccache)
+    local ret = {}
+    for i, pkg in ipairs(paccache) do
+        if (filter(pkg)) then
+            tblinsert(ret, pkg:pkg_get_name())
+        end
+    end
+
+    return ret
+end
+
+local function get_explicit(paccache)
+    local ret = 0
+    for i, pkg in ipairs(paccache) do
+        if ("P_R_EXPLICIT" == pkg:pkg_get_reason()) then
+            ret = ret + 1
+        end
+    end
+
+    return ret
+end
+
+local function get_dependencies(paccache)
+    local ret = 0
+    for i, pkg in ipairs(paccache) do
+        if ("P_R_DEPEND" == pkg:pkg_get_reason()) then
+            ret = ret + 1
+        end
+    end
+
+    return ret
+end
+
+function packagestats(db_local)
+    local pkgcache = db_local:db_get_pkgcache()
+    local orphans = get_orphans(pkgcache)
+    local syncdbs = alpm.option_get_syncdbs()
+    local ignorepkgs = alpm.option_get_ignorepkgs()
+    local ignoregrps = alpm.option_get_ignoregrps()
+    local cols = util.getcols()
+    printf(C.blub(("-"):rep(cols)).."\n")
+    --printf(C.blub(" ---------------------------------------------\n"))
+    local header = "    Archlinux Core Dump        (clyde)"
+    local colored = C.bright("    Archlinux Core Dump    ")..C.greb("    (clyde)")
+    printf(C.blub("|")..(" "):rep(math.floor((cols / 2) - (#header / 2) - 1))..colored..(" "):rep(math.floor((cols / 2) - (#header / 2) - 1)))
+    if (cols%2 ~= 0) then
+        printf(C.blub(" |\n"))
+    else
+        printf(C.blub("|\n"))
+    end
+    --printf(C.blub("|")..C.bright("  Archlinux Core Dump               ")..C.greb("(clyde)")..C.blub("  |\n"))
+    printf(C.blub(("-"):rep(cols)).."\n")
+    --printf(C.blub(" ---------------------------------------------\n"))
+    printf("\n")
+    printf("\n")
+    printf(C.blub(("-"):rep(cols)).."\n")
+    --printf(C.blub("-----------------------------------------------\n"))
+    printf(C.greb("Total installed packages: %s\n"), C.yelb(#pkgcache))
+    printf(C.greb("Explicitly installed packages: %s\n"), C.yelb(get_explicit(pkgcache)))
+    printf(C.greb("Packages installed as dependencies: %s\n"), C.yelb(get_dependencies(pkgcache)))
+
+    printf(C.redb("There are %s"..C.redb(" packages no longer used by any other package:\n")), C.yelb(#orphans))
+    list_display("", orphans, true)
+    printf("\n")
+    printf(C.blub(("-"):rep(cols)).."\n")
+    printf(C.greb("HoldPkgs: %s\n"), C.yelb(#config.holdpkg))
+    list_display("", config.holdpkg, true)
+    printf(C.greb("IgnorePkgs: %s\n"), C.yelb(#ignorepkgs))
+    list_display("", ignorepkgs, true)
+    printf(C.greb("IgnoreGroups: %s\n"), C.yelb(#ignoregrps))
+    list_display("", ignoregrps, true)
+    printf("\n")
+    printf(C.blub(("-"):rep(cols)).."\n")
+    --printf(C.blub("-----------------------------------------------\n"))
+
+    printf(C.greb("Number of configured repositories: %s\n"), C.yelb(#syncdbs))
+    printf(C.greb("Number of installed packages from each repository:\n"))
+    list_package_numbers(syncdbs, pkgcache)
+    printf("\n")
+    printf("*others are packages installed from local builds or AUR Unsupported\n")
+    printf("\n")
+    printf(C.blub(("-"):rep(cols)).."\n")
+    --printf(C.blub("-----------------------------------------------\n"))
+    get_theoretical_size(pkgcache)
+        printf("\n")
+    get_real_size(pkgcache)
+        printf("\n")
+    printf(C.greb("Space used by pkg downloaded in cache (cachedirs): ")) get_size_cachedirs()
+        printf("\n")
+    printf(C.greb("Space used by src downloaded in cache: ")) printf(C.yelb("null\n"))
 end
