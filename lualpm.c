@@ -1648,7 +1648,7 @@ struct totaldl_cb_args {
 static int
 totaldl_cb_gateway_protected(lua_State *L)
 {
-    struct dl_cb_args *args = lua_touserdata(L, 1);
+    struct totaldl_cb_args *args = lua_touserdata(L, 1);
     get_callback(L, totaldl_cb_key);
     lua_pushnumber(L, args->total);
     lua_call(L, 1, 0);
