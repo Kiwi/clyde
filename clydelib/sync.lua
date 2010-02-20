@@ -656,10 +656,16 @@ local function aur_install(targets)
             local fd = io.popen("echo $SHELL")
             local shell = basename(fd:read("*l"))
             fd:close()
-            local shellrc = "$HOME/."..shell.."rc"
-            local editor = getbasharray(shellrc, "EDITOR") or "nano"
+            local shellrc = os.getenv("HOME").."/."..shell.."rc"
+            local editor = getbasharray(shellrc, "EDITOR")
+
+            if (editor == (" "):rep(#editor)) then
+                editor = "nano"
+            end
+
             printf(C.blink..C.redb("    ( Unsupported package: Potentially dangerous! )"))
             printf("\n")
+
             repeat
                 local response = yesno(C.yelb("==> ")..C.whib("Edit the PKGBUILD (highly recommended for security reasons)?"))
                 if (response) then
