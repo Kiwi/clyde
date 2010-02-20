@@ -8,6 +8,7 @@ local query = require "clydelib.query"
 local remove = require "clydelib.remove"
 local upgrade = require "clydelib.upgrade"
 local deptest = require "clydelib.deptest"
+local packages = require "clydelib.packages"
 local alpm = require "lualpm"
 local utilcore = require "clydelib.utilcore"
 local signal = require "clydelib.signal"
@@ -285,6 +286,7 @@ local longopts = {
         {"aur",         "no_argument",      0,  'a'},
         {"nocolor",     "no_argument",      0,  'OP_NOCOLOR'},
         {"color",       "no_argument",      0,  'OP_COLOR'},
+        {"stats",       "no_argument",      0,  'OP_STATS'},
     --[[
     --pacman feature functions
     --]]
@@ -367,6 +369,9 @@ local longopts = {
         ['OP_COLOR'] = function()
             config.op_use_color = true
             colorize.enable()
+        end;
+        ['OP_STATS'] = function()
+            config.stats = true
         end;
         --[[
         --pacman feature functions
@@ -511,6 +516,10 @@ local longopts = {
     if (config.op == nil) then
         lprintf("LOG_ERROR", g("only one operation may be used at a time\n"))
         return 1
+    end
+
+    if (config.stats) then
+        return 0
     end
 
     if (config.help) then
@@ -852,6 +861,11 @@ function main()
     alpm.option_set_root(ROOTDIR)
     alpm.option_set_dbpath(DBPATH)
     alpm.option_set_logfile(LOGFILE)
+    db_local = alpm.db_register_local()
+    if (not db_local) then
+        eprintf("LOG_ERROR", g("could not register 'local' database (%s)\n"), alpm.strerrorlast())
+        cleanup(1)
+    end
     ret = parseargs()
     if (ret ~= 0) then
         cleanup(ret)
@@ -860,6 +874,11 @@ function main()
     ret = parseconfig(CONFFILE)
     if (ret ~= 0) then
         cleanup(ret)
+    end
+
+    if (config.stats) then
+        packages.packagestats(db_local)
+        cleanup(0)
     end
 
     if (config.totaldownload) then
@@ -891,11 +910,7 @@ function main()
         print()
     end
 
-    db_local = alpm.db_register_local()
-    if (not db_local) then
-        eprintf("LOG_ERROR", g("could not register 'local' database (%s)\n"), alpm.strerrorlast())
-        cleanup(1)
-    end
+
     local lookuptbl = {
         ['PM_OP_QUERY'] = function() query.main(pm_targets) end;
         ['PM_OP_UPGRADE'] = function() upgrade.main(pm_targets) end;
