@@ -724,12 +724,13 @@ local function aur_install(targets)
             local pkgver = loaded:pkg_get_version()
             local pacname = loaded:pkg_get_name()
             local found, indx = tblisin(toinstall, pacname)
-            if found then
+            local istarget, _ = tblisin(targets, pacname)
+            if (found and istarget) then
                 local comp = alpm.pkg_vercmp(pkgver, toinstall[indx][pacname].ver)
                 if comp == 1 then
                     toinstall[indx][pacname].fname = pkg
                 end
-            else
+            elseif (istarget) then
                 toinstall[#toinstall+1] = {}
                 toinstall[#toinstall][pacname] = {['fname'] = pkg; ['ver'] = pkgver}
             end
