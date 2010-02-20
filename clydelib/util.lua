@@ -315,11 +315,13 @@ local function checkempty(tbl)
     return true
 end
 
-function list_display(title, list)
+function list_display(title, list, nospace, extracols)
     local len, cols = 0, 0
     if (title and type(title) == "string") then
         len = #title
-        printf("%s ", title)
+        if (not nospace) then
+            printf("%s ", title)
+        end
     end
     if (not next(list) or checkempty(list)) then
         printf("%s\n", "None")
@@ -336,7 +338,7 @@ function list_display(title, list)
                 end
             end
             printf("%s  ", str)
-            cols = cols + s
+            cols = cols + s - (extracols or 0)
         end
         printf("\n")
     end
@@ -421,7 +423,6 @@ function display_synctargets(syncpkgs)
 
     display_targets(rpkglist, false)
     display_targets(pkglist, true)
-
 end
 
 
