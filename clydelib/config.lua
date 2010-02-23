@@ -6,6 +6,7 @@ return {
 ['op_s_search_aur_only'] = false;
 ['op_s_upgrade_aur'] = false;
 ['op_use_color'] = nil;
+['editor'] = nil;
     --[[
     --pacman feature functions
     --]]

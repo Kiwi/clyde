@@ -653,17 +653,22 @@ local function aur_install(targets)
     local function customizepkg(target)
         lfs.chdir("/tmp/clyde/"..target.."/"..target)
         if (not config.noconfirm) then
-            local fd = io.popen("echo $SHELL")
-            local shell = basename(fd:read("*l"))
-            fd:close()
-            local shellrc = os.getenv("HOME").."/."..shell.."rc"
-            local editor = getbasharray(shellrc, "EDITOR")
-
-            if (editor == (" "):rep(#editor)) then
-                editor = "nano"
+            local editor
+            if (not config.editor) then
+                printf("No editor is set.\n")
+                printf("What editor would you like to use? ")
+                editor = io.read()
+                if (editor == (" "):rep(#editor)) then
+                    printf("Defaulting to nano")
+                    editor = "nano"
+                end
+                printf("Using %s\n", editor)
+                printf("To avoid this message in the future please create a config file or use the --editor command line option\n")
+            else
+                editor = config.editor
             end
 
-            printf(C.blink..C.redb("    ( Unsupported package: Potentially dangerous! )"))
+            printf(C.blink..C.redb("    ( Unsupported package from AUR: Potentially dangerous! )"))
             printf("\n")
 
             repeat
