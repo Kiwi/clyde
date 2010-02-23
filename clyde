@@ -32,6 +32,7 @@ local C = colorize
 
 local ROOTDIR = "/"
 local CONFFILE = "/etc/pacman.conf"
+local CLYDECONF = "/etc/clyde.conf"
 local DBPATH = "/var/lib/pacman/"
 local CACHEDIR = "/var/cache/pacman/pkg/"
 local LOGFILE = "/var/log/pacman.log"
@@ -287,6 +288,7 @@ local longopts = {
         {"nocolor",     "no_argument",      0,  'OP_NOCOLOR'},
         {"color",       "no_argument",      0,  'OP_COLOR'},
         {"stats",       "no_argument",      0,  'OP_STATS'},
+        {"editor",      "required_argument",0,  'OP_EDITOR'},
     --[[
     --pacman feature functions
     --]]
@@ -372,6 +374,9 @@ local longopts = {
         end;
         ['OP_STATS'] = function()
             config.stats = true
+        end;
+        ['OP_EDITOR'] = function(opt)
+            config.editor = opt
         end;
         --[[
         --pacman feature functions
@@ -585,11 +590,51 @@ local function setlibpaths()
     end
 end
 
-local function config_init()
+local function config_init(uid)
     config = clydeconf
     tblinsert(config.logmask, "LOG_ERROR")
     tblinsert(config.logmask, "LOG_WARNING")
-    config.configfile = CONFFILE
+
+    local testconf = io.open(CLYDECONF)
+    if (testconf) then
+        config.configfile = CLYDECONF
+        testconf:close()
+    else
+        config.configfile = CONFFILE
+    end
+
+
+    if (uid == 0 and not testconf) then
+        local response = util.yesno("You do not yet have a clyde.conf, would you like to create one?")
+        if (response) then
+            local fdpacman = io.open(CONFFILE, "r")
+            local fdclyde = io.open(CLYDECONF, "w+")
+            local clydeconf = fdpacman:read("*a")
+            fdpacman:close()
+            local confirm = false
+            local editor
+            printf("Please enter your default text editor: ")
+            while (not confirm) do
+                editor = io.read()
+                confirm = util.yesno("You entered '%s' as your default editor, is this correct? ", editor)
+                if (not confirm) then
+                    printf("Editor: ")
+                end
+            end
+            clydeconf = clydeconf:gsub("/etc/pacman.conf", "/etc/clyde.conf")
+            local options = {
+                "#Colors are enabled by default. To disable them, uncomment the following line";
+                "#NoColor";
+            }
+            clydeconf = string.format(
+                "#\n# CLYDE OPTIONS\n#\n[clydeoptions]\nEditor = %s\n%s\n%s",
+                editor, table.concat(options, "\n"), clydeconf)
+            fdclyde:write(clydeconf)
+            fdclyde:close()
+            printf("Congratulations! Your new config is ready to use.\nAdditional defaults have been set, please check '%s' to make sure they are what you desire\n", CLYDECONF)
+            config.configfile = CLYDECONF
+        end
+    end
 end
 
 local function config_free(conf)
@@ -639,6 +684,19 @@ local function _parseconfig(file, givensection, givendb)
     end
 
     local optionlookuptbl = {
+        --[[
+        --clyde specific options
+        --]]
+    ['NoColor'] = function()
+        if (config.op_use_color ~= true) then
+            config.op_use_color = false
+            colorize.disable()
+        end
+    end;
+    ['Editor'] = function(str) config.editor = str end;
+        --[[
+        --pacman feature functions
+        --]]
     ['UseSyslog'] = function() alpm.option_set_usesyslog(true)
         lprintf("LOG_DEBUG", "config: usesyslog\n") end;
     ['ILoveCandy'] = function() config.chomp = true
@@ -773,7 +831,7 @@ local function _parseconfig(file, givensection, givendb)
                     ret = 1
                     return configcleanup()
                 end
-                if (str == nil) and (section == "options") then
+                if (str == nil) and (section == "options" or section == "clydeoptions") then
                     if (optionlookuptbl[key]) then
                         optionlookuptbl[key]()
                     else
@@ -786,7 +844,7 @@ local function _parseconfig(file, givensection, givendb)
                     if (key == "Include") then
                         lprintf("LOG_DEBUG", "config: including %s\n", str)
                         _parseconfig(str, section, db)
-                    elseif (section == "options") then
+                    elseif (section == "options" or section == "clydeoptions") then
                         if (optionlookuptbl[key]) then
                             optionlookuptbl[key](str)
                         else
@@ -837,10 +895,6 @@ local function parseconfig(file)
 end
 
 function main()
-    config_init()
-    if (utilcore.isatty(1) == 0 and not config.op_use_color) then
-        colorize.disable()
-    end
     local ret = 0
     signal.signal("SIGINT", function()
         printf("\nInterrupt signal received\n\n")
@@ -856,7 +910,10 @@ function main()
     local myuid = geteuid()
     localize()
     alpm.initialize()
-    config_init()
+    config_init(myuid)
+     if (utilcore.isatty(1) == 0 and not config.op_use_color) then
+        colorize.disable()
+    end
     alpm.option_set_dlcb(callback.cb_dl_progress)
     alpm.option_set_root(ROOTDIR)
     alpm.option_set_dbpath(DBPATH)
@@ -871,7 +928,7 @@ function main()
         cleanup(ret)
     end
 
-    ret = parseconfig(CONFFILE)
+    ret = parseconfig(config.configfile)
     if (ret ~= 0) then
         cleanup(ret)
     end
