@@ -1,4 +1,4 @@
-WARNING: This program is currently in alpha state. Therefore, use it at your
+WARNING: This program is currently in beta state. Therefore, use it at your
 own risk. The developers are not responsible if it breaks your system, fries
 your motherboard, or eats your babies.
 
@@ -11,10 +11,10 @@ bug reports... If anything overly drastic happens, PICS OR GTFO!
 A note from the lead developer (DigitalKiwi):
 
 In all seriousness: It should be perfectly safe to use, it only lacks a few
-features that pacman has (Mainly progress bars). Bugs can be posted to github
-or http://bugs.archuser.com/index.php?project=4 or DigitalKiwi on freenode
+features that pacman has. Bugs can be posted to github under issues or at
+http://bugs.archuser.com/index.php?project=4 or DigitalKiwi on freenode
 
-It is still lacking most of the AUR support that it will have, so if you find
+It is still lacking some of the AUR support that it will have, so if you find
 it lacking wait a while and come back and you may be pleasantly surprised.
 
 Thank you for your interest in Clyde, I hope it serves you well, leave
