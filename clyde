@@ -692,8 +692,10 @@ local function _parseconfig(file, givensection, givendb)
             config.op_use_color = false
             colorize.disable()
         end
+        lprintf("LOG_DEBUG", "config: nocolor\n")
     end;
-    ['Editor'] = function(str) config.editor = str end;
+    ['Editor'] = function(str) config.editor = str
+        lprintf("LOG_DEBUG", "config: editor: %s\n", str) end;
         --[[
         --pacman feature functions
         --]]
@@ -813,7 +815,7 @@ local function _parseconfig(file, givensection, givendb)
                     ret = 1
                     return configcleanup()
                 end
-                if (section ~= "options") then
+                if (section ~= "options" and section ~= "clydeoptions") then
                     db = alpm.db_register_sync(section)
                     if (db == nil) then
                         lprintf("LOG_ERROR", g("could not register '%s' database (%s)\n"),
