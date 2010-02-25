@@ -224,7 +224,7 @@ local function get_real_size(paccache)
                 totalsize = totalsize + attr.size
             end
         end
-        printf(C.greb("\27[sReal space used by installed packages: ")) printf(C.yelb("%d M"), totalsize / 1024^2) printf(C.greb(" progression ")) printf(C.yelb("%d/%d\27[u"), i, #paccache)
+        printf(C.greb("\rReal space used by installed packages: ")) printf(C.yelb("%d M"), totalsize / 1024^2) printf(C.greb(" progression ")) printf(C.yelb("%d/%d\r"), i, #paccache)
         io.stdout:flush()
     end
 
@@ -235,7 +235,7 @@ local function get_theoretical_size(paccache)
     local totalsize = 0
     for i, pkg in ipairs(paccache) do
         totalsize = totalsize + pkg:pkg_get_isize()
-        printf(C.greb("\27[sTheoretical space used by installed packages: ")) printf(C.yelb("%d M"), totalsize / 1024^2) printf(C.greb(" progression ")) printf(C.yelb("%d/%d\27[u"), i, #paccache)
+        printf(C.greb("\rTheoretical space used by installed packages: ")) printf(C.yelb("%d M"), totalsize / 1024^2) printf(C.greb(" progression ")) printf(C.yelb("%d/%d\r"), i, #paccache)
 
         io.stdout:flush()
     end
