@@ -577,7 +577,7 @@ local function sync_aur_trans(targets)
     --TODO: write this function to pretty up install list, or something
 --    display_aurtargets(aurpkgs)
     if (next(aurpkgs)) then
-        print(C.greb("\n==>")..C.whib(" Installing the following packages from AUR\n"))
+        printf(C.greb("\n==>")..C.whib(" Installing the following packages from AUR\n"))
         list_display("", aurpkgs)
         print(" (Plus dependencies)")
     end
@@ -587,7 +587,7 @@ local function sync_aur_trans(targets)
     if (config.op_s_downloadonly) then
         confirm = yesno(C.yelb("==>")..C.whib(" Proceed with download?"))
     else
-        confirm = yesno(C.yelb("==>")..C.whib("Proceed with installation?"))
+        confirm = yesno(C.yelb("==>")..C.whib(" Proceed with installation?"))
     end
     if (not confirm) then
         return transcleanup()
@@ -637,7 +637,7 @@ local function download_extract(target)
     aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
     aur.dispatcher()
     lfs.chdir("/tmp/clyde/"..target)
-    os.execute("bsdtar -xf " .. target .. ".tar.gz")
+    os.execute("bsdtar -xf " .. target .. ".tar.*z")
     os.execute("chown "..user..":users -R /tmp/clyde")
     os.execute("chmod 700 -R /tmp/clyde/"..target)
 end
@@ -714,7 +714,7 @@ local function installpkgs(targets)
     for i, target in ipairs(targets) do
         lfs.chdir(packagedir)
         for file in lfs.dir(lfs.currentdir()) do
-            local pkg = file:match(".-%.pkg%.tar%.gz")
+            local pkg = file:match(".-%.pkg%.tar%.%az")
             if (pkg) then
                 tblinsert(pkgs, pkg)
             end
@@ -785,7 +785,6 @@ local function getdepends(target, provided)
 end
 
 local function getalldeps(targs, needs, needsdeps, caninstall, provided)
-    print("getalldeps")
     local done = true
     for i, targ in ipairs(targs) do
         if (not tblisin(needs, targ)) then
@@ -796,7 +795,6 @@ local function getalldeps(targs, needs, needsdeps, caninstall, provided)
         depends = tbljoin(depends, makedepends)
         for i, dep in ipairs(depends) do
         repeat
-            print("dep",dep)
             if dep == "" then break end
             --TODO: Fix this so that it can handle versions properly
             local dep = dep:match("(.+)<") or dep:match("(.+)>") or dep:match("(.+)=") or dep
@@ -867,60 +865,65 @@ local function aur_install(targets)
     config.flagsdupe = tblstrdup(config.flags)
 
     local installed = 0
+    local pacmanpkgs = {}
+    local pacmanexplicit = {}
+    local pacmandeps = {}
+    local aurpkgs = {}
+    for i, pkg in ipairs(needs) do
+        if (pacmaninstallable(pkg)) then
+            tblinsert(pacmanpkgs, pkg)
+        else
+            tblinsert(aurpkgs, pkg)
+        end
+    end
+
+    for i, pkg in ipairs(pacmanpkgs) do
+        if (tblisin(targets, pkg)) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
+                or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
+                    and not (tblisin(config.flagsdupe, "T_F_ALLDEPS"))) then
+            tblinsert(pacmanexplicit, pkg)
+            installed = installed + 1
+        else
+            tblinsert(pacmandeps, pkg)
+            installed = installed + 1
+        end
+    end
+
+    sync_aur_trans(pacmanexplicit)
+    tblinsert(config.flags, "T_F_ALLDEPS")
+    sync_aur_trans(pacmandeps)
+    removeflags("T_F_ALLDEPS")
+
+    updateprovided(provided)
+    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
+
     while (next(caninstall) and (installed < #needs)) do
         updateprovided(provided)
         _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
         for i, pkg in ipairs(caninstall) do
+                    updateprovided(provided)
+                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
             repeat
-            if (pacmaninstallable(pkg)) then
-                if (tblisin(targets, pkg) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
-                        or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
-                                and not (tblisin(config.flagsdupe, "T_F_ALLDEPS")))) then
-                    --install as explicit
-                    sync_aur_trans({pkg})
-                    updateprovided(provided)
-                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
-                    installed = installed + 1
-                    break
-                else
-                    --install as deps
-                    tblinsert(config.flags, "T_F_ALLDEPS")
-                    sync_aur_trans({pkg})
-                    updateprovided(provided)
-                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
-                    removeflags("T_F_ALLDEPS")
-                    installed = installed + 1
-                    break
-                end
-            else
-                --install aur pkgs
-                if (tblisin(targets, pkg) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
-                        or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
-                                and not (tblisin(config.flagsdupe, "T_F_ALLDEPS"))))  then
-                    --install as explicit
+                if(tblisin(targets, pkg) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
+                    or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
+                        and not (tblisin(config.flagsdupe, "T_F_ALLDEPS")))) then
                     download_extract(pkg)
                     customizepkg(pkg)
                     makepkg(pkg, mkpkgopts)
                     installpkgs(pkg)
-                    updateprovided(provided)
-                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
                     installed = installed + 1
                     break
                 else
-                    --instlal as deps
-                    tblinsert(config.flags, "T_F_ALLDEPS")
+                    tblinsert(config,flags, "T_F_ALLDEPS")
                     download_extract(pkg)
-	            customizepkg(pkg)
+                    customizepkg(pkg)
                     makepkg(pkg, mkpkgopts)
                     installpkgs(pkg)
                     removeflags("T_F_ALLDEPS")
-                    updateprovided(provided)
-                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
                     installed = installed + 1
                     break
                 end
-            end
-        until 1
+            until 1
         end
     end
 end
