@@ -78,6 +78,9 @@ function getgzip(geturl)
         sink = ltn12.sink.table(sinktbl);
         headers = head;
     }
+    if (e ~= 200) then
+        return nil
+    end
     local inflated = zlib.inflate(table.concat(sinktbl))
     return inflated:read("*a")
 end
