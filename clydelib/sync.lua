@@ -614,263 +614,264 @@ local function sync_aur_trans(targets)
     end
 end
 
---TODO: FIX THIS AWFUL FUNCTION
---It is the worst function I have ever written, it works but is terrible
+local function updateprovided(tbl)
+    local db_local = alpm.option_get_localdb()
+    local pkgcache = db_local:db_get_pkgcache()
+    for i, pkg in ipairs(pkgcache) do
+        tbl[pkg:pkg_get_name()] = pkg:pkg_get_version()
+        local provides = pkg:pkg_get_provides()
+        if (next(provides)) then
+            for i, prov in ipairs(provides) do
+                --TODO: Fix this so that it can handle versions properly
+                local p = prov:match("(.+)=") or prov
+                local v = prov:match("=(.+)") or nil
+                tbl[p] = v or true
+            end
+        end
+    end
+end
+
+local function download_extract(target)
+    local user = os.getenv("SUDO_USER") or "root"
+    local host = "aur.archlinux.org"
+    aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
+    aur.dispatcher()
+    lfs.chdir("/tmp/clyde/"..target)
+    os.execute("bsdtar -xf " .. target .. ".tar.gz")
+    os.execute("chown "..user..":users -R /tmp/clyde")
+    os.execute("chmod 700 -R /tmp/clyde/"..target)
+end
+
+local function customizepkg(target)
+    lfs.chdir("/tmp/clyde/"..target.."/"..target)
+    if (not config.noconfirm) then
+        local editor
+        if (not config.editor) then
+            printf("No editor is set.\n")
+            printf("What editor would you like to use? ")
+            editor = io.read()
+            if (editor == (" "):rep(#editor)) then
+                printf("Defaulting to nano")
+                editor = "nano"
+            end
+            printf("Using %s\n", editor)
+            printf("To avoid this message in the future please create a config file or use the --editor command line option\n")
+        else
+            editor = config.editor
+        end
+
+        printf(C.blink..C.redb("    ( Unsupported package from AUR: Potentially dangerous! )"))
+        printf("\n")
+
+        repeat
+            local response = yesno(C.yelb("==> ")..C.whib("Edit the PKGBUILD (highly recommended for security reasons)?"))
+            if (response) then
+                os.execute(editor.." PKGBUILD")
+            end
+        until not response
+        local instfile = getbasharray("PKGBUILD", "install")
+        if (instfile and #instfile > 0) then
+            repeat
+                local response = yesno(C.yelb("==> ")..C.whib("Edit "..instfile.." (highly recommended for security reasons)?"))
+                if (response) then
+                    os.execute(editor.." "..instfile)
+                end
+            until not response
+        end
+    end
+end
+
+local function makepkg(target, mkpkgopts)
+    local user = os.getenv("SUDO_USER")
+    local result
+    if (user) then
+        result = os.execute("su "..user.." -c 'makepkg -f' "..mkpkgopts)
+    else
+        local response = noyes(C.redb("==> ")..C.whi(C.onred("Running makepkg as root is a bad idea! Continue anyway?")))
+        if (response)  then
+            result = os.execute("makepkg -f --asroot "..mkpkgopts)
+        else
+            cleanup(1)
+        end
+    end
+    if (result ~= 0) then
+        print("Build failed")
+        cleanup(1)
+    end
+end
+
+local function installpkgs(targets)
+    if (type(targets) ~= "table") then
+        targets = {targets}
+    end
+    local user = os.getenv("SUDO_USER") or "root"
+    local packagedir = getbasharrayuser("/etc/makepkg.conf", "PKGDEST", user)
+            or "/tmp/clyde/"..target.."/"..target
+
+    local pkgs = {}
+    local toinstall = {}
+
+    for i, target in ipairs(targets) do
+        lfs.chdir(packagedir)
+        for file in lfs.dir(lfs.currentdir()) do
+            local pkg = file:match(".-%.pkg%.tar%.gz")
+            if (pkg) then
+                tblinsert(pkgs, pkg)
+            end
+        end
+    end
+
+    for i, pkg in ipairs(pkgs) do
+        local loaded, err = alpm.pkg_load(pkg, false)
+        local pkgver = loaded:pkg_get_version()
+        local pacname = loaded:pkg_get_name()
+        local found, indx = tblisin(toinstall, pacname)
+        local istarget, _ = tblisin(targets, pacname)
+        if (found and istarget) then
+            local comp = alpm.pkg_vercmp(pkgver, toinstall[indx][pacname].ver)
+            if comp == 1 then
+                toinstall[indx][pacname].fname = pkg
+            end
+        elseif (istarget) then
+            toinstall[#toinstall+1] = {}
+            toinstall[#toinstall][pacname] = {['fname'] = pkg; ['ver'] = pkgver}
+        end
+    end
+
+    for i, pkgtbl in ipairs(toinstall) do
+        for l, pkg in pairs(pkgtbl) do
+            toinstall[i] = pkg.fname
+            break
+        end
+    end
+
+    local ret = upgrade.main(toinstall)
+    if (ret ~= 0) then
+        cleanup(ret)
+    end
+end
+
+local function getdepends(target, provided)
+    local ret, ret2, ret3 = {}, {}, {}
+    if provided[target] then return {}, {}, {} end
+    local sync_dbs = alpm.option_get_syncdbs()
+    for i, db in ipairs(sync_dbs) do
+        local package = db:db_get_pkg(target)
+        if (package) then
+            local depends = package:pkg_get_depends()
+            for i, dep in ipairs(depends) do
+                tblinsert(ret, dep:dep_compute_string())
+            end
+            return ret, {}, {}
+        end
+    end
+    local pkgbuildurl = string.format(
+            "http://aur.archlinux.org/packages/%s/%s/PKGBUILD",
+                target, target)
+    local pkgbuild = aur.getgzip(pkgbuildurl)
+    local tmp = os.tmpname()
+    local tmpfile = io.open(tmp, "w")
+    tmpfile:write(pkgbuild)
+    tmpfile:close()
+    local carch = getbasharray("/etc/makepkg.conf", "CARCH")
+    local depends = getpkgbuildarray(carch, tmp, "depends")
+    local makedepends = getpkgbuildarray(carch, tmp, "makedepends")
+    local optdepends = getpkgbuildarray(carch, tmp, "optdepends")
+    os.remove(tmp)
+    ret = strsplit(depends, " ") or {}
+    ret2 = strsplit(makedepends, " ") or {}
+    ret3 = strsplit(optdepends, " ") or {}
+    return ret, ret2, ret3
+end
+
+local function getalldeps(targs, needs, needsdeps, caninstall, provided)
+    print("getalldeps")
+    local done = true
+    for i, targ in ipairs(targs) do
+        if (not tblisin(needs, targ)) then
+            tblinsert(needs, targ)
+        end
+        local depends, makedepends = getdepends(targ, provided)
+        local bcaninstall = true
+        depends = tbljoin(depends, makedepends)
+        for i, dep in ipairs(depends) do
+        repeat
+            print("dep",dep)
+            if dep == "" then break end
+            --TODO: Fix this so that it can handle versions properly
+            local dep = dep:match("(.+)<") or dep:match("(.+)>") or dep:match("(.+)=") or dep
+            if (not provided[dep])then
+                if (not tblisin(needs, dep)) then
+                    tblinsert(needs, dep)
+                end
+                bcaninstall = false
+                if (not tblisin(needsdeps, targ) and not tblisin(caninstall, targ)) then
+                    done = false
+                end
+            end
+        until 1
+        end
+        if (bcaninstall) then
+            if (not tblisin(caninstall, targ)) then
+                tblinsert(caninstall, targ)
+            end
+        end
+    end
+    needsdeps = tbldiff(needs, caninstall)
+    return done, needsdeps
+end
+
+local function removeflags(flag)
+    local found = true
+    local indx
+    while found do
+        found, indx = tblisin(config.flags, flag)
+        if (found) then
+            fastremove(config.flags, indx)
+        end
+    end
+end
+
+local function pacmaninstallable(target)
+    local sync_dbs = alpm.option_get_syncdbs()
+    for i, db in ipairs(sync_dbs) do
+        local pkg = db:db_get_pkg(target)
+        if (pkg) then
+            return true
+        end
+    end
+    return false
+end
+
 local function aur_install(targets)
     local mkpkgopts = table.concat(config.mkpkgopts)
     local provided = {}
     local needs = {}
     local caninstall = {}
     local needsdeps = {}
-    local function updateprovided(tbl)
-        local db_local = alpm.option_get_localdb()
-        local pkgcache = db_local:db_get_pkgcache()
-        for i, pkg in ipairs(pkgcache) do
-            tbl[pkg:pkg_get_name()] = pkg:pkg_get_version()
-            local provides = pkg:pkg_get_provides()
-            if (next(provides)) then
-                for i, prov in ipairs(provides) do
-                    local p = prov:match("(.+)=") or prov
-                    local v = prov:match("=(.+)") or nil
-                    tbl[p] = v or true
-                end
-            end
-        end
-    end
+    local _
     updateprovided(provided)
-
-    local function download_extract(target)
-        local user = os.getenv("SUDO_USER") or "root"
-        local host = "aur.archlinux.org"
-        aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
-        aur.dispatcher()
-        lfs.chdir("/tmp/clyde/"..target)
-        os.execute("bsdtar -xf " .. target .. ".tar.gz")
-        os.execute("chown "..user..":users -R /tmp/clyde")
-        os.execute("chmod 700 -R /tmp/clyde/"..target)
-    end
-
-    local function customizepkg(target)
-        lfs.chdir("/tmp/clyde/"..target.."/"..target)
-        if (not config.noconfirm) then
-            local editor
-            if (not config.editor) then
-                printf("No editor is set.\n")
-                printf("What editor would you like to use? ")
-                editor = io.read()
-                if (editor == (" "):rep(#editor)) then
-                    printf("Defaulting to nano")
-                    editor = "nano"
-                end
-                printf("Using %s\n", editor)
-                printf("To avoid this message in the future please create a config file or use the --editor command line option\n")
-            else
-                editor = config.editor
-            end
-
-            printf(C.blink..C.redb("    ( Unsupported package from AUR: Potentially dangerous! )"))
-            printf("\n")
-
-            repeat
-                local response = yesno(C.yelb("==> ")..C.whib("Edit the PKGBUILD (highly recommended for security reasons)?"))
-                if (response) then
-                    os.execute(editor.." PKGBUILD")
-                end
-            until not response
-            local instfile = getbasharray("PKGBUILD", "install")
-            if (instfile and #instfile > 0) then
-                repeat
-                    local response = yesno(C.yelb("==> ")..C.whib("Edit "..instfile.." (highly recommended for security reasons)?"))
-                    if (response) then
-                        os.execute(editor.." "..instfile)
-                    end
-                until not response
-            end
-        end
-    end
-
-    local function makepkg(target)
-        local user = os.getenv("SUDO_USER")
-        local result
-        if (user) then
-            result = os.execute("su "..user.." -c 'makepkg -f' "..mkpkgopts)
-        else
-            local response = noyes(C.redb("==> ")..C.whi(C.onred("Running makepkg as root is a bad idea! Continue anyway?")))
-            if (response)  then
-                result = os.execute("makepkg -f --asroot "..mkpkgopts)
-            else
-                cleanup(1)
-            end
-        end
-        if (result ~= 0) then
-            print("Build failed")
-            cleanup(1)
-        end
-
-    end
-
-    local function installpkgs(targets)
-        if (type(targets) ~= "table") then
-            targets = {targets}
-        end
-        local user = os.getenv("SUDO_USER") or "root"
-        local packagedir = getbasharrayuser("/etc/makepkg.conf", "PKGDEST", user)
-                or "/tmp/clyde/"..target.."/"..target
-
-        local pkgs = {}
-        local toinstall = {}
-
-        for i, target in ipairs(targets) do
-            lfs.chdir(packagedir)
-            for file in lfs.dir(lfs.currentdir()) do
-                local pkg = file:match(".-%.pkg%.tar%.gz")
-                if (pkg) then
-                    tblinsert(pkgs, pkg)
-                end
-            end
-        end
-
-        for i, pkg in ipairs(pkgs) do
-            local loaded, err = alpm.pkg_load(pkg, false)
-            local pkgver = loaded:pkg_get_version()
-            local pacname = loaded:pkg_get_name()
-            local found, indx = tblisin(toinstall, pacname)
-            local istarget, _ = tblisin(targets, pacname)
-            if (found and istarget) then
-                local comp = alpm.pkg_vercmp(pkgver, toinstall[indx][pacname].ver)
-                if comp == 1 then
-                    toinstall[indx][pacname].fname = pkg
-                end
-            elseif (istarget) then
-                toinstall[#toinstall+1] = {}
-                toinstall[#toinstall][pacname] = {['fname'] = pkg; ['ver'] = pkgver}
-            end
-        end
-
-        for i, pkgtbl in ipairs(toinstall) do
-            for l, pkg in pairs(pkgtbl) do
-                toinstall[i] = pkg.fname
-                break
-            end
-        end
-
-        local ret = upgrade.main(toinstall)
-        if (ret ~= 0) then
-            cleanup(ret)
-        end
-    end
-
-    local function getdepends(target)
-        local ret, ret2, ret3 = {}, {}, {}
-        if provided[target] then return {}, {}, {} end
-        local sync_dbs = alpm.option_get_syncdbs()
-        for i, db in ipairs(sync_dbs) do
-            local package = db:db_get_pkg(target)
-            if (package) then
-                local depends = package:pkg_get_depends()
-                for i, dep in ipairs(depends) do
-                    tblinsert(ret, dep:dep_compute_string())
-                end
-                return ret, {}, {}
-            end
-        end
-
-        local pkgbuildurl = string.format("http://aur.archlinux.org/packages/%s/%s/PKGBUILD", target, target)
-        local pkgbuild = aur.getgzip(pkgbuildurl)
-        local tmp = os.tmpname()
-        local tmpfile = io.open(tmp, "w")
-        tmpfile:write(pkgbuild)
-        tmpfile:close()
-        local carch = getbasharray("/etc/makepkg.conf", "CARCH")
-        local depends = getpkgbuildarray(carch, tmp, "depends")
-        local makedepends = getpkgbuildarray(carch, tmp, "makedepends")
-        local optdepends = getpkgbuildarray(carch, tmp, "optdepends")
-        os.remove(tmp)
-
-        ret = strsplit(depends, " ") or {}
-        ret2 = strsplit(makedepends, " ") or {}
-        ret3 = strsplit(optdepends, " ") or {}
-        return ret, ret2, ret3
-    end
 
 --TODO use memonization to improve performance
 
     local memodepends = {}
     local memomakedepends = {}
 
-    local function getalldeps(targs)
-        local done = true
-        local dupe = tblstrdup(needsdeps)
-        for i, targ in ipairs(targs) do
-            if (not tblisin(needs, targ)) then
-                tblinsert(needs, targ)
-            end
-            local depends, makedepends = getdepends(targ)
-            local bcaninstall = true
-            depends = tbljoin(depends, makedepends)
-            for i, dep in ipairs(depends) do
-            repeat
-                if dep == "" then break end
-                local dep = dep:match("(.+)<") or dep:match("(.+)>") or dep:match("(.+)=") or dep
-
-                if (not provided[dep])then
-                    if (not tblisin(needs, dep)) then
-                        tblinsert(needs, dep)
-                    end
-                    bcaninstall = false
-                    if (not tblisin(needsdeps, targ) and not tblisin(caninstall, targ)) then
-                        done = false
-                    end
-                end
-            until 1
-            end
-            if (bcaninstall) then
-                if (not tblisin(caninstall, targ)) then
-                    tblinsert(caninstall, targ)
-                end
-            end
-        end
-        needsdeps = tbldiff(needs, caninstall)
-        return done
-    end
 
     local donewithdeps
-    donewithdeps = getalldeps(targets)
-
+    donewithdeps, needsdeps = getalldeps(targets, needs, needsdeps, caninstall, provided)
     while (not donewithdeps) do
-        donewithdeps = getalldeps(needsdeps)
-    end
-
-    local function removeflags(flag)
-        local found = true
-        local indx
-        while found do
-            found, indx = tblisin(config.flags, flag)
-            if (found) then
-                fastremove(config.flags, indx)
-            end
-        end
-    end
-
-    local function pacmaninstallable(target)
-        local sync_dbs = alpm.option_get_syncdbs()
-        for i, db in ipairs(sync_dbs) do
-            local pkg = db:db_get_pkg(target)
-            if (pkg) then
-                return true
-            end
-        end
-        return false
+        donewithdeps, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
     end
 
     config.flagsdupe = tblstrdup(config.flags)
 
-            local installed = 0
-            while (next(caninstall) and (installed < #needs)) do
-                updateprovided(provided)
-                getalldeps(needsdeps)
-            for i, pkg in ipairs(caninstall) do
-                repeat
+    local installed = 0
+    while (next(caninstall) and (installed < #needs)) do
+        updateprovided(provided)
+        _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
+        for i, pkg in ipairs(caninstall) do
+            repeat
             if (pacmaninstallable(pkg)) then
                 if (tblisin(targets, pkg) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
                         or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
@@ -878,7 +879,7 @@ local function aur_install(targets)
                     --install as explicit
                     sync_aur_trans({pkg})
                     updateprovided(provided)
-                    getalldeps(needsdeps)
+                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
                     installed = installed + 1
                     break
                 else
@@ -886,7 +887,7 @@ local function aur_install(targets)
                     tblinsert(config.flags, "T_F_ALLDEPS")
                     sync_aur_trans({pkg})
                     updateprovided(provided)
-                    getalldeps(needsdeps)
+                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
                     removeflags("T_F_ALLDEPS")
                     installed = installed + 1
                     break
@@ -899,31 +900,30 @@ local function aur_install(targets)
                     --install as explicit
                     download_extract(pkg)
                     customizepkg(pkg)
-                    makepkg(pkg)
+                    makepkg(pkg, mkpkgopts)
                     installpkgs(pkg)
                     updateprovided(provided)
-                    getalldeps(needsdeps)
+                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
                     installed = installed + 1
                     break
                 else
+                    --instlal as deps
                     tblinsert(config.flags, "T_F_ALLDEPS")
                     download_extract(pkg)
 	            customizepkg(pkg)
-                    makepkg(pkg)
+                    makepkg(pkg, mkpkgopts)
                     installpkgs(pkg)
                     removeflags("T_F_ALLDEPS")
                     updateprovided(provided)
-                    getalldeps(needsdeps)
+                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
                     installed = installed + 1
                     break
                 end
             end
-    until 1
+        until 1
         end
     end
 end
-
-
 
 local function sync_trans(targets)
     local retval = 0
