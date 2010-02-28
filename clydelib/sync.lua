@@ -150,7 +150,7 @@ local function sync_synctree(level, syncs)
     return success > 0
 end
 
-local function sync_search(syncs, targets)
+function sync_search(syncs, targets, shownumbers, install)
     local dbcolors = {
         extra = C.greb;
         core = C.redb;
@@ -160,6 +160,16 @@ local function sync_search(syncs, targets)
     local found = false
     local ret
     local localdb = alpm.option_get_localdb()
+    local pkgcount = 0
+    local pkgnames = {}
+    local function numerize(count)
+        if (shownumbers) then
+            return yelbold..count..C.reset.." "
+        else
+            return ""
+        end
+    end
+
     if (not config.op_s_search_aur_only) then
     for i, db in ipairs(syncs) do
         repeat
@@ -176,13 +186,15 @@ local function sync_search(syncs, targets)
             end
 
             for i, pkg in ipairs(ret) do
+                pkgcount = pkgcount + 1
+                pkgnames[pkgcount] = pkg:pkg_get_name()
                 --TODO: show versions if different
                 if (not config.quiet) then
                     local dbcolor = dbcolors[db:db_get_name()] or C.magb
                     if (localdb:db_get_pkg(pkg:pkg_get_name())) then
-                        printf("%s%s %s %s", dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold.."[installed]"..C.reset)
+                        printf("%s%s%s %s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold.."[installed]"..C.reset)
                     else
-                        printf("%s%s %s", dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
+                        printf("%s%s%s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
                     end
                 else
                     printf("%s", C.bright(pkg:pkg_get_name()))
@@ -215,7 +227,8 @@ local function sync_search(syncs, targets)
 
         until 1
     end
-end
+    end
+
     if (next(targets)) then
         if (#targets[1] < 2) then
             lprintf("LOG_WARNING", "First query arg too small to search AUR\n")
@@ -236,13 +249,18 @@ end
         end
         prune(aurpkgs, targets)
         local sortedpkgs = sortaur(aurpkgs)
+        if (next(sortedpkgs)) then
+            found = true
+        end
         for i, pkg in ipairs(sortedpkgs) do
+            pkgcount = pkgcount + 1
+            pkgnames[pkgcount] = pkg.name
             --TODO: same as above
             if (not config.quiet) then
                 if (localdb:db_get_pkg(pkg.name)) then
-                    printf("%s%s %s %s %s\n    ", C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."[installed]"..C.reset, yelbold.."("..pkg.votes..")"..C.reset)
+                    printf("%s%s%s %s %s %s\n    ", numerize(pkgcount), C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."[installed]"..C.reset, yelbold.."("..pkg.votes..")"..C.reset)
                 else
-                    printf("%s%s %s %s\n    ", C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."("..pkg.votes..")"..C.reset)
+                    printf("%s%s%s %s %s\n    ", numerize(pkgcount), C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."("..pkg.votes..")"..C.reset)
                 end
                 indentprint(C.italic(pkg.description), 3)
                 printf("\n")
@@ -251,6 +269,19 @@ end
             end
         end
     end
+
+    if (shownumbers and found) then
+        printf("%s  %s\n%s  %s\n%s ", C.yelb("==>"),
+            C.bright("Enter #'s (separated by blanks) of packages to be installed"), C.yelb("==>"),
+            C.bright(("-"):rep(60)), C.yelb("==>"), C.yelb("==>"))
+
+        local installstring = io.read("*l")
+        local installtbl = strsplit(installstring, " ")
+        for i, num in ipairs(installtbl) do
+            tblinsert(install, pkgnames[tonumber(num)])
+        end
+    end
+
     return (not found)
 end
 
@@ -517,7 +548,6 @@ local function sync_aur_trans(targets)
                         if (jsonresults.results.Name) then
                             found = true
                             tblinsert(aurpkgs, targ)
-                            print("adding pkg")
                         end
 
                     end
@@ -555,10 +585,12 @@ local function sync_aur_trans(targets)
     end
 
     local packages = alpm.trans_get_pkgs()
+    --[[
     if (not next(packages) and not found) then
         printf(g(" local database is up to date\n"));
         return transcleanup()
     end
+    --]]
 
     if (config.op_s_printuris) then
         for i, pkg in ipairs(packages) do
@@ -573,16 +605,16 @@ local function sync_aur_trans(targets)
         return transcleanup()
     end
 
-    display_synctargets(packages)
+--    display_synctargets(packages)
     --TODO: write this function to pretty up install list, or something
 --    display_aurtargets(aurpkgs)
-    if (next(aurpkgs)) then
-        printf(C.greb("\n==>")..C.whib(" Installing the following packages from AUR\n"))
-        list_display("", aurpkgs)
-        print(" (Plus dependencies)")
-    end
-    printf("\n")
-
+--    if (next(aurpkgs)) then
+--        printf(C.greb("\n==>")..C.whib(" Installing the following packages from AUR\n"))
+--        list_display("", aurpkgs)
+--        print(" (Plus dependencies)")
+--    end
+--    printf("\n")
+--[[
     local confirm
     if (config.op_s_downloadonly) then
         confirm = yesno(C.yelb("==>")..C.whib(" Proceed with download?"))
@@ -592,6 +624,7 @@ local function sync_aur_trans(targets)
     if (not confirm) then
         return transcleanup()
     end
+    --]]
     data = {}
     transret, data = alpm.trans_commit(data)
     if (transret == -1) then
@@ -637,7 +670,7 @@ local function download_extract(target)
     aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
     aur.dispatcher()
     lfs.chdir("/tmp/clyde/"..target)
-    os.execute("bsdtar -xf " .. target .. ".tar.*z")
+    os.execute("bsdtar -xf " .. target .. ".tar.gz")
     os.execute("chown "..user..":users -R /tmp/clyde")
     os.execute("chmod 700 -R /tmp/clyde/"..target)
 end
@@ -753,7 +786,6 @@ end
 
 local function getdepends(target, provided)
     local ret, ret2, ret3 = {}, {}, {}
-    if provided[target] then return {}, {}, {} end
     local sync_dbs = alpm.option_get_syncdbs()
     for i, db in ipairs(sync_dbs) do
         local package = db:db_get_pkg(target)
@@ -762,13 +794,13 @@ local function getdepends(target, provided)
             for i, dep in ipairs(depends) do
                 tblinsert(ret, dep:dep_compute_string())
             end
-            return ret, {}, {}
         end
     end
     local pkgbuildurl = string.format(
             "http://aur.archlinux.org/packages/%s/%s/PKGBUILD",
                 target, target)
     local pkgbuild = aur.getgzip(pkgbuildurl)
+    if not pkgbuild then print("target", target) return ret, {}, {} end
     local tmp = os.tmpname()
     local tmpfile = io.open(tmp, "w")
     tmpfile:write(pkgbuild)
@@ -786,11 +818,12 @@ end
 
 local function getalldeps(targs, needs, needsdeps, caninstall, provided)
     local done = true
+    local depends, makedepends
     for i, targ in ipairs(targs) do
-        if (not tblisin(needs, targ)) then
+        if (not tblisin(needs, targ) and((not tblisin(needsdeps, targ) and not tblisin(caninstall, targ)) or not provided[targ])) then
             tblinsert(needs, targ)
         end
-        local depends, makedepends = getdepends(targ, provided)
+        depends, makedepends = getdepends(targ, provided)
         local bcaninstall = true
         depends = tbljoin(depends, makedepends)
         for i, dep in ipairs(depends) do
@@ -798,7 +831,8 @@ local function getalldeps(targs, needs, needsdeps, caninstall, provided)
             if dep == "" then break end
             --TODO: Fix this so that it can handle versions properly
             local dep = dep:match("(.+)<") or dep:match("(.+)>") or dep:match("(.+)=") or dep
-            if (not provided[dep])then
+            depends[i] = dep
+            if (not provided[dep] or tblisin(targs, dep))then
                 if (not tblisin(needs, dep)) then
                     tblinsert(needs, dep)
                 end
@@ -815,8 +849,18 @@ local function getalldeps(targs, needs, needsdeps, caninstall, provided)
             end
         end
     end
-    needsdeps = tbldiff(needs, caninstall)
-    return done, needsdeps
+
+    local needsdepstbl = tbldiff(needs, caninstall)
+    for i, v in ipairs(needsdeps) do
+        i = nil
+    end
+    for i, v in ipairs(needsdepstbl) do
+        tblinsert(needsdeps, v)
+    end
+
+    if not done and next(depends) then
+        getalldeps(needs, needs, needsdeps, caninstall, provided)
+    end
 end
 
 local function removeflags(flag)
@@ -826,6 +870,17 @@ local function removeflags(flag)
         found, indx = tblisin(config.flags, flag)
         if (found) then
             fastremove(config.flags, indx)
+        end
+    end
+end
+
+local function removetblentry(tbl, entry)
+    local found = true
+    local indx
+    while found do
+        found, indx = tblisin(tbl, entry)
+        if (found) then
+            fastremove(tbl, entry)
         end
     end
 end
@@ -858,9 +913,6 @@ local function aur_install(targets)
 
     local donewithdeps
     donewithdeps, needsdeps = getalldeps(targets, needs, needsdeps, caninstall, provided)
-    while (not donewithdeps) do
-        donewithdeps, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
-    end
 
     config.flagsdupe = tblstrdup(config.flags)
 
@@ -869,6 +921,7 @@ local function aur_install(targets)
     local pacmanexplicit = {}
     local pacmandeps = {}
     local aurpkgs = {}
+    local noconfirm = config.noconfirm
     for i, pkg in ipairs(needs) do
         if (pacmaninstallable(pkg)) then
             tblinsert(pacmanpkgs, pkg)
@@ -882,29 +935,29 @@ local function aur_install(targets)
                 or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
                     and not (tblisin(config.flagsdupe, "T_F_ALLDEPS"))) then
             tblinsert(pacmanexplicit, pkg)
-            installed = installed + 1
         else
             tblinsert(pacmandeps, pkg)
-            installed = installed + 1
         end
     end
 
+    config.noconfirm = true
     sync_aur_trans(pacmanexplicit)
     tblinsert(config.flags, "T_F_ALLDEPS")
     sync_aur_trans(pacmandeps)
     removeflags("T_F_ALLDEPS")
+    config.noconfirm = noconfirm
 
-    updateprovided(provided)
-    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
-
-    while (next(caninstall) and (installed < #needs)) do
+    local installedtbl = {}
+    local needscount = #needs
+    while (#installedtbl < needscount ) do
+        repeat
         updateprovided(provided)
-        _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
-        for i, pkg in ipairs(caninstall) do
-                    updateprovided(provided)
-                    _, needsdeps = getalldeps(needsdeps, needs, needsdeps, caninstall, provided)
-            repeat
-                if(tblisin(targets, pkg) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
+        caninstall, needs, needsdeps = {}, {}, {}
+        getalldeps(targets, needs, needsdeps, caninstall, provided)
+
+        for i, pkg in ipairs(aurpkgs) do
+                if (tblisin(caninstall, pkg) and not tblisin(installedtbl, pkg)) then
+                if (tblisin(targets, pkg) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
                     or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
                         and not (tblisin(config.flagsdupe, "T_F_ALLDEPS")))) then
                     download_extract(pkg)
@@ -912,7 +965,7 @@ local function aur_install(targets)
                     makepkg(pkg, mkpkgopts)
                     installpkgs(pkg)
                     installed = installed + 1
-                    break
+                    tblinsert(installedtbl, pkg)
                 else
                     tblinsert(config,flags, "T_F_ALLDEPS")
                     download_extract(pkg)
@@ -921,10 +974,11 @@ local function aur_install(targets)
                     installpkgs(pkg)
                     removeflags("T_F_ALLDEPS")
                     installed = installed + 1
-                    break
+                    tblinsert(installedtbl, pkg)
                 end
-            until 1
+            end
         end
+        until 1
     end
 end
 
@@ -1075,14 +1129,36 @@ local function sync_trans(targets)
         return transcleanup()
     end
 
-    display_synctargets(packages)
-    --TODO: write this function to pretty up install list, or something
---    display_aurtargets(aurpkgs)
-    if (next(aurpkgs)) then
-        printf(C.greb("\n==>")..C.whib(" Installing the following packages from AUR\n"))
-        list_display("", aurpkgs)
-        print(" (Plus dependencies)")
+    local needs, provided, pacmanpkgs, needsdeps, caninstall = {}, {}, {}, {}, {}
+    updateprovided(provided)
+    getalldeps(targets, needs, needsdeps, caninstall, provided)
+    for i, pkg in ipairs(needs) do
+        if (pacmaninstallable(pkg)) then
+            for i, db in ipairs(sync_dbs) do
+                local loaded = db:db_get_pkg(pkg)
+                if (loaded) then
+                    tblinsert(packages, loaded)
+                    local found, indx = tblisin(needs, pkg)
+                    fastremove(needs, indx)
+                    break
+                end
+            end
+        end
     end
+
+    if (next(aurpkgs)) then
+        if (next(packages)) then
+            printf(C.greb("\n==>")..C.whib(" Installing the following packages from repos\n"))
+            display_synctargets(packages)
+        end
+
+        printf(C.greb("\n==>")..C.whib(" Installing the following packages from AUR\n"))
+        local str = string.format(g("Targets (%d):"), #needs)
+        list_display(str, needs)
+    else
+        display_synctargets(packages)
+    end
+
     printf("\n")
 
     local confirm
