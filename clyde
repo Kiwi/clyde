@@ -981,8 +981,21 @@ function main()
         ['PM_OP_SYNC'] = function() sync.main(pm_targets) end;
         ['PM_OP_DEPTEST'] = function() deptest.main(pm_targets) end;
     }
+
+    local install ={}
+
     if (config.op ~= "PM_OP_MAIN") then
          ret = lookuptbl[config.op]()
+    elseif next(pm_targets) then
+        local syncdb = alpm.option_get_syncdbs()
+        sync.sync_search(syncdb, pm_targets, true, install)
+        if (next(install)) then
+            if (myuid > 0) then
+                os.execute("sudo clyde -S "..table.concat(install))
+            else
+                sync.main(install)
+            end
+        end
     else
         eprintf("LOG_ERROR", g("no operation specified (use -h for help)\n"))
         ret = 1
