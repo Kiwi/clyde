@@ -229,7 +229,7 @@ function sync_search(syncs, targets, shownumbers, install)
     end
     end
 
-    if (next(targets)) then
+    if (next(targets) and (not config.op_s_search_repos_only)) then
         if (#targets[1] < 2) then
             lprintf("LOG_WARNING", "First query arg too small to search AUR\n")
             return (not found)
