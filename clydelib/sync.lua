@@ -800,7 +800,9 @@ local function getdepends(target, provided)
             "http://aur.archlinux.org/packages/%s/%s/PKGBUILD",
                 target, target)
     local pkgbuild = aur.getgzip(pkgbuildurl)
-    if not pkgbuild then print("target", target) return ret, {}, {} end
+    if not pkgbuild then
+        return ret, {}, {}
+    end
     local tmp = os.tmpname()
     local tmpfile = io.open(tmp, "w")
     tmpfile:write(pkgbuild)
@@ -1132,16 +1134,13 @@ local function sync_trans(targets)
     local needs, provided, pacmanpkgs, needsdeps, caninstall = {}, {}, {}, {}, {}
     updateprovided(provided)
     getalldeps(targets, needs, needsdeps, caninstall, provided)
-    for i, pkg in ipairs(needs) do
+
+    local needsdupe = tblstrdup(needs)
+    for i, pkg in ipairs(needsdupe) do
         if (pacmaninstallable(pkg)) then
-            for i, db in ipairs(sync_dbs) do
-                local loaded = db:db_get_pkg(pkg)
-                if (loaded) then
-                    tblinsert(packages, loaded)
-                    local found, indx = tblisin(needs, pkg)
-                    fastremove(needs, indx)
-                    break
-                end
+            local found, indx = tblisin(needs, pkg)
+            if (found) then
+                fastremove(needs, indx)
             end
         end
     end
