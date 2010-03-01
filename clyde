@@ -289,6 +289,7 @@ local longopts = {
         {"color",       "no_argument",      0,  'OP_COLOR'},
         {"stats",       "no_argument",      0,  'OP_STATS'},
         {"editor",      "required_argument",0,  'OP_EDITOR'},
+        {"repos",       "no_argument",      0,  'OP_REPOS'},
     --[[
     --pacman feature functions
     --]]
@@ -377,6 +378,9 @@ local longopts = {
         end;
         ['OP_EDITOR'] = function(opt)
             config.editor = opt
+        end;
+        ['OP_REPOS'] = function()
+            config.op_s_search_repos_only = true
         end;
         --[[
         --pacman feature functions
@@ -625,6 +629,8 @@ local function config_init(uid)
             local options = {
                 "#Colors are enabled by default. To disable them, uncomment the following line";
                 "#NoColor";
+                "#Searching AUR is enabled by default. Unomment the following line to only search with --aur";
+                "#ReposOnly";
             }
             clydeconf = string.format(
                 "#\n# CLYDE OPTIONS\n#\n[clydeoptions]\nEditor = %s\n%s\n%s",
@@ -691,13 +697,19 @@ local function _parseconfig(file, givensection, givendb)
         if (config.op_use_color ~= true) then
             config.op_use_color = false
             colorize.disable()
+            lprintf("LOG_DEBUG", "config: nocolor\n")
         end
-        lprintf("LOG_DEBUG", "config: nocolor\n")
     end;
     ['Editor'] = function(str)
         if (not config.editor) then
             config.editor = str
             lprintf("LOG_DEBUG", "config: editor: %s\n", str)
+        end
+    end;
+    ['ReposOnly'] = function()
+        if (not config.op_s_search_aur_only) then
+            config.op_s_search_repos_only = true
+            lprintf("LOG_DEBUG", "config: reposonly\n")
         end
     end;
         --[[
