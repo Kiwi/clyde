@@ -10,6 +10,55 @@ local function printf(...)
     io.write(string.format(...))
 end
 
+local function tblisin(tbl, search)
+    for i, val in ipairs(tbl) do
+        if (val == search) then
+            return true, i
+        end
+    end
+    return false
+end
+
+local function vfprintf(stream, level, format, ...)
+    local gettext = utilcore.gettext
+    local ret = 0
+    local stream = stream
+    if (not tblisin(config.logmask, level)) then
+        return ret
+    end
+
+    if CLYDE_DEBUG then
+        if (tblisin(config.logmask, "LOG_DEBUG")) then
+            local time = os.time()
+            printf("[%s] ", os.date("%H:%M:%S", time))
+        end
+    end
+
+    if (stream == "stderr") then
+        stream = io.stderr
+    elseif (stream == "stdout") then
+        stream = io.stdout
+    end
+
+
+    local lookuptbl = {
+        ["LOG_DEBUG"] = function() stream:write("debug: ") end;
+        ["LOG_ERROR"] = function() stream:write(gettext("error: ")) end;
+        ["LOG_WARNING"] = function() stream:write(gettext("warning: ")) end;
+        ["LOG_FUNCTION"] = function() stream:write(gettext("function: ")) end;
+    }
+    if (lookuptbl[level]) then
+        lookuptbl[level]()
+    else
+        printf("error: invalid log level")
+        return 1
+    end
+    stream:write(string.format(format, ...))
+    --stream:write(string.format(format))
+    return ret
+
+end
+
 local function getcols()
     if (0 == utilcore.isatty(1)) then
         return 80
@@ -31,8 +80,8 @@ local initial_time
 
 local prevpercent = 0
 
-local on_progress = 0
-local output
+local on_progress = false
+local output = {}
 
 local last_time = 0
 function get_update_timediff(first_call)
@@ -185,10 +234,14 @@ function cb_trans_progress(event, pkgname, percent, howmany, remain)
     fill_progress(percent, percent, getcols() - infolen)
 
     if (percent == 100) then
-        on_progress = 0
+        on_progress = false
+        for i, tbl in ipairs(output) do
+            vfprintf("stdout", tbl.level, "%s", tbl.message)
+        end
+        output = {}
         io.stdout:flush()
     else
-        on_progfress = 1
+        on_progress = true
     end
 end
 
@@ -323,5 +376,16 @@ function cb_dl_progress(filename, file_xfered, file_total)
         fill_progress(file_percent, total_percent, getcols() - infolen)
     else
         fill_progress(file_percent, file_percent, getcols() - infolen)
+    end
+end
+
+function cb_log(level, message)
+    if (not message or #message == 0) then
+        return
+    end
+    if (on_progress) then
+        table.insert(output, {level = level; message = message})
+    else
+        vfprintf("stdout", level, "%s", message)
     end
 end
