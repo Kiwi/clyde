@@ -1133,9 +1133,15 @@ local function sync_trans(targets)
     local needsdupe = tblstrdup(needs)
     for i, pkg in ipairs(needsdupe) do
         if (pacmaninstallable(pkg)) then
-            local found, indx = tblisin(needs, pkg)
-            if (found) then
-                fastremove(needs, indx)
+            for i, db in ipairs(sync_dbs) do
+                local loaded = db:db_get_pkg(pkg)
+                if (loaded and not tblisin(targets, loaded:pkg_get_name())) then
+                    tblinsert(packages, loaded)
+                    local found, indx = tblisin(needs, pkg)
+                    if (found) then
+                        fastremove(needs, indx)
+                    end
+                end
             end
         end
     end
