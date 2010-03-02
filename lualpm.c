@@ -1159,7 +1159,7 @@ static int lalpm_sync_newversion(lua_State *L)
     return 1;
 }
 
-/*char *alpm_dep_compute_string(const pmdepend_t *dep); */
+/* char *alpm_dep_compute_string(const pmdepend_t *dep); */
 static int lalpm_dep_compute_string(lua_State *L)
 {
     const pmdepend_t *dep = check_pmdepend(L, 1);
@@ -1584,8 +1584,70 @@ static int lalpm_version(lua_State *L)
     return 1;
 }
 
+static int
+push_loglevel(lua_State *L, pmloglevel_t level)
+{
+    switch(level) {
+#define f(x) case PM_LOG_ ## x: return push_string(L, "LOG_" #x)
+        f(ERROR);
+        f(WARNING);
+        f(DEBUG);
+        f(FUNCTION);
+#undef f
+        default:
+            assert(0 && "[BUG] unexpected pmloglevel_t");
+    }
+    return 0;
+}
+
+
 /* alpm_cb_log alpm_option_get_logcb(); */
 /* void alpm_option_set_logcb(alpm_cb_log cb); */
+static callback_key_t log_cb_key[1] = {{ "log callback" }};
+
+struct log_cb_args {
+    pmloglevel_t level;
+    const char  *msg;
+};
+
+static int
+log_cb_gateway_protected(lua_State *L)
+{
+    struct log_cb_args *args = lua_touserdata(L, 1);
+    get_callback(L, log_cb_key);
+    push_loglevel(L, args->level);
+    push_string(L, args->msg);
+    lua_call(L, 2, 0);
+
+    return 0;
+}
+
+static void
+log_cb_gateway_unprotected(pmloglevel_t level, char *fmt, va_list list)
+{
+    lua_State *L = GlobalState;
+    struct log_cb_args args[1];
+    int err;
+    assert(L && "[BUG] no global Lua state in log callback");
+    args->level = level;
+    char *s = NULL;
+    err = vasprintf(&s, fmt, list);
+    assert(err != -1 && "[BUG] out of memory");
+    args->msg = s;
+    err = lua_cpcall(L, log_cb_gateway_protected, args);
+    free(s);
+    if (err) {
+        handle_pcall_error_unprotected(L, err, "log callback");
+    }
+}
+
+static int lalpm_option_set_logcb(lua_State *L)
+{
+    register_callback(L, log_cb_key, 1);
+    alpm_option_set_logcb(log_cb_gateway_unprotected);
+
+    return 0;
+}
 
 /* alpm_cb_download alpm_option_get_dlcb(); */
 /* void alpm_option_set_dlcb(alpm_cb_download cb); */
@@ -2370,7 +2432,7 @@ static luaL_Reg const pkg_funcs[] =
     { "release",                    lalpm_release }, /* works */
     { "version",                    lalpm_version }, /* works */
 //    { "option_get_logcb",           lalpm_option_get_logcb },
-//    { "option_set_logcb",           lalpm_option_set_logcb },
+    { "option_set_logcb",           lalpm_option_set_logcb },
 //    { "option_get_dlcb",            lalpm_option_get_dlcb },
     { "option_set_dlcb",            lalpm_option_set_dlcb },
 //    { "option_get_fetchcb",         lalpm_option_get_fetchcb },
