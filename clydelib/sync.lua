@@ -478,13 +478,8 @@ local function sync_aur_trans(targets)
         printf(g(C.blub("::")..C.whib(" Starting full system upgrade..\n")))
         --TODO implement this in lualpm
         --TODO this is actually in lualpm now just need to come back and add this and test
---        alpm.logaction("starting full system upgrade\n")
-        local op_s_upgrade
-        if (config.op_s_upgrade >= 2) then
-            op_s_upgrade = 1
-        else
-            op_s_upgrade = 0
-        end
+        alpm.logaction("starting full system upgrade\n")
+        local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
 
         if (alpm.trans_sysupgrade(op_s_upgrade) == -1) then
             eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
@@ -1006,7 +1001,7 @@ local function sync_trans(targets)
         printf(g(C.blub("::")..C.whib(" Starting full system upgrade...\n")))
         --TODO implement this in lualpm
         --TODO same as above and below, this is here, just need to test
---        alpm.logaction("starting full system upgrade\n")
+        alpm.logaction("starting full system upgrade\n")
         local op_s_upgrade
         if (config.op_s_upgrade >= 2) then
             op_s_upgrade = 1
@@ -1234,7 +1229,7 @@ local function clyde_sync(targets)
         printf(g(C.blub("::")..C.whib(" Synchronizing package databases...\n")))
         --TODO: alpm_logaction binding
         --TODO: this is actually implemented...just need to uncomment and test
-        --alpm.logaction("synchronizing package lists\n")
+        alpm.logaction("synchronizing package lists\n")
         if (not sync_synctree(config.op_s_sync, sync_dbs)) then
           return 1
         end
