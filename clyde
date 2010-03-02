@@ -932,6 +932,7 @@ function main()
      if (utilcore.isatty(1) == 0 and not config.op_use_color) then
         colorize.disable()
     end
+    alpm.option_set_logcb(callback.cb_log)
     alpm.option_set_dlcb(callback.cb_dl_progress)
     alpm.option_set_root(ROOTDIR)
     alpm.option_set_dbpath(DBPATH)
