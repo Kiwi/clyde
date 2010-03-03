@@ -216,7 +216,7 @@ function eprintf(level, format, ...)
 end
 
 function trans_init(ttype, flags)
-    local ret  = alpm.trans_init(ttype, flags, nil, nil, callback.cb_trans_progress)
+    local ret  = alpm.trans_init(ttype, flags, callback.cb_trans_evt, callback.cb_trans_conv, callback.cb_trans_progress)
     if (ret == -1) then
         printf("error: failed to init transaction(%s)\n", alpm.strerrorlast())
         if (alpm.strerrorlast() == "unable to lock database") then
