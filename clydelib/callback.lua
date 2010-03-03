@@ -1,6 +1,7 @@
 --local util = require "clydelib.util"
 --local printf = util.printf
 local utilcore = require "clydelib.utilcore"
+local alpm = require "lualpm"
 local g = utilcore.gettext
 colorize = require "clydelib.colorize"
 local socket = require "socket"
@@ -17,6 +18,36 @@ local function tblisin(tbl, search)
         end
     end
     return false
+end
+
+local function strcasecmp(str1, str2)
+    local string1, string2
+
+    string1 = str1:lower()
+    string2 = str2:lower()
+
+    if (string1 < string2) then
+        return -1
+    elseif (string1 > string2) then
+        return 1
+    elseif (string1 == string2) then
+        return false
+    else
+        eprintf("LOG_ERROR", "invalid useage of strcasecmp")
+    end
+end
+
+local function fprintf(stream, format, ...)
+    local gettext = utilcore.gettext
+    local stream = stream
+
+    if (stream == "stderr") then
+        stream = io.stderr
+    elseif (stream == "stdout") then
+        stream = io.stdout
+    end
+
+    stream:write(string.format(format, ...))
 end
 
 local function vfprintf(stream, level, format, ...)
@@ -54,9 +85,7 @@ local function vfprintf(stream, level, format, ...)
         return 1
     end
     stream:write(string.format(format, ...))
-    --stream:write(string.format(format))
     return ret
-
 end
 
 local function getcols()
@@ -71,6 +100,88 @@ local function getcols()
         return 80
     end
 end
+
+local function checkempty(tbl)
+    for i, v in ipairs(tbl) do
+        if v ~= string.rep(" ", #v) then
+            return false
+        end
+    end
+    return true
+end
+
+local function list_display(title, list, nospace, extracols)
+    local len, cols = 0, 0
+    if (title and type(title) == "string") then
+        len = #title
+        if (not nospace) then
+            printf("%s ", title)
+        end
+    end
+    if (not next(list) or checkempty(list)) then
+        printf("%s\n", "None")
+    else
+        cols = len
+        for i, str in ipairs(list) do
+            local s = #str + 2
+            local maxcols = getcols()
+            if (s + cols > maxcols) then
+                cols = len
+                printf("\n")
+                for j = 1, len  do
+                    printf(" ")
+                end
+            end
+            printf("%s  ", str)
+            cols = cols + s - (extracols or 0)
+        end
+        printf("\n")
+    end
+end
+
+local function question(preset, fmt, ...)
+    local gettext = utilcore.gettext
+    local stream
+
+    if (config.noconfirm) then
+        stream = "stdout"
+    else
+        stream = "stderr"
+    end
+
+    local str = string.format(fmt, ...)
+    fprintf(stream, fmt, ...)
+
+    if (preset) then
+        fprintf(stream, " %s ", gettext("[Y/n]"))
+    else
+        fprintf(stream, " %s ", gettext("[y/N]"))
+    end
+
+    if (config.noconfirm) then
+        fprintf(stream, "\n")
+        return preset
+    end
+
+    local answer = io.stdin:read()
+
+    if (#answer == 0) then
+        return preset
+    end
+
+    if ((not strcasecmp(answer, gettext("Y"))) or (not strcasecmp(answer, gettext("YES")))) then
+        return true
+    elseif ((not strcasecmp(answer, gettext("N"))) or (not strcasecmp(answer, gettext("NO")))) then
+        return false
+    end
+    return false
+end
+
+local function yesno(fmt, ...)
+    local ret = question(true, fmt, ...)
+    return ret
+end
+
 
 local rate_last
 local xfered_last
@@ -185,7 +296,7 @@ function cb_trans_progress(event, pkgname, percent, howmany, remain)
     local len, wclen, wcwid, padwid
     local wcstr
 
-    if (config.noprogressar) then
+    if (config.noprogressbar) then
         return
     end
 
@@ -389,3 +500,161 @@ function cb_log(level, message)
         vfprintf("stdout", level, "%s", message)
     end
 end
+
+
+cb_trans_evt = {
+    ["T_E_CHECKDEPS_START"] = function()
+        printf(g("checking dependencies...\n"))
+        io.stdout:flush()
+    end;
+    ["T_E_FILECONFLICTS_START"] = function()
+        if (config.noprogressbar) then
+            printf(g("checking for file conflicts...\n"))
+        end
+        io.stdout:flush()
+    end;
+    ["T_E_RESOLVEDEPS_START"] = function()
+        printf(g("resolving dependencies...\n"))
+        io.stdout:flush()
+    end;
+    ["T_E_INTERCONFLICTS_START"] = function()
+        printf(g("looking for inter-conflicts...\n"))
+        io.stdout:flush()
+    end;
+    ["T_E_ADD_START"] = function(data1)
+        if (config.noprogressbar) then
+            printf(g("installing %s...\n"), data1:pkg_get_name())
+        end
+        io.stdout:flush()
+    end;
+    ["T_E_ADD_DONE"] = function(data1)
+        alpm.logaction(string.format("installed %s (%s)\n",
+            data1:pkg_get_name(),
+            data1:pkg_get_version()))
+            --TODO: write display_optdepends
+            --display_optdepends(data1)
+        io.stdout:flush()
+        end;
+    ["T_E_REMOVE_START"] = function(data1)
+        if (config.noprogressbar) then
+            printf(g("removing %s...\n"), data1:pkg_get_name())
+        end
+        io.stdout:flush()
+    end;
+    ["T_E_REMOVE_DONE"] = function(data1)
+        alpm.logaction(string.format("removed %s (%s)\n",
+            data1:pkg_get_name(),
+            data1:pkg_get_version()))
+        io.stdout:flush()
+    end;
+    ["T_E_UPGRADE_START"] = function(data1)
+        if (config.noprogressbar) then
+            printf(g("upgrading %s...\n"), data1:pkg_get_name())
+        end
+        io.stdout:flush()
+    end;
+    ["T_E_UPGRADE_DONE"] = function(data1, data2)
+        alpm.logaction(string.format("upgraded %s (%s -> %s)\n",
+            data1:pkg_get_name(),
+            data2:pkg_get_version(),
+            data1:pkg_get_version()))
+            --TODO: write display_new_optdepends
+            --display_new_optdepends(data2, data1)
+        io.stdout:flush()
+    end;
+    ["T_E_INTEGRITY_START"] = function()
+        printf(g("checking package integrity...\n"))
+        io.stdout:flush()
+    end;
+    ["T_E_DELTA_INTEGRITY_START"] = function()
+        printf(g("checking delta integrity...\n"))
+        io.stdout:flush()
+    end;
+    ["T_E_DELTA_PATCHES_START"] = function()
+        printf(g("applying deltas...\n"))
+        io.stdout:flush()
+    end;
+    ["T_E_DELTA_PATCH_START"] = function(data1, data2)
+        printf(g("generating %s with %s... "), data1, data2)
+        io.stdout:flush()
+    end;
+    ["T_E_DELTA_PATCH_DONE"] = function()
+        printf(g("success!\n"))
+        io.stdout:flush()
+    end;
+    ["T_E_DELTA_PATCH_FAILED"] = function()
+        printf(f("failed.\n"))
+        io.stdout:flush()
+    end;
+    ["T_E_SCRIPTLET_INFO"] = function(data1)
+        printf("%s", data1)
+        io.stdout:flush()
+    end;
+    ["T_E_RETRIEVE_START"] = function(data1)
+        printf(g(":: Retrieving packages from %s...\n"), data1)
+        io.stdout:flush()
+    end;
+    ["T_E_FILECONFLICTS_DONE"] = function()
+        io.stdout:flush()
+    end;
+    ["T_E_CHECKDEPS_DONE"] = function()
+        io.stdout:flush()
+    end;
+    ["T_E_RESOLVEDEPS_DONE"] = function()
+        io.stdout:flush()
+    end;
+    ["T_E_INTERCONFLICTS_DONE"] = function()
+        io.stdout:flush()
+    end;
+    ["T_E_INTEGRITY_DONE"] = function()
+        io.stdout:flush()
+    end;
+    ["T_E_DELTA_INTEGRITY_DONE"] = function()
+        io.stdout:flush()
+    end;
+    ["T_E_DELTA_PATCHES_DONE"] = function()
+        io.stdout:flush()
+    end;
+}
+
+cb_trans_conv = {
+    ["T_C_INSTALL_IGNOREPKG"] = function(data1)
+        local response = yesno(g(":: %s is in IgnorePkg/IgnoreGroup. Install anyway?"),
+            data1:pkg_get_name())
+        return response
+    end;
+    ["T_C_REPLACE_PKG"] = function(data1, data2, data3)
+        local response = yesno(g(":: Replace %s with %s/%s?"),
+            data1:pkg_get_name(),
+            data3, data2:pkg_get_name())
+        return response
+    end;
+    ["T_C_CONFLICT_PKG"] = function(data1, data2)
+        local response = yesno(g(":: %s conflicts with %s. Remove %s?"),
+            data1, data2, data2)
+        return response
+    end;
+    ["T_C_REMOVE_PKGS"] = function(data1)
+        local namelist = {}
+        for i, pkg in ipairs(data1) do
+            table.insert(namelist, pkg:pkg_get_name())
+        end
+        printf(g(":: the following pakage(s) cannot be upgraded due to unresolvable dependencies:\n"))
+        list_display("     ", namelist)
+        local response = yesno(g("\nDo you want to skip the above package(s) for this upgrade?"))
+        return response
+    end;
+    ["T_C_LOCAL_NEWER"] = function(data1)
+        local response
+        if (not config.op_s_downloadonly) then
+            response = yesno(g(":: %s-%s: local version is newer. Upgrade anyway?"),
+                data1:pkg_get_name(), data1:pkg_get_version())
+        else
+            response = true
+        end
+    end;
+    ["T_C_CORRUPTED_PKG"] = function(data1)
+        local response = yesno(g(":: File %s is corrupted. Do you want to delete it?"),
+            data1)
+    end;
+}
