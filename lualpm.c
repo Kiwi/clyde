@@ -112,16 +112,24 @@ static pmdepmissing_t **push_pmdepmissing_box(lua_State *L);
 static pmconflict_t **push_pmconflict_box(lua_State *L);
 static pmfileconflict_t **push_pmfileconflict_box(lua_State *L);
 static changelog * push_changelog_box(lua_State *L);
-//static alpm_list_t **push_alpmlist_box(lua_State *L);
-/*
-static off_t **push_off_box(lua_State *L);
-static time_t **push_time_box(lua_State *L);
-*/
-//16:24 < hoelzro> here's how you'd use it:
-//16:25 < hoelzro> alpm_list_t t; memset(&t, 0, sizeof(alpm_list_t)); lua_tabletolist(&t, L, index);
-/* do stuff with t ; alpm_list_free(&t); */
-/*
-*/
+
+static int
+raise_last_pm_error(lua_State *L)
+{
+    if (pm_errno)
+        luaL_error(L, "alpm error: %s", alpm_strerrorlast());
+    return luaL_error(L, "[BUG] raising an alpm error without pm_errno being set");
+}
+
+#define push_pmdb(L, v) push_pmdb_box(L)[0] = (v)
+#define push_pmpkg(L, v) push_pmpkg_box(L)[0] = (v)
+#define push_pmdelta(L, v) push_pmdelta_box(L)[0] = (v)
+#define push_pmgrp(L, v) push_pmgrp_box(L)[0] = (v)
+#define push_pmtrans(L, v) push_pmtrans_box(L)[0] = (v)
+#define push_pmdepend(L, v) push_pmdepend_box(L)[0] = (v)
+#define push_pmdepmissing(L, v) push_pmdepmissing_box(L)[0] = (v)
+#define push_pmconflict(L, v) push_pmconflict_box(L)[0] = (v)
+#define push_pmfileconflict(L, v) push_pmfileconflict_box(L)[0] = (v)
 
 /* A proxy to alpm_logaction() to be called from the Lua side of the
  * fence.  Unlike libalpm's alpm_logaction(), this function does not
@@ -154,36 +162,6 @@ alpm_list_t *lstring_table_to_alpm_list(lua_State *L, int narg)
 
     return(newlist);
 }
-/*
-static int alpm_list_to_lpkg_table(lua_State *L, alpm_list_t *list)
-{
-    lua_newtable(L);
-    size_t j;
-    alpm_list_t *i;
-    for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-        pmpkg_t **box = push_pmpkg_box(L);
-        *box = alpm_list_getdata(i);
-        lua_rawseti(L, -2, j);
-    }
-
-    return 1;
-}
-*/
-/*
-static int alpm_list_to_lstring_table(lua_State *L, alpm_list_t *list)
-{
-    lua_newtable(L);
-    size_t j;
-    alpm_list_t *i;
-    for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-        const char *str = alpm_list_getdata(i);
-        lua_pushstring(L, str);
-        lua_rawseti(L, -2, j);
-    }
-
-    return 1;
-}
-*/
 
 typedef enum types {
     STRING,
@@ -197,327 +175,206 @@ typedef enum types {
     PMCONFLICT_T,
     PMFILECONFLICT_T
 } types;
-static int alpm_list_to_any_table(lua_State *L, alpm_list_t *list, enum types type)
+
+static int
+push_typed_object(lua_State *L, types value_type, void *value)
 {
-    lua_newtable(L);
-    size_t j;
-    alpm_list_t *i;
-    switch(type) {
-        case STRING:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                const char *str = alpm_list_getdata(i);
-                lua_pushstring(L, str);
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        case PMDB_T:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                pmdb_t **box = push_pmdb_box(L);
-                *box = alpm_list_getdata(i);
-/*                if (*box == NULL) {
-                    lua_pop(L, 1);
-                    break;
-                }
-*/
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        case PMPKG_T:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                pmpkg_t **box = push_pmpkg_box(L);
-                *box = alpm_list_getdata(i);
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        case PMDELTA_T:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                pmdelta_t **box = push_pmdelta_box(L);
-                *box = alpm_list_getdata(i);
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        case PMGRP_T:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                pmgrp_t **box = push_pmgrp_box(L);
-                *box = alpm_list_getdata(i);
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        case PMTRANS_T:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                pmtrans_t **box = push_pmtrans_box(L);
-                *box = alpm_list_getdata(i);
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        case PMDEPEND_T:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                pmdepend_t **box = push_pmdepend_box(L);
-                *box = alpm_list_getdata(i);
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        case PMDEPMISSING_T:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                pmdepmissing_t **box = push_pmdepmissing_box(L);
-                *box = alpm_list_getdata(i);
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        case PMCONFLICT_T:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                pmconflict_t **box = push_pmconflict_box(L);
-                *box = alpm_list_getdata(i);
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        case PMFILECONFLICT_T:
-            for (i = list, j = 1; i; i = alpm_list_next(i), j++) {
-                pmfileconflict_t **box = push_pmfileconflict_box(L);
-                *box = alpm_list_getdata(i);
-                lua_rawseti(L, -2, j);
-            }
-            break;
-
-        default:
-            lua_pushnil(L);
-            break;
+    if (value == NULL) {
+        lua_pushnil(L);
+        return 1;
     }
+    switch (value_type) {
+    case STRING: lua_pushstring(L, value); return 1;
+    case PMDB_T: push_pmdb(L, value); return 1;
+    case PMPKG_T: push_pmpkg(L, value); return 1;
+    case PMDELTA_T: push_pmdelta(L, value); return 1;
+    case PMGRP_T: push_pmgrp(L, value); return 1;
+    case PMTRANS_T: push_pmtrans(L, value); return 1;
+    case PMDEPEND_T: push_pmdepend(L, value); return 1;
+    case PMDEPMISSING_T: push_pmdepmissing(L, value); return 1;
+    case PMCONFLICT_T: push_pmconflict(L, value); return 1;
+    case PMFILECONFLICT_T: push_pmfileconflict(L, value); return 1;
+    }
+    assert(0 && "[BUG] unhandled value type");
+    return 0;
+}
 
+static int
+alpm_list_to_any_table(lua_State *L, alpm_list_t *list, enum types value_type)
+{
+    size_t j = 1;
+    lua_newtable(L);
+    while (list) {
+        void *value = alpm_list_getdata(list);
+        if (push_typed_object(L, value_type, value))
+            lua_rawseti(L, -2, j++);
+        list = alpm_list_next(list);
+    }
     return 1;
 }
 
+typedef struct {
+    char const *name;
+    int value;
+} constant_t;
 
-
-pmtranstype_t lstring_to_transtype(lua_State *L, int narg)
+static int
+push_constant(
+    lua_State *L,
+    int value,
+    constant_t const constants[])
 {
-    //pmtransflag_t flag;
-    //int i; //, isoption = 0;
-
-    const char *const slist[] = {
-        "T_T_UPGRADE",
-        "T_T_REMOVE",
-        "T_T_REMOVEUPGRADE",
-        "T_T_SYNC",
-        NULL
-    };
-
-    const int ilist[] = {
-        1, 2, 3, 4
-    };
-    const int i = luaL_checkoption(L, narg, NULL, slist);
-    pmtransflag_t flag = ilist[i];
-/*
-    const int listlen = sizeof(slist)/sizeof(char*);
-
-    const char *data = lua_tostring(L, narg);
-
-    for (i = 0; i < listlen; i++) {
-        if (strcmp(slist[i], data) == 0) {
-            flag = ilist[i];
-            isoption = 1;
-            break;
+    int i;
+    for (i=0; constants[i].name; i++) {
+        if (constants[i].value == value) {
+            lua_pushstring(L, constants[i].name);
+            return 1;
         }
     }
-    if (isoption == 0) {
-        luaL_argerror(L, narg, "Invalid option given");
-    }
-*/
-    return flag;
+    lua_pushnumber(L, value);
+    return 1;
 }
 
-pmtransflag_t lstring_table_to_transflag(lua_State *L, int narg)
+static int
+check_constant(
+    lua_State *L,
+    int narg,
+    constant_t const constants[],
+    char const *extramsg)
 {
-    pmtransflag_t flags = 0;
-    int i, j, isoption, tbllen = lua_objlen(L, narg);
+    int i;
 
-    const char *slist[] = {
-        "T_F_NODEPS",
-        "T_F_FORCE",
-        "T_F_NOSAVE",
-        "T_F_CASCADE",
-        "T_F_RECURSE",
-        "T_F_DBONLY",
-        "T_F_ALLDEPS",
-        "T_F_DOWNLOADONLY",
-        "T_F_NOSCRIPTLET",
-        "T_F_NOCONFLICTS",
-        "T_F_NEEDED",
-        "T_F_ALLEXPLICIT",
-        "T_F_UNNEEDED",
-        "T_F_RECURSEALL",
-        "T_F_NOLOCK"
-    };
-
-    const int ilist[] = {
-        0x01, 0x02, 0x04, 0x10, 0x20, 0x40,
-        0x100, 0x200, 0x400, 0x800, 0x2000,
-        0x4000, 0x8000, 0x10000, 0x20000
-    };
-
-    const int listlen = sizeof(slist)/sizeof(char*);
-
-    for (j=1; j <= tbllen; j++) {
-        lua_rawgeti(L, narg, j);
-        const char *data = lua_tostring(L, -1);
-        isoption = 0;
-        for (i = 0; i < listlen; i++) {
-            if (strcmp(slist[i], data) == 0) {
-                flags |= ilist[i];
-                isoption = 1;
-                lua_pop(L, 1);
-                break;
+    if (lua_type(L, narg) == LUA_TNUMBER) {
+        int find = lua_tonumber(L, narg);
+        for (i=0; constants[i].name; i++) {
+            if (constants[i].value == find){
+                return constants[i].value;
             }
         }
-      //  lua_pop(L, 1);
-        if (isoption == 0) {
-            luaL_argerror(L, narg, "Invalid options given");
+    }
+    else if (lua_type(L, narg) == LUA_TSTRING) {
+        char const *name = lua_tostring(L, narg);
+        for (i=0; constants[i].name; i++) {
+            if (0 == strcmp(constants[i].name, name)) {
+                return constants[i].value;
+            }
         }
     }
 
+    if (narg >= 1)
+        luaL_argerror(L, narg, extramsg);
+    else
+        luaL_error(L, "%s", extramsg);
+    assert(0 && "unreachable");
+    return -1;
+}
+
+#define Constants(name) static constant_t const name ##_constants[] = {
+#define EndConstants { NULL, 0 } };
+
+Constants(transtype)
+#define Sym(x) { "T_T_" #x, PM_TRANS_TYPE_ ## x }
+    Sym(UPGRADE),
+    Sym(REMOVE),
+    Sym(REMOVEUPGRADE),
+    Sym(SYNC),
+#undef Sym
+EndConstants
+
+static pmtranstype_t
+check_transtype(lua_State *L, int narg)
+{
+    return check_constant(L, narg, transtype_constants,
+                          "expected a pmtranstype_t");
+}
+
+static int
+push_transtype(lua_State *L, pmtranstype_t t)
+{
+    return push_constant(L, t, transtype_constants);
+}
+
+Constants(transflag)
+#define Sym(x) { "T_F_" #x, PM_TRANS_FLAG_ ## x }
+    Sym(NODEPS),
+    Sym(FORCE),
+    Sym(NOSAVE),
+    Sym(CASCADE),
+    Sym(RECURSE),
+    Sym(DBONLY),
+    Sym(ALLDEPS),
+    Sym(DOWNLOADONLY),
+    Sym(NOSCRIPTLET),
+    Sym(NOCONFLICTS),
+    Sym(NEEDED),
+    Sym(ALLEXPLICIT),
+    Sym(UNNEEDED),
+    Sym(RECURSEALL),
+    Sym(NOLOCK),
+#undef Sym
+EndConstants
+
+static pmtransflag_t
+check_transflag(lua_State *L, int narg)
+{
+    return check_constant(L, narg, transflag_constants,
+                          "expected a pmtransflag_t");
+}
+
+static int
+push_transflag(lua_State *L, pmtransflag_t f)
+{
+    return push_constant(L, f, transflag_constants);
+}
+
+static pmtransflag_t
+check_transflags_table(lua_State *L, int narg)
+{
+    pmtransflag_t flags = 0;
+    luaL_checkstack(L, 3, "no space to iterate over transflags");
+    lua_pushnil(L);
+    while (lua_next(L, narg)) {
+        flags |= check_transflag(L, -1);
+        lua_pop(L, 1);
+    }
     return flags;
 }
 
-
-static pmdb_t *check_pmdb(lua_State *L, int narg)
+static int
+push_transflags_table(lua_State *L, pmtransflag_t flags)
 {
-    pmdb_t **box = luaL_checkudata(L, narg, "pmdb_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty pmdb_t box");
-    }
-
-    return *box;
-}
-
-static pmpkg_t *check_pmpkg(lua_State *L, int narg)
-{
-    pmpkg_t **box = luaL_checkudata(L, narg, "pmpkg_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty pmpkg_t box");
-    }
-
-    return *box;
-}
-static pmdelta_t *check_pmdelta(lua_State *L, int narg)
-{
-    pmdelta_t **box = luaL_checkudata(L, narg, "pmdelta_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty pmdelta_t box");
-    }
-
-    return *box;
-}
-static pmgrp_t *check_pmgrp(lua_State *L, int narg)
-{
-    pmgrp_t **box = luaL_checkudata(L, narg, "pmgrp_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty pmgrp_t box");
-    }
-
-    return *box;
-}
-
-static pmtrans_t *check_pmtrans(lua_State *L, int narg)
-{
-    pmtrans_t **box = luaL_checkudata(L, narg, "pmtrans_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty pmtrans_t box");
-    }
-
-    return *box;
-}
-
-static pmdepend_t *check_pmdepend(lua_State *L, int narg)
-{
-    pmdepend_t **box = luaL_checkudata(L, narg, "pmdepend_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty pmdepend_t box");
-    }
-
-    return *box;
-}
-
-static pmdepmissing_t *check_pmdepmissing(lua_State *L, int narg)
-{
-    pmdepmissing_t **box = luaL_checkudata(L, narg, "pmdepmissing_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty pmdepmissing_t box");
-    }
-
-    return *box;
-}
-
-static pmconflict_t *check_pmconflict(lua_State *L, int narg)
-{
-    pmconflict_t **box = luaL_checkudata(L, narg, "pmconflict_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty pmconflict_t box");
-    }
-
-    return *box;
-}
-
-static pmfileconflict_t *check_pmfileconflict(lua_State *L, int narg)
-{
-    pmfileconflict_t **box = luaL_checkudata(L, narg, "pmfileconflict_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty pmfileconflict_t box");
-    }
-
-    return *box;
-}
-
-static changelog *check_changelog(lua_State *L, int narg)
-{
-    changelog **box = luaL_checkudata(L, narg, "changelog");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty changelog box");
-    }
-
-    return *box;
-}
-/*
-static off_t *check_off(lua_State *L, int narg)
-{
-    off_t **box = luaL_checkudata(L, narg, "off_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty off_t box");
-    }
-
-    return *box;
-}
-
-static time_t *check_time(lua_State *L, int narg)
-{
-    time_t **box = luaL_checkudata(L, narg, "time_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty time_t box");
-    }
-
-    return *box;
-}
-*/
-
-/*
-static alpm_list_t *check_alpmlist(lua_State *L, int narg)
-{
-    alpm_list_t **box = luaL_checkudata(L, narg, "alpm_list_t");
-    if (*box == NULL) {
-        luaL_argerror(L, narg, "Empty alpm_list_t box");
+    unsigned num_flags = 0;
+    unsigned i;
+    luaL_checkstack(L, 3, "error making a transflags table");
+    lua_newtable(L);
+    for (i=0; i < 32; i++) {
+        pmtransflag_t flag = 1 << i;
+        if (flags & flag) {
+            ++num_flags;
+            push_transflag(L, flag);
+            lua_rawseti(L, -2, num_flags);
         }
+    }
+    return 1;
+}
 
+static void *
+check_box(lua_State *L, int narg, char const *typename)
+{
+    void **box = luaL_checkudata(L, narg, typename);
+    if (*box == NULL) {
+        luaL_error(L, "Empty %s box", typename);
+    }
     return *box;
 }
-*/
+
+#define check_pmdb(L, narg) check_box((L), (narg), "pmdb_t")
+#define check_pmpkg(L, narg) check_box((L), (narg), "pmpkg_t")
+#define check_pmdelta(L, narg) check_box((L), (narg), "pmdelta_t")
+#define check_pmgrp(L, narg) check_box((L), (narg), "pmgrp_t")
+#define check_pmdepend(L, narg) check_box((L), (narg), "pmdepend_t")
+#define check_pmdepmissing(L, narg) check_box((L), (narg), "pmdepmissing_t")
+#define check_pmconflict(L, narg) check_box((L), (narg), "pmdepconflict_t")
 
 /* int alpm_db_unregister(pmdb_t *db); */
 static int lalpm_db_unregister(lua_State *L)
@@ -565,7 +422,6 @@ static int lalpm_db_setserver(lua_State *L)
 static int lalpm_db_update(lua_State *L)
 {
     pmdb_t *db = check_pmdb(L, 1);
-    /* const int level = luaL_checkint(L, 2); */
     const int level = lua_toboolean(L, 2);
     const int result = alpm_db_update(level, db);
     lua_pushnumber(L, result);
@@ -581,7 +437,6 @@ static int lalpm_db_get_pkg(lua_State *L)
     pmpkg_t **box = push_pmpkg_box(L);
     *box = alpm_db_get_pkg(db, name);
     if (*box == NULL) {
-/*        luaL_error(L, "got a NULL pmpkg_t from alpm_db_get_pkg()");*/
         lua_pushnil(L);
     }
 
@@ -593,7 +448,6 @@ static int lalpm_db_get_pkgcache(lua_State *L)
 {
     pmdb_t *db = check_pmdb(L, 1);
     alpm_list_t *list = alpm_db_get_pkgcache(db);
-//    alpm_list_to_lpkg_table(L, list);
     alpm_list_to_any_table(L, list, PMPKG_T);
 
     return 1;
@@ -618,7 +472,6 @@ static int lalpm_db_get_grpcache(lua_State *L)
 {
     pmdb_t *db = check_pmdb(L, 1);
     alpm_list_t *list = alpm_db_get_grpcache(db);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, PMGRP_T);
 
     return 1;
@@ -631,7 +484,6 @@ static int lalpm_db_search(lua_State *L)
     luaL_checktype(L, 2, LUA_TTABLE);
     alpm_list_t *needles = lstring_table_to_alpm_list(L, 2);
     alpm_list_t *list = alpm_db_search(db, needles);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, PMPKG_T);
     FREELIST(needles);
     alpm_list_free(list);
@@ -672,10 +524,7 @@ static pmdb_t **push_pmdb_box(lua_State *L)
 /* lua prototype is pkg, ret = alpm.pkg_load(filename, true/false) */
 static int lalpm_pkg_load(lua_State *L)
 {
-//    pmpkg_t *pkg = check_pmpkg(L, 3);
     pmpkg_t *pkg = NULL;
-    //luaL_checkany(L, 3);
-    //pkg = (pmpkg_t *)pkg;
     const char *filename = luaL_checkstring(L, 1);
     const int full = lua_toboolean(L, 2);
     const int result = alpm_pkg_load(filename, full, &pkg);
@@ -714,7 +563,6 @@ static int lalpm_pkg_compute_requiredby(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_compute_requiredby(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
     FREELIST(list);
 
@@ -798,6 +646,7 @@ static int lalpm_pkg_get_packager(lua_State *L)
 
     return 1;
 }
+
 /* const char *alpm_pkg_get_md5sum(pmpkg_t *pkg); */
 static int lalpm_pkg_get_md5sum(lua_State *L)
 {
@@ -807,7 +656,6 @@ static int lalpm_pkg_get_md5sum(lua_State *L)
 
     return 1;
 }
-
 
 /* const char *alpm_pkg_get_arch(pmpkg_t *pkg); */
 static int lalpm_pkg_get_arch(lua_State *L)
@@ -839,8 +687,6 @@ static int lalpm_pkg_get_isize(lua_State *L)
     return 1;
 }
 
-
-
 /* pmpkgreason_t alpm_pkg_get_reason(pmpkg_t *pkg); */
 static int lalpm_pkg_get_reason(lua_State *L)
 {
@@ -852,14 +698,11 @@ static int lalpm_pkg_get_reason(lua_State *L)
     return 1;
 }
 
-
-
 /* alpm_list_t *alpm_pkg_get_licenses(pmpkg_t *pkg); */
 static int lalpm_pkg_get_licenses(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_licenses(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -870,7 +713,6 @@ static int lalpm_pkg_get_groups(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_groups(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -881,7 +723,6 @@ static int lalpm_pkg_get_depends(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_depends(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, PMDEPEND_T);
 
     return 1;
@@ -892,7 +733,6 @@ static int lalpm_pkg_get_optdepends(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_optdepends(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -903,7 +743,6 @@ static int lalpm_pkg_get_conflicts(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_conflicts(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -914,7 +753,6 @@ static int lalpm_pkg_get_provides(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_provides(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -925,7 +763,6 @@ static int lalpm_pkg_get_deltas(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_deltas(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -936,7 +773,6 @@ static int lalpm_pkg_get_replaces(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_replaces(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -947,7 +783,6 @@ static int lalpm_pkg_get_files(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_files(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -958,7 +793,6 @@ static int lalpm_pkg_get_backup(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_backup(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -969,7 +803,6 @@ static int lalpm_pkg_get_removes(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_removes(pkg);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -1019,8 +852,6 @@ static int lalpm_pkg_changelog_read(lua_State *L)
         return 2;
     }
     char buff[size];
-//    box->buffer = buff;
-//    const char *ptr = box->buffer;
     const size_t result = alpm_pkg_changelog_read(buff, size, pkg, fp);
     if (result < size) {
         *(buff + result) = '\0';
@@ -1047,20 +878,6 @@ static int lalpm_pkg_changelog_close(lua_State *L)
 
     return 1;
 }
-
-/*
-static Image checkImage (lua_State *L, int index)
-{
-  Image *pi, im;
-  luaL_checktype(L, index, LUA_TUSERDATA);
-  pi = (Image*)luaL_checkudata(L, index, IMAGE);
-  if (pi == NULL) luaL_typerror(L, index, IMAGE);
-  im = *pi;
-  if (!im)
-    luaL_error(L, "null Image");
-  return im;
-}
-*/
 
 /* unsigned short alpm_pkg_has_scriptlet(pmpkg_t *pkg); */
 static int lalpm_pkg_has_scriptlet(lua_State *L)
@@ -1091,40 +908,6 @@ static int lalpm_pkg_download_size(lua_State *L)
     return 1;
 }
 
-
-
-    static void stackDump (lua_State *L) {
-      int i;
-      int top = lua_gettop(L);
-      for (i = 1; i <= top; i++) {  /* repeat for each level */
-        int t = lua_type(L, i);
-        switch (t) {
-    
-          case LUA_TSTRING:  /* strings */
-            printf("`%s'", lua_tostring(L, i));
-            break;
-    
-          case LUA_TBOOLEAN:  /* booleans */
-            printf(lua_toboolean(L, i) ? "true" : "false");
-            break;
-    
-          case LUA_TNUMBER:  /* numbers */
-            printf("%g", lua_tonumber(L, i));
-            break;
-    
-          default:  /* other values */
-            printf("%s", lua_typename(L, t));
-            break;
-    
-        }
-        printf("  ");  /* put a separator */
-      }
-      printf("\n");  /* end the listing */
-    }
-
-
-
-
 alpm_list_t *ldatabase_table_to_alpm_list(lua_State *L, int narg)
 {
     alpm_list_t *newlist = NULL;
@@ -1132,12 +915,7 @@ alpm_list_t *ldatabase_table_to_alpm_list(lua_State *L, int narg)
     for (i = 1; i <= len; i++) {
         lua_rawgeti(L, narg, i);
         const int index = -1;
-        //const int typei = lua_type(L, index);
-        //const char *type = lua_typename(L, typei);
-        //printf("type: %s\n", type);
         pmdb_t *data = *(pmdb_t**)lua_touserdata(L, index);
-        //const char *name = alpm_db_get_name(data);
-        //printf("name: %s\n", name);
         newlist = alpm_list_add(newlist, (void *)data);
         lua_pop(L, 1);
     }
@@ -1153,7 +931,6 @@ static int lalpm_sync_newversion(lua_State *L)
     pmpkg_t **box = push_pmpkg_box(L);
     *box = alpm_sync_newversion(pkg, dbs_sync);
    if (*box == NULL) {
-       //printf("IT's NULL");
         lua_pushnil(L);
     }
     alpm_list_free(dbs_sync);
@@ -1177,7 +954,6 @@ static pmpkg_t **push_pmpkg_box(lua_State *L)
 
     if (luaL_newmetatable(L, "pmpkg_t")) {
         static luaL_Reg const methods[] = {
-           // { "pkg_load",               lalpm_pkg_load },
             { "pkg_free",               lalpm_pkg_free },
             { "pkg_checkmd5sum",        lalpm_pkg_checkmd5sum }, /* returning -1 */
             { "pkg_compute_requiredby", lalpm_pkg_compute_requiredby },
@@ -1192,7 +968,6 @@ static pmpkg_t **push_pmpkg_box(lua_State *L)
             { "pkg_get_md5sum",         lalpm_pkg_get_md5sum }, /* returning nil in tests*/
             { "pkg_get_arch",           lalpm_pkg_get_arch }, /* works */
             { "pkg_get_size",           lalpm_pkg_get_size }, /* works */
-/* pmpkgreason_t alpm_pkg_get_reason(pmpkg_t *pkg); */
             { "pkg_get_reason",         lalpm_pkg_get_reason },
             { "pkg_get_isize",          lalpm_pkg_get_isize }, /* works */
             { "pkg_get_licenses",       lalpm_pkg_get_licenses },
@@ -1213,8 +988,6 @@ static pmpkg_t **push_pmpkg_box(lua_State *L)
             { "pkg_has_scriptlet",      lalpm_pkg_has_scriptlet },
             { "pkg_has_force",          lalpm_pkg_has_force },
             { "pkg_download_size",      lalpm_pkg_download_size },
-            //{ "dep_compute_string",     lalpm_dep_compute_string },
-//            { "sync_newversion",        lalpm_sync_newversion },
             { NULL,                     NULL }
         };
         lua_newtable(L);
@@ -1277,8 +1050,6 @@ static int lalpm_delta_get_size(lua_State *L)
     return 1;
 }
 
-
-
 static pmdelta_t **push_pmdelta_box(lua_State *L)
 {
     pmdelta_t **box = lua_newuserdata(L, sizeof(pmdelta_t*));
@@ -1318,7 +1089,6 @@ static int lalpm_grp_get_pkgs(lua_State *L)
 {
     const pmgrp_t *grp = check_pmgrp(L, 1);
     alpm_list_t *list = alpm_grp_get_pkgs(grp);
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, PMPKG_T);
 
     return 1;
@@ -1364,8 +1134,6 @@ static pmtrans_t **push_pmtrans_box(lua_State *L)
     return box;
 }
 
-
-
 static pmdepend_t **push_pmdepend_box(lua_State *L)
 {
     pmdepend_t **box = lua_newuserdata(L, sizeof(pmdepend_t*));
@@ -1385,6 +1153,7 @@ static pmdepend_t **push_pmdepend_box(lua_State *L)
 
     return box;
 }
+
 /* const char *alpm_miss_get_target(const pmdepmissing_t *miss); */
 static int lalpm_miss_get_target(lua_State *L)
 {
@@ -1407,6 +1176,7 @@ static int lalpm_miss_get_dep(lua_State *L)
 
     return 1;
 }
+
 /* const char *alpm_miss_get_causingpkg(const pmdepmissing_t *miss); */
 static int lalpm_miss_get_causingpkg(lua_State *L)
 {
@@ -1438,6 +1208,7 @@ static pmdepmissing_t **push_pmdepmissing_box(lua_State *L)
 
     return box;
 }
+
 /* const char *alpm_conflict_get_package1(pmconflict_t *conflict); */
 static int lalpm_conflict_get_package1(lua_State *L)
 {
@@ -1498,13 +1269,9 @@ static pmfileconflict_t **push_pmfileconflict_box(lua_State *L)
     return box;
 }
 
-
-
-
 static changelog *push_changelog_box(lua_State *L)
 {
     changelog *box = lua_newuserdata(L, sizeof(changelog));
-    //box = NULL;
 
     if (luaL_newmetatable(L, "alpm_changelog")) {
         static luaL_Reg const methods[] = {
@@ -1514,50 +1281,11 @@ static changelog *push_changelog_box(lua_State *L)
         luaL_register(L, NULL, methods);
         lua_setfield(L, -2, "__index");
         /*TODO DESTRUCTOR IF NEEDED*/
-        //luaL_getmetatable(L, "alpm_changelog");
     }
     lua_setmetatable(L, -2);
 
     return box;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-static alpm_list_t **push_alpmlist_box(lua_State *L)
-{
-    alpm_list_t **box = lua_newuserdata(L, sizeof(alpm_list_t*));
-    *box = NULL;
-
-    if (luaL_newmetatable(L, "alpm_list_t")) {
-        static luaL_Reg const methods[] = {
-//            { "option_set_cachedirs",   lalpm_option_set_cachedirs },
-            { NULL,                     NULL },
-        };
-        lua_newtable(L);
-        luaL_register(L, NULL, methods);
-        lua_setfield(L, -2, "__index");
-    }
-    lua_setmetatable(L, -2);
-
-    return box;
-}
-*/
 
 /* int alpm_initialize(void); */
 static int lalpm_initialize(lua_State *L)
@@ -1783,7 +1511,6 @@ static int lalpm_option_set_dbpath(lua_State *L)
 static int lalpm_option_get_cachedirs(lua_State *L)
 {
     alpm_list_t *list = alpm_option_get_cachedirs();
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -1873,7 +1600,6 @@ static int lalpm_option_set_usesyslog(lua_State *L)
 static int lalpm_option_get_noupgrades(lua_State *L)
 {
     alpm_list_t *list = alpm_option_get_noupgrades();
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -1911,7 +1637,6 @@ static int lalpm_option_remove_noupgrade(lua_State *L)
 static int lalpm_option_get_noextracts(lua_State *L)
 {
     alpm_list_t *list = alpm_option_get_noextracts();
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -1950,7 +1675,6 @@ static int lalpm_option_remove_noextract(lua_State *L)
 static int lalpm_option_get_ignorepkgs(lua_State *L)
 {
     alpm_list_t *list = alpm_option_get_ignorepkgs();
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -1989,7 +1713,6 @@ static int lalpm_option_remove_ignorepkg(lua_State *L)
 static int lalpm_option_get_ignoregrps(lua_State *L)
 {
     alpm_list_t *list = alpm_option_get_ignoregrps();
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, STRING);
 
     return 1;
@@ -2063,7 +1786,6 @@ static int lalpm_option_get_localdb(lua_State *L)
     pmdb_t **box = push_pmdb_box(L);
     *box = alpm_option_get_localdb();
     if (*box == NULL) {
-            /*luaL_error(L, "got a NULL pmdb_t from alpm_option_get_localdb()"); */
         lua_pushnil(L);
     }
 
@@ -2074,7 +1796,6 @@ static int lalpm_option_get_localdb(lua_State *L)
 static int lalpm_option_get_syncdbs(lua_State *L)
 {
     alpm_list_t *list = alpm_option_get_syncdbs();
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, PMDB_T);
 
     return 1;
@@ -2086,7 +1807,6 @@ static int lalpm_db_register_local(lua_State *L)
     pmdb_t **box = push_pmdb_box(L);
     *box = alpm_db_register_local();
     if (*box == NULL) {
-        /*luaL_error(L, "got a NULL pmdb_t from alpm_db_register_local()");*/
         lua_pushnil(L);
     }
 
@@ -2100,7 +1820,6 @@ static int lalpm_db_register_sync(lua_State *L)
     const char *treename = luaL_checkstring(L, 1);
     *box = alpm_db_register_sync(treename);
     if (*box == NULL) {
-        /*luaL_error(L, "got a NULL pmdb_t from alpm_db_register_sync(treename)");*/
         lua_pushnil(L);
     }
 
@@ -2139,26 +1858,25 @@ static int lalpm_pkg_vercmp(lua_State *L)
 /* pmtranstype_t alpm_trans_get_type(); */
 static int lalpm_trans_get_type(lua_State *L)
 {
-    const char *list[] = {"T_T_UPGRADE","T_T_REMOVE","T_T_REMOVEUPGRADE","T_T_SYNC"};
-    const int result = alpm_trans_get_type();
-    if (result == -1) {
-        lua_pushnumber(L, result);
-    }
-    else {
-        lua_pushstring(L, list[result-1]);
+    pmtranstype_t x = alpm_trans_get_type();
+    if (x == (pmtranstype_t)-1) {
+        raise_last_pm_error(L);
     }
 
-    return 1;
+    return push_transtype(L, x);
 }
 
 /* unsigned int alpm_trans_get_flags(); */
 static int lalpm_trans_get_flags(lua_State *L)
 {
-    const unsigned int result = alpm_trans_get_flags();
-    lua_pushnumber(L, result);
+    pmtransflag_t x = alpm_trans_get_flags();
+    if (x == (pmtransflag_t)-1) {
+        raise_last_pm_error(L);
+    }
 
-    return 1;
+    return push_transflags_table(L, x);
 }
+
 /* alpm_list_t * alpm_trans_get_pkgs(); */
 static int lalpm_trans_get_pkgs(lua_State *L)
 {
@@ -2441,8 +2159,8 @@ progress_cb_gateway_unprotected(pmtransprog_t t, const char *s, int a, int b, in
                     alpm_trans_cb_progress cb_progress); */
 static int lalpm_trans_init(lua_State *L)
 {
-    pmtranstype_t type = lstring_to_transtype(L, 1);
-    pmtransflag_t flags = lstring_table_to_transflag(L, 2);
+    pmtranstype_t type = check_transtype(L, 1);
+    pmtransflag_t flags = check_transflags_table(L, 2);
     lua_pushvalue(L, 3);
     lua_setfield(L, LUA_REGISTRYINDEX, "lualpm: events callback table");
     lua_pushvalue(L, 4);
@@ -2493,16 +2211,13 @@ static int lalpm_trans_prepare(lua_State *L)
                 break;
             case PM_ERR_CONFLICTING_DEPS:
                 alpm_list_to_any_table(L, list, PMCONFLICT_T);
-                //printf("conflicting deps\n");
                 break;
             case PM_ERR_FILE_CONFLICTS:
                 alpm_list_to_any_table(L, list, PMFILECONFLICT_T);
                 break;
             default:
-                //printf("hmph\n");
                 break;
         }
-        //printf("HMPH\n");
         return 2;
     }
 
@@ -2542,6 +2257,7 @@ static int lalpm_trans_interrupt(lua_State *L)
 
     return 1;
 }
+
 /* int alpm_trans_release(void); */
 static int lalpm_trans_release(lua_State *L)
 {
@@ -2574,7 +2290,6 @@ static int lalpm_checkdeps(lua_State *L)
     luaL_checktype(L, 3, LUA_TTABLE);
     alpm_list_t *upgrade = lstring_table_to_alpm_list(L, 3);
     alpm_list_t *result = alpm_checkdeps(pkglist, reversedeps, remove, upgrade);
-//    alpm_list_to_lstring_table(L, result);
     alpm_list_to_any_table(L, result, PMPKG_T);
 
     return 1;
@@ -2586,7 +2301,6 @@ static int lalpm_deptest(lua_State *L)
     luaL_checktype(L, 2, LUA_TTABLE);
     alpm_list_t *targets = lstring_table_to_alpm_list(L, 2);
     alpm_list_t *result = alpm_deptest(db, targets);
-//    alpm_list_to_lstring_table(L, result);
     alpm_list_to_any_table(L, result, STRING);
 
     return 1;
@@ -2620,7 +2334,6 @@ static int lalpm_strerrorlast(lua_State *L)
 
     return 1;
 }
-
 
 static luaL_Reg const pkg_funcs[] =
 {
