@@ -81,6 +81,7 @@ handle_pcall_error_unprotected(
                                "(received a non-string error object)",
                                context);
         }
+        break;
     default:
         log_internal_error("lualpm: unknown error while calling Lua",
                            context);
@@ -2162,11 +2163,210 @@ static int lalpm_trans_get_flags(lua_State *L)
 static int lalpm_trans_get_pkgs(lua_State *L)
 {
     alpm_list_t *list = alpm_trans_get_pkgs();
-//    alpm_list_to_lstring_table(L, list);
     alpm_list_to_any_table(L, list, PMPKG_T);
 
     return 1;
 }
+
+struct event_cb_args {
+    pmtransevt_t    event;
+    void            *data1;
+    void            *data2;
+};
+
+static int
+event_cb_gateway_protected(lua_State *L)
+{
+    struct event_cb_args *args = lua_touserdata(L, 1);
+    lua_getfield(L, LUA_REGISTRYINDEX, "lualpm: events callback table");
+    switch (args->event) {
+        pmpkg_t **box;
+        pmpkg_t **box1;
+#define f(x) case PM_TRANS_EVT_ ## x: lua_getfield(L, -1, "T_E_" #x)
+#define bn(b) if (b == NULL) { \
+                    lua_pushnil(L); }
+#define g(x, y) lua_call(L, x, y); break
+        f(CHECKDEPS_START);
+            g(0, 0);
+        f(FILECONFLICTS_START);
+            g(0, 0);
+        f(RESOLVEDEPS_START);
+            g(0, 0);
+        f(INTERCONFLICTS_START);
+            g(0, 0);
+        f(ADD_START);
+            box = push_pmpkg_box(L);
+            *box = args->data1;
+            bn(*box);
+            g(1, 0);
+        f(ADD_DONE);
+            box = push_pmpkg_box(L);
+            *box = args->data1;
+            bn(*box);
+            g(1, 0);
+        f(REMOVE_START);
+            box = push_pmpkg_box(L);
+            *box = args->data1;
+            bn(*box);
+            g(1, 0);
+        f(REMOVE_DONE);
+            box = push_pmpkg_box(L);
+            *box  = args->data1;
+            bn(*box);
+            g(1, 0);
+        f(UPGRADE_START);
+            box = push_pmpkg_box(L);
+            *box = args->data1;
+            bn(*box);
+            g(1, 0);
+        f(UPGRADE_DONE);
+            box = push_pmpkg_box(L);
+            *box = args->data1;
+            bn(*box);
+            box1 = push_pmpkg_box(L);
+            *box1 = args->data2;
+            bn(*box1);
+            g(2, 0);
+        f(INTEGRITY_START);
+            g(0, 0);
+        f(DELTA_INTEGRITY_START);
+            g(0, 0);
+        f(DELTA_PATCHES_START);
+            g(0, 0);
+        f(DELTA_PATCH_START);
+            push_string(L, (char *)args->data1);
+            push_string(L, (char *)args->data2);
+            g(2, 0);
+        f(DELTA_PATCH_DONE);
+            g(0, 0);
+        f(DELTA_PATCH_FAILED);
+            g(0, 0);
+        f(SCRIPTLET_INFO);
+            push_string(L, (char *)args->data1);
+            g(1, 0);
+        f(RETRIEVE_START);
+            push_string(L, (char *)args->data1);
+            g(1, 0);
+#undef f
+#undef bn
+#undef g
+#define f(x) case PM_TRANS_EVT_ ## x:
+            f(FILECONFLICTS_DONE)
+            f(CHECKDEPS_DONE)
+            f(RESOLVEDEPS_DONE)
+            f(INTERCONFLICTS_DONE)
+            f(INTEGRITY_DONE)
+            f(DELTA_INTEGRITY_DONE)
+            f(DELTA_PATCHES_DONE)
+            break;
+#undef f
+        default:
+            assert(0 && "[BUG] unexpected pmtransevt_t");
+    }
+
+    return 0;
+}
+
+static void
+event_cb_gateway_unprotected(pmtransevt_t event, void *data1, void *data2)
+{
+    lua_State *L = GlobalState;
+    struct event_cb_args args[1];
+    int err;
+    assert(L && "[BUG] no global Lua state in transaction event callback");
+    args->event = event;
+    args->data1 = data1;
+    args->data2 = data2;
+    err = lua_cpcall(L, event_cb_gateway_protected, args);
+    if (err) {
+        handle_pcall_error_unprotected(L, err, "event callback");
+    }
+}
+
+struct conv_cb_args {
+    pmtransconv_t   type;
+    void            *data1;
+    void            *data2;
+    void            *data3;
+    int             *response;
+};
+
+static int
+conversation_cb_gateway_protected(lua_State *L)
+{
+    struct conv_cb_args *args = lua_touserdata(L, 1);
+    lua_getfield(L, LUA_REGISTRYINDEX, "lualpm: conversations callback table");
+    switch (args->type) {
+        pmpkg_t **box;
+        pmpkg_t **box1;
+#define f(x) case PM_TRANS_CONV_  ## x: lua_getfield(L, -1, "T_C_" #x)
+#define g(x, y) lua_call(L, x, y); \
+                if (args->response) { \
+                args->response[0] = lua_toboolean(L, -1); \
+                } \
+                lua_pop(L, 1); \
+                break
+#define bn(b) if (b == NULL) { \
+                    lua_pushnil(L); }
+        f(INSTALL_IGNOREPKG);
+            box = push_pmpkg_box(L);
+            *box = args->data1;
+            bn(*box);
+            g(1, 1);
+        f(REPLACE_PKG);
+            box = push_pmpkg_box(L);
+            *box = args->data1;
+            bn(*box);
+            box1 = push_pmpkg_box(L);
+            *box1 = args->data2;
+            bn(*box1);
+            push_string(L, args->data3);
+            g(3, 1);
+        f(CONFLICT_PKG);
+            push_string(L, args->data1);
+            push_string(L, args->data2);
+            push_string(L, args->data3);
+            g(3, 1);
+        f(CORRUPTED_PKG);
+            push_string(L, args->data1);
+            g(1, 1);
+        f(LOCAL_NEWER);
+            box = push_pmpkg_box(L);
+            *box = args->data1;
+            bn(*box);
+            g(1, 1);
+        f(REMOVE_PKGS);
+            alpm_list_to_any_table(L, args->data1, PMPKG_T);
+            g(1, 1);
+#undef f
+#undef g
+#undef bn
+        default:
+            assert(0 && "[BUG] unexpected pmtransconv_t");
+    }
+
+    return 0;
+}
+
+static void
+conversation_cb_gateway_unprotected(pmtransconv_t type, void *data1, void *data2, void *data3, int *response)
+{
+    lua_State *L = GlobalState;
+    struct conv_cb_args args[1];
+    int err;
+    assert(L && "[BUG] no global Lua state in conversation event callback");
+    args->type = type;
+    args->data1 = data1;
+    args->data2 = data2;
+    args->data3 = data3;
+    args->response = response;
+    err = lua_cpcall(L, conversation_cb_gateway_protected, args);
+    if (err) {
+        handle_pcall_error_unprotected(L, err, "conversation callback");
+    }
+}
+
+static callback_key_t trans_cb_progress_key[1] = {{ "transaction progress" }};
 
 static int
 push_pmtransprog(lua_State *L, pmtransprog_t t)
@@ -2183,11 +2383,6 @@ push_pmtransprog(lua_State *L, pmtransprog_t t)
     }
     return 0;
 }
-
-
-static callback_key_t trans_cb_progress_key[1] = {{ "transaction progress" }};
-static callback_key_t trans_cb_event_key[1] = {{ "transaction event" }};
-static callback_key_t trans_cb_conv_key[1] = {{ "transaction conversation" }};
 
 struct progress_cb_args {
     pmtransprog_t  progress_type;
@@ -2248,12 +2443,14 @@ static int lalpm_trans_init(lua_State *L)
 {
     pmtranstype_t type = lstring_to_transtype(L, 1);
     pmtransflag_t flags = lstring_table_to_transflag(L, 2);
-    register_callback(L, trans_cb_event_key, 3);
-    register_callback(L, trans_cb_conv_key, 4);
+    lua_pushvalue(L, 3);
+    lua_setfield(L, LUA_REGISTRYINDEX, "lualpm: events callback table");
+    lua_pushvalue(L, 4);
+    lua_setfield(L, LUA_REGISTRYINDEX, "lualpm: conversations callback table");
     register_callback(L, trans_cb_progress_key, 5);
     const int result = alpm_trans_init(type, flags,
-                                       NULL,
-                                       NULL,
+                                       event_cb_gateway_unprotected,
+                                       conversation_cb_gateway_unprotected,
                                        progress_cb_gateway_unprotected);
     lua_pushnumber(L, result);
     return 1;
