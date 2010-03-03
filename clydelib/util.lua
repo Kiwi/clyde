@@ -1,8 +1,7 @@
+module(..., package.seeall)
 local alpm = require "lualpm"
 local lfs = require "lfs"
 local utilcore = require "clydelib.utilcore"
-local callback = require "clydelib.callback"
-module(..., package.seeall)
 
 function printf(...)
     io.write(string.format(...))
@@ -215,19 +214,6 @@ function eprintf(level, format, ...)
     return ret
 end
 
-function trans_init(ttype, flags)
-    local ret  = alpm.trans_init(ttype, flags, callback.cb_trans_evt, callback.cb_trans_conv, callback.cb_trans_progress)
-    if (ret == -1) then
-        printf("error: failed to init transaction(%s)\n", alpm.strerrorlast())
-        if (alpm.strerrorlast() == "unable to lock database") then
-            printf("  if you're sure a package manager is not already\n"..
-                  "  running, you can remove %s\n", alpm.option_get_lockfile())
-        end
-        return -1
-    end
-    return 0
-end
-
 function trans_release()
     local transrelease = alpm.trans_release()
     --print(transrelease)
@@ -425,11 +411,6 @@ function display_synctargets(syncpkgs)
     display_targets(pkglist, true)
 end
 
-
-
-
-
-
 local function question(preset, fmt, ...)
     local gettext = utilcore.gettext
     local stream
@@ -477,8 +458,6 @@ function noyes(fmt, ...)
     local ret = question(false, fmt, ...)
     return ret
 end
-
-
 
 local mt_version = {}
 

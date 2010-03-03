@@ -2,6 +2,7 @@ module(..., package.seeall)
 local lfs = require "lfs"
 local alpm = require "lualpm"
 local util = require "clydelib.util"
+local transinit = require "clydelib.transinit"
 local utilcore = require "clydelib.utilcore"
 local packages = require "clydelib.packages"
 local eprintf = util.eprintf
@@ -21,7 +22,7 @@ local fastremove = util.fastremove
 local tblremovedupes = util.tblremovedupes
 local tbldiff = util.tbldiff
 local tblstrdup = util.tblstrdup
-local trans_init = util.trans_init
+local trans_init = transinit.trans_init
 local yesno = util.yesno
 local noyes = util.noyes
 local trans_release = util.trans_release
