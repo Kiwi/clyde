@@ -629,7 +629,7 @@ local function config_init(uid)
             local options = {
                 "#Colors are enabled by default. To disable them, uncomment the following line";
                 "#NoColor";
-                "#Searching AUR is enabled by default. Unomment the following line to only search with --aur";
+                "#Searching AUR is enabled by default. Uncomment the following line to only search with --aur";
                 "#ReposOnly";
             }
             clydeconf = string.format(
