@@ -374,7 +374,8 @@ check_box(lua_State *L, int narg, char const *typename)
 #define check_pmgrp(L, narg) check_box((L), (narg), "pmgrp_t")
 #define check_pmdepend(L, narg) check_box((L), (narg), "pmdepend_t")
 #define check_pmdepmissing(L, narg) check_box((L), (narg), "pmdepmissing_t")
-#define check_pmconflict(L, narg) check_box((L), (narg), "pmdepconflict_t")
+#define check_pmconflict(L, narg) check_box((L), (narg), "pmconflict_t")
+#define check_pmfileconflict(L, narg) check_box((L), (narg), "pmfileconflict_t")
 
 /* int alpm_db_unregister(pmdb_t *db); */
 static int lalpm_db_unregister(lua_State *L)
@@ -1250,6 +1251,50 @@ static pmconflict_t **push_pmconflict_box(lua_State *L)
     return box;
 }
 
+/* const char *alpm_fileconflict_get_target(pmfileconflict_t *conflict); */
+static int lalpm_fileconflict_get_target(lua_State *L)
+{
+    pmfileconflict_t *conflict = check_pmfileconflict(L, 1);
+    const char *result = alpm_fileconflict_get_target(conflict);
+    push_string(L, result);
+
+    return 1;
+}
+
+/* pmfileconflicttype_t alpm_fileconflict_get_type(pmfileconflict_t *conflict); */
+static int lalpm_fileconflict_get_type(lua_State *L)
+{
+    pmfileconflict_t *conflict = check_pmfileconflict(L, 1);
+    pmfileconflicttype_t type = alpm_fileconflict_get_type(conflict);
+    switch(type) {
+        case PM_FILECONFLICT_TARGET:
+            return push_string(L, "FILECONFLICT_TARGET");
+        case PM_FILECONFLICT_FILESYSTEM:
+            return push_string(L, "FILECONFLICT_FILESYSTEM");
+    }
+    return 1;
+}
+
+/* const char *alpm_fileconflict_get_file(pmfileconflict_t *conflict); */
+static int lalpm_fileconflict_get_file(lua_State *L)
+{
+    pmfileconflict_t *conflict = check_pmfileconflict(L, 1);
+    const char *result = alpm_fileconflict_get_file(conflict);
+    push_string(L, result);
+
+    return 1;
+}
+
+/* const char *alpm_fileconflict_get_ctarget(pmfileconflict_t *conflict); */
+static int lalpm_fileconflict_get_ctarget(lua_State *L)
+{
+    pmfileconflict_t *conflict = check_pmfileconflict(L, 1);
+    const char *result = alpm_fileconflict_get_ctarget(conflict);
+    push_string(L, result);
+
+    return 1;
+}
+
 static pmfileconflict_t **push_pmfileconflict_box(lua_State *L)
 {
     pmfileconflict_t **box = lua_newuserdata(L, sizeof(pmfileconflict_t*));
@@ -1257,6 +1302,10 @@ static pmfileconflict_t **push_pmfileconflict_box(lua_State *L)
 
     if (luaL_newmetatable(L, "pmfileconflict_t")) {
         static luaL_Reg const methods[] = {
+            { "fileconflict_get_target",    lalpm_fileconflict_get_target },
+            { "fileconflict_get_type",      lalpm_fileconflict_get_type },
+            { "fileconflict_get_file",      lalpm_fileconflict_get_file },
+            { "fileconflict_get_ctarget",   lalpm_fileconflict_get_ctarget },
             { NULL,                     NULL }
         };
         lua_newtable(L);
@@ -2335,6 +2384,75 @@ static int lalpm_strerrorlast(lua_State *L)
     return 1;
 }
 
+static int lalpm_pm_errno(lua_State *L)
+{
+    if (!pm_errno) {
+        lua_pushnil(L);
+        return 1;
+    } else {
+        switch(pm_errno) {
+#define Sym(x) case PM_ERR_ ## x: return push_string(L, "P_E_" #x)
+        Sym(MEMORY);
+        Sym(SYSTEM);
+        Sym(BADPERMS);
+        Sym(NOT_A_FILE);
+        Sym(NOT_A_DIR);
+        Sym(WRONG_ARGS);
+            /* Interface */
+        Sym(HANDLE_NULL);
+        Sym(HANDLE_NOT_NULL);
+        Sym(HANDLE_LOCK);
+            /* Databases */
+        Sym(DB_OPEN);
+        Sym(DB_CREATE);
+        Sym(DB_NULL);
+        Sym(DB_NOT_NULL);
+        Sym(DB_NOT_FOUND);
+        Sym(DB_WRITE);
+        Sym(DB_REMOVE);
+            /* Servers */
+        Sym(SERVER_BAD_URL);
+        Sym(SERVER_NONE);
+            /* Transactions */
+        Sym(TRANS_NOT_NULL);
+        Sym(TRANS_NULL);
+        Sym(TRANS_DUP_TARGET);
+        Sym(TRANS_NOT_INITIALIZED);
+        Sym(TRANS_NOT_PREPARED);
+        Sym(TRANS_ABORT);
+        Sym(TRANS_TYPE);
+        Sym(TRANS_NOT_LOCKED);
+            /* Packages */
+        Sym(PKG_NOT_FOUND);
+        Sym(PKG_IGNORED);
+        Sym(PKG_INVALID);
+        Sym(PKG_OPEN);
+        Sym(PKG_CANT_REMOVE);
+        Sym(PKG_INVALID_NAME);
+        Sym(PKG_REPO_NOT_FOUND);
+            /* Deltas */
+        Sym(DLT_INVALID);
+        Sym(DLT_PATCHFAILED);
+            /* Dependencies */
+        Sym(UNSATISFIED_DEPS);
+        Sym(CONFLICTING_DEPS);
+        Sym(FILE_CONFLICTS);
+            /* Misc */
+        Sym(RETRIEVE);
+        Sym(INVALID_REGEX);
+            /* External library errors */
+        Sym(LIBARCHIVE);
+        Sym(LIBFETCH);
+        Sym(EXTERNAL_DOWNLOAD);
+#undef Sym
+        default:
+            assert(0 && "[BUG] unexpected pm_errno");
+        }
+    }
+    return 0;
+}
+
+
 static luaL_Reg const pkg_funcs[] =
 {
     { "pkg_load",                   lalpm_pkg_load },
@@ -2407,6 +2525,7 @@ static luaL_Reg const pkg_funcs[] =
 
     { "strerror",                   lalpm_strerror },
     { "strerrorlast",               lalpm_strerrorlast },
+    { "pm_errno",                   lalpm_pm_errno },
     { "logaction",                  lalpm_logaction },
     { NULL,                         NULL }
 };
