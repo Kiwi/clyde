@@ -184,7 +184,7 @@ push_typed_object(lua_State *L, types value_type, void *value)
         return 1;
     }
     switch (value_type) {
-    case STRING: lua_pushstring(L, value); return 1;
+    case STRING: push_string(L, value); return 1;
     case PMDB_T: push_pmdb(L, value); return 1;
     case PMPKG_T: push_pmpkg(L, value); return 1;
     case PMDELTA_T: push_pmdelta(L, value); return 1;
@@ -227,7 +227,7 @@ push_constant(
     int i;
     for (i=0; constants[i].name; i++) {
         if (constants[i].value == value) {
-            lua_pushstring(L, constants[i].name);
+            push_string(L, constants[i].name);
             return 1;
         }
     }
@@ -392,7 +392,7 @@ static int lalpm_db_get_name(lua_State *L)
 {
     const pmdb_t *db = check_pmdb(L, 1);
     const char *result = alpm_db_get_name(db);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -402,7 +402,7 @@ static int lalpm_db_get_url(lua_State *L)
 {
     const pmdb_t *db = check_pmdb(L, 1);
     const char *result = alpm_db_get_url(db);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -574,7 +574,7 @@ static int lalpm_pkg_get_filename(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     const char *result = alpm_pkg_get_filename(pkg);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -583,7 +583,7 @@ static int lalpm_pkg_get_name(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     const char *result = alpm_pkg_get_name(pkg);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -593,7 +593,7 @@ static int lalpm_pkg_get_version(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     const char *result = alpm_pkg_get_version(pkg);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -603,7 +603,7 @@ static int lalpm_pkg_get_desc(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     const char *result = alpm_pkg_get_desc(pkg);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -613,7 +613,7 @@ static int lalpm_pkg_get_url(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     const char *result = alpm_pkg_get_url(pkg);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -643,7 +643,7 @@ static int lalpm_pkg_get_packager(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     const char *result = alpm_pkg_get_packager(pkg);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -653,7 +653,7 @@ static int lalpm_pkg_get_md5sum(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     const char *result = alpm_pkg_get_md5sum(pkg);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -663,7 +663,7 @@ static int lalpm_pkg_get_arch(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     const char *result = alpm_pkg_get_arch(pkg);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -694,7 +694,7 @@ static int lalpm_pkg_get_reason(lua_State *L)
     pmpkg_t *pkg = check_pmpkg(L, 1);
     pmpkgreason_t reason = alpm_pkg_get_reason(pkg);
     const char *list[] = {"P_R_EXPLICIT", "P_R_DEPEND"};
-    lua_pushstring(L, list[reason]);
+    push_string(L, list[reason]);
 
     return 1;
 }
@@ -943,7 +943,7 @@ static int lalpm_dep_compute_string(lua_State *L)
 {
     const pmdepend_t *dep = check_pmdepend(L, 1);
     char *result = alpm_dep_compute_string(dep);
-    lua_pushstring(L, result);
+    push_string(L, result);
     free((void*)result);
 
     return 1;
@@ -1006,7 +1006,7 @@ static int lalpm_delta_get_from(lua_State *L)
 {
     pmdelta_t *delta = check_pmdelta(L, 1);
     const char *result = alpm_delta_get_from(delta);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1016,7 +1016,7 @@ static int lalpm_delta_get_to(lua_State *L)
 {
     pmdelta_t *delta = check_pmdelta(L, 1);
     const char *result = alpm_delta_get_to(delta);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1026,7 +1026,7 @@ static int lalpm_delta_get_filename(lua_State *L)
 {
     pmdelta_t *delta = check_pmdelta(L, 1);
     const char *result = alpm_delta_get_filename(delta);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1036,7 +1036,7 @@ static int lalpm_delta_get_md5sum(lua_State *L)
 {
     pmdelta_t *delta = check_pmdelta(L, 1);
     const char *result = alpm_delta_get_md5sum(delta);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1080,7 +1080,7 @@ static int lalpm_grp_get_name(lua_State *L)
 {
     const pmgrp_t *grp = check_pmgrp(L, 1);
     const char *result = alpm_grp_get_name(grp);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1160,7 +1160,7 @@ static int lalpm_miss_get_target(lua_State *L)
 {
     const pmdepmissing_t *miss = check_pmdepmissing(L, 1);
     const char *result = alpm_miss_get_target(miss);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1183,7 +1183,7 @@ static int lalpm_miss_get_causingpkg(lua_State *L)
 {
     const pmdepmissing_t *miss = check_pmdepmissing(L, 1);
     const char *result = alpm_miss_get_causingpkg(miss);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1215,7 +1215,7 @@ static int lalpm_conflict_get_package1(lua_State *L)
 {
     pmconflict_t *conflict = check_pmconflict(L, 1);
     const char *result = alpm_conflict_get_package1(conflict);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1225,7 +1225,7 @@ static int lalpm_conflict_get_package2(lua_State *L)
 {
     pmconflict_t *conflict = check_pmconflict(L, 1);
     const char *result = alpm_conflict_get_package2(conflict);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1357,7 +1357,7 @@ static int lalpm_release(lua_State *L)
 static int lalpm_version(lua_State *L)
 {
     const char *result = alpm_version();
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1522,7 +1522,7 @@ static int lalpm_option_set_totaldlcb(lua_State *L)
 static int lalpm_option_get_root(lua_State *L)
 {
     const char *result = alpm_option_get_root();
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1541,7 +1541,7 @@ static int lalpm_option_set_root(lua_State *L)
 static int lalpm_option_get_dbpath(lua_State *L)
 {
     const char *result = alpm_option_get_dbpath();
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1601,7 +1601,7 @@ static int lalpm_option_remove_cachedir(lua_State *L)
 static int lalpm_option_get_logfile(lua_State *L)
 {
     const char *result = alpm_option_get_logfile();
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1620,7 +1620,7 @@ static int lalpm_option_set_logfile(lua_State *L)
 static int lalpm_option_get_lockfile(lua_State *L)
 {
     const char *result = alpm_option_get_lockfile();
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1802,7 +1802,7 @@ static int lalpm_option_remove_ignoregrp(lua_State *L)
 static int lalpm_option_get_arch(lua_State *L)
 {
     const char *result = alpm_option_get_arch();
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -1888,7 +1888,7 @@ static int lalpm_fetch_pkgurl(lua_State *L)
 {
     const char *url = luaL_checkstring(L, 1);
     const char *result = alpm_fetch_pkgurl(url);
-    lua_pushstring(L, result);
+    push_string(L, result);
     free((void*)result);
 
     return 1;
@@ -2360,7 +2360,7 @@ static int lalpm_compute_md5sum(lua_State *L)
 {
     const char *name = luaL_checkstring(L, 1);
     const char *result = alpm_compute_md5sum(name);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -2370,7 +2370,7 @@ static int lalpm_strerror(lua_State *L)
 {
     const int err = luaL_checknumber(L, 1);
     const char *result = alpm_strerror(err);
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
@@ -2379,7 +2379,7 @@ static int lalpm_strerror(lua_State *L)
 static int lalpm_strerrorlast(lua_State *L)
 {
     const char *result = alpm_strerrorlast();
-    lua_pushstring(L, result);
+    push_string(L, result);
 
     return 1;
 }
