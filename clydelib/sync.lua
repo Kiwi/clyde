@@ -477,8 +477,6 @@ local function sync_aur_trans(targets)
 
     if (config.op_s_upgrade > 0) then
         printf(g(C.blub("::")..C.whib(" Starting full system upgrade..\n")))
-        --TODO implement this in lualpm
-        --TODO this is actually in lualpm now just need to come back and add this and test
         alpm.logaction("starting full system upgrade\n")
         local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
 
@@ -492,12 +490,12 @@ local function sync_aur_trans(targets)
             repeat
                 if (alpm.trans_addtarget(targ) == -1) then
                     found = false
-                    if (alpm.strerrorlast() == g("duplicate target") or
-                        alpm.strerrorlast() == g("operation cancelled due to ignorepkg")) then
+                    if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
+                        alpm.pm_errno() == "P_E_PKG_IGNORED") then
                         lprintf("LOG_WARNING", g("skipping target: %s\n"), targ)
                         break
                     end
-                    if (alpm.strerrorlast == g("could not find or read package")) then
+                    if (alpm.pm_errno() ~= "P_E_PKG_NOT_FOUND") then
                         eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
                         retval = 1
                         return transcleanup()
@@ -562,16 +560,15 @@ local function sync_aur_trans(targets)
     transret, data = alpm.trans_prepare(data)
 
     if (transret == -1) then
-        local err = alpm.strerrorlast()
-        eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), err)
-        if (err == g("could not satisfy dependencies")) then
+        eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), alpm.strerrorlast())
+        if (alpm.pm_errno() == "P_E_UNSATISFIED_DEPS") then
             for i, miss in ipairs(data) do
                 local dep = miss:miss_get_dep()
                 local depstring = dep:dep_compute_string()
                 printf(g(C.blub("::")..C.whib(" %s: requires %s\n")), miss:miss_get_target(), depstring)
             end
 
-        elseif (err == g("conflicting dependencies")) then
+        elseif (alpm.pm_errno() == "P_E_CONFLICTING_DEPS") then
             for i, conflict in ipairs(data) do
                 printf(g(C.blub("::")..C.whib(" %s: conflicts with %s\n")), conflict:conflict_get_package1(), conflict:conflict_get_package2())
             end
@@ -625,9 +622,23 @@ local function sync_aur_trans(targets)
     transret, data = alpm.trans_commit(data)
     if (transret == -1) then
         eprintf("LOG_ERROR", g("failed to commit transaction (%s)\n"), alpm.strerrorlast())
-        local err = alpm.strerrorlast()
-        --TODO: bunch of bindings needed for here
-        if (err == g("conflicting files")) then
+        if (alpm.pm_errno() == "P_E_FILE_CONFLICTS") then
+            for i, conflict in ipairs(data) do
+                if (conflict:fileconflict_get_type() == "FILECONFLICT_TARGET") then
+                    printf(g("%s exists in both '%s' and '%s'\n"),
+                    conflict:fileconflict_get_file(),
+                    conflict:fileconflict_get_target(),
+                    conflict:fileconflict_get_ctarget())
+                elseif (conflict:fileconflict_get_type() == "FILECONFLICT_FILESYSTEM") then
+                    printf(g("%s: %s exists in filesystem\n"),
+                        conflict:fileconflict_get_target(),
+                        conflict:fileconflict_get_file())
+                end
+            end
+        elseif (alpm.pm_errno() == "P_E_PKG_INVALID" or alpm.pm_errno() == "P_E_DLT_INVALID") then
+            for i, filename in ipairs(data) do
+                printf(g("%s is invalid or corrupted\n"), filename)
+            end
         end
 
         printf(g(C.redb("==>")..C.whib("Errors occured, no packages were upgraded.\n")))
@@ -1000,8 +1011,6 @@ local function sync_trans(targets)
 
     if (config.op_s_upgrade > 0) then
         printf(g(C.blub("::")..C.whib(" Starting full system upgrade...\n")))
-        --TODO implement this in lualpm
-        --TODO same as above and below, this is here, just need to test
         alpm.logaction("starting full system upgrade\n")
         local op_s_upgrade
         if (config.op_s_upgrade >= 2) then
@@ -1020,12 +1029,12 @@ local function sync_trans(targets)
             repeat
                 if (alpm.trans_addtarget(targ) == -1) then
                     found = false
-                    if (alpm.strerrorlast() == g("duplicate target") or
-                        alpm.strerrorlast() == g("operation cancelled due to ignorepkg")) then
+                    if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
+                        alpm.pm_errno() == "P_E_PKG_IGNORED") then
                         lprintf("LOG_WARNING", g("skipping target: %s\n"), targ)
                         break
                     end
-                    if (alpm.strerrorlast == g("could not find or read package")) then
+                    if (alpm.pm_errno() ~= "P_E_PKG_NOT_FOUND") then
                         eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
                         retval = 1
                         return transcleanup()
@@ -1090,16 +1099,14 @@ local function sync_trans(targets)
     transret, data = alpm.trans_prepare(data)
 
     if (transret == -1) then
-        local err = alpm.strerrorlast()
-        eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), err)
-        if (err == g("could not satisfy dependencies")) then
+        eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), alpm.strerrorlast())
+        if (alpm.pm_errno() == "P_E_UNSATISFIED_DEPS") then
             for i, miss in ipairs(data) do
                 local dep = miss:miss_get_dep()
                 local depstring = dep:dep_compute_string()
                 printf(g(C.blub("::")..C.whib(" %s: requires %s\n")), miss:miss_get_target(), depstring)
             end
-
-        elseif (err == g("conflicting dependencies")) then
+        elseif (alpm.pm_errno() == "P_E_CONFLICTING_DEPS") then
             for i, conflict in ipairs(data) do
                 printf(g(C.blub("::")..C.whib(" %s: conflicts with %s\n")), conflict:conflict_get_package1(), conflict:conflict_get_package2())
             end
@@ -1175,22 +1182,30 @@ local function sync_trans(targets)
     transret, data = alpm.trans_commit(data)
     if (transret == -1) then
         eprintf("LOG_ERROR", g("failed to commit transaction (%s)\n"), alpm.strerrorlast())
-        local err = alpm.strerrorlast()
-        --TODO: bunch of bindings needed for here
-        if (err == g("conflicting files")) then
+        if (alpm.pm_errno() == "P_E_FILE_CONFLICTS") then
+            for i, conflict in ipairs(data) do
+                if (conflict:fileconflict_get_type() == "FILECONFLICT_TARGET") then
+                    printf(g("%s exists in both '%s' and '%s'\n"),
+                    conflict:fileconflict_get_file(),
+                    conflict:fileconflict_get_target(),
+                    conflict:fileconflict_get_ctarget())
+                elseif (conflict:fileconflict_get_type() == "FILECONFLICT_FILESYSTEM") then
+                    printf(g("%s: %s exists in filesystem\n"),
+                        conflict:fileconflict_get_target(),
+                        conflict:fileconflict_get_file())
+                end
+            end
+        elseif (alpm.pm_errno() == "P_E_PKG_INVALID" or alpm.pm_errno() == "P_E_DLT_INVALID") then
+            for i, filename in ipairs(data) do
+                printf(g("%s is invalid or corrupted\n"), filename)
+            end
         end
 
-
-
-        printf(g(C.redb("==>")..C.whib(" Errors occured, no packages were upgraded.\n")))
+        printf(g(C.redb("==>")..C.whib("Errors occured, no packages were upgraded.\n")))
         retval = 1
         return transcleanup()
     end
---    print(transret, data, alpm.strerrorlast())
 
-
-
---       print("     conflicting dependencies")
     if (next(aurpkgs)) then
         transcleanup()
         return aur_install(aurpkgs)
@@ -1234,8 +1249,6 @@ local function clyde_sync(targets)
 
     if (config.op_s_sync > 0) then
         printf(g(C.blub("::")..C.whib(" Synchronizing package databases...\n")))
-        --TODO: alpm_logaction binding
-        --TODO: this is actually implemented...just need to uncomment and test
         alpm.logaction("synchronizing package lists\n")
         if (not sync_synctree(config.op_s_sync, sync_dbs)) then
           return 1
