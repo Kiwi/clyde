@@ -31,7 +31,7 @@ all:
 	$(CC) $(CFLAGS) $(AFLAG) `pkg-config --cflags lua` -shared -o clydelib/utilcore.so clydelib/utilcore.c -pedantic -D_FILE_OFFSET_BITS=64 -std=c99 -D_GNU_SOURCE
 	$(CC) $(CFLAGS) $(AFLAG) -shared -o clydelib/signal.so clydelib/lsignal.c
 
-install: all
+install:
 	$(INSTALL_PROGRAM) clyde $(DESTDIR)$(bindir)/clyde
 	$(INSTALL_DIR) $(DESTDIR)$(sharedir)/clydelib
 	$(INSTALL_PROGRAM) clydelib/utilcore.so $(DESTDIR)$(libdir)/clydelib/utilcore.so
