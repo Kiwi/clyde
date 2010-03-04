@@ -238,6 +238,9 @@ function sync_search(syncs, targets, shownumbers, install)
 
         local searchurl = aururl..aurmethod.search.."arg="..url.escape(targets[1])
         local aurresults = aur.getgzip(searchurl)
+        if (not aurresults) then
+            return (not found)
+        end
         local jsonresults = yajl.to_value(aurresults) or {}
 
         local aurpkgs = {}
@@ -375,6 +378,9 @@ local function sync_info(syncs, targets)
                 if (not foundpkg) then
                     local infourl = aururl..aurmethod.info.."arg="..url.escape(target)
                     local inforesults = aur.getgzip(infourl)
+                    if (not inforesults) then
+                        return 1
+                    end
                     local jsonresults = yajl.to_value(inforesults) or {}
 
                     if (type(jsonresults.results) ~= "table") then
@@ -533,6 +539,9 @@ local function sync_aur_trans(targets)
                         printf(C.blub("::")..C.whib(" %s group not found, searching AUR...\n"), targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
                         local inforesults = aur.getgzip(infourl)
+                        if (not inforesults) then
+                            return 1
+                        end
                         local jsonresults =  yajl.to_value(inforesults) or {}
 
                         if (type(jsonresults.results) ~= "table") then
@@ -1072,6 +1081,9 @@ local function sync_trans(targets)
                         printf(C.blub("::")..C.whib(" %s group not found, searching AUR...\n"), targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
                         local inforesults = aur.getgzip(infourl)
+                        if (not inforesults) then
+                            return 1
+                        end
                         local jsonresults = yajl.to_value(inforesults) or {}
 
                         if (type(jsonresults.results) ~= "table") then
