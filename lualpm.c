@@ -804,7 +804,7 @@ static int lalpm_pkg_get_removes(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     alpm_list_t *list = alpm_pkg_get_removes(pkg);
-    alpm_list_to_any_table(L, list, STRING);
+    alpm_list_to_any_table(L, list, PMPKG_T);
 
     return 1;
 }
