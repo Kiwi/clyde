@@ -1,12 +1,5 @@
 LDFLAGS = -s
-LBITS := $(shell getconf LONG_BIT)
-ifeq ($(LBITS),64)
-    CFLAGS = -Wall -W -O2 -fPIC
-else
-    CFLAGS = -Wall -W -O2
-endif
-
-
+CFLAGS = -Wall -W -O2 -fPIC
 CC = gcc
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -dm755
