@@ -1156,10 +1156,19 @@ local function sync_trans(targets)
             for i, db in ipairs(sync_dbs) do
                 local loaded = db:db_get_pkg(pkg)
                 if (loaded and not tblisin(targets, loaded:pkg_get_name())) then
-                    tblinsert(packages, loaded)
-                    local found, indx = tblisin(needs, pkg)
-                    if (found) then
-                        fastremove(needs, indx)
+                    local inpackages = false
+                    for i, package in ipairs(packages) do
+                        if (package:pkg_get_name() == loaded:pkg_get_name()) then
+                            inpackages = true
+                            break
+                        end
+                    end
+                    if (not inpackages) then
+                        tblinsert(packages, loaded)
+                        local found, indx = tblisin(needs, pkg)
+                        if (found) then
+                            fastremove(needs, indx)
+                        end
                     end
                 end
             end
