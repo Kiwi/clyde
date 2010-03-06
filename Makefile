@@ -30,7 +30,7 @@ install:
 	$(INSTALL_PROGRAM) clydelib/utilcore.so $(DESTDIR)$(libdir)/clydelib/utilcore.so
 	$(INSTALL_PROGRAM) clydelib/signal.so $(DESTDIR)$(libdir)/clydelib/signal.so
 	$(INSTALL_DATA) clydelib/*.lua $(DESTDIR)$(sharedir)/clydelib/
-	$(INSTALL_DATA) lualpm.so $(DESTDIR)$(libdir)/lualpm.so
+	$(INSTALL_PROGRAM) lualpm.so $(DESTDIR)$(libdir)/lualpm.so
 
 clean:
 	-rm -f *.so *.o
