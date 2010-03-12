@@ -130,7 +130,7 @@ local function usage(op, myname)
         printf(g("      --editor <prg>   edit PKGBUILD with the configured editor\n"))
         printf(g("      --color          enable colors\n"))
         printf(g("      --nocolor        disable colors\n"))
-        printf(g("      --stats          provide stats\n"))
+        printf(g("      --stats          provide stats about installed packages\n"))
     end
 end
 --[[
