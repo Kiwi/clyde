@@ -8,6 +8,7 @@ return {
 ['op_s_upgrade_aur'] = false;
 ['op_use_color'] = nil;
 ['editor'] = nil;
+['op_g_get_deps'] = false;
     --[[
     --pacman feature functions
     --]]
@@ -57,11 +58,10 @@ return {
 --	/* When downloading, display the amount downloaded, rate, ETA, and percent
 --	 * downloaded of the total download list */
 ['totaldownload'] = false;
-['cleanmethod'] = false; --/* select -Sc behavior */
+['cleanmethod'] = "CLEAN_KEEPINST"; --/* select -Sc behavior */
 ['holdpkg'] = {};
 --['syncfirst'] = {"pacman", "xvidcore", "xorg-server"};
 ['syncfirst'] = {};
 ['xfercommand'] = false;
 ['mkpkgopts'] = {}
---['cleanmethod'] = {"KEEPINST", "KEEPCUR"};
 }
