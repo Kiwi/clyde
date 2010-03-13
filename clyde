@@ -1006,7 +1006,7 @@ function main()
         sync.sync_search(syncdb, pm_targets, true, install)
         if (next(install)) then
             if (myuid > 0) then
-                os.execute("sudo clyde -S "..table.concat(install))
+                os.execute("sudo clyde -S "..table.concat(install, " "))
             else
                 sync.main(install)
             end
