@@ -235,6 +235,50 @@ function needs_root()
     end
 end
 
+function rmrf(path)
+    local ret, errstr, errnum = os.remove(path)
+    if (ret or errnum == 2) then
+        return false
+    elseif (lfs.attributes(path, "mode") == "directory") then
+        for file in lfs.dir(path) do
+            if file ~= "." and file ~= ".." then
+                local full = path .. "/" .. file
+                local attr = lfs.attributes(full)
+                assert(type(attr) == "table")
+                if attr.mode == "directory" then
+                    rmrf(full)
+                else
+                    os.remove(full)
+                end
+            end
+        end
+        return not os.remove(path)
+    else
+        return true
+    end
+end
+
+function makepath(path)
+    local oldmask = utilcore.umask(0000)
+    local ret = false
+    local parts = strsplit(path:sub(2, #path-1), "/")
+    local incr = ""
+
+    for i, part in ipairs(parts) do
+        incr = incr .. "/" .. part
+        if (utilcore.access(incr, "F_OK") ~= 0) then
+            if (utilcore.mkdir(incr, tonumber("755", 8)) ~= 0) then
+                ret = true
+                break
+            end
+        end
+    end
+
+    utilcore.umask(oldmask)
+
+    return ret
+end
+
 function indentprint(str, indent, space)
     if (not str or type(str) ~= "string") then
         return
