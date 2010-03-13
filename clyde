@@ -58,6 +58,7 @@ local function usage(op, myname)
         printf("    %s {-R --remove}  [%s] <%s>\n", myname, str_opt, str_pkg)
         printf("    %s {-S --sync}    [%s] [%s]\n", myname, str_opt, str_pkg)
         printf("    %s {-U --upgrade} [%s] <%s>\n", myname, str_opt, str_file)
+        printf("    %s {-G --getpkgbuild} [%s] [%s]\n", myname, str_opt, str_pkg)
         printf(g("\nuse '%s {-h --help}' with an operation for available options\n"), myname)
     else
     if (op == "PM_OP_REMOVE") then
@@ -117,6 +118,10 @@ local function usage(op, myname)
                        ignore a group upgrade (can be used more than once)\n"))
         printf(g("      --repos          only search or install packages from the configured repositories\n"))
         printf(g("  -q, --quiet          show less information for query and search\n"))
+    elseif(op == "PM_OP_GETPKG") then
+        printf("%s:  %s {-G --getpkgbuild} [%s] [%s]\n", str_usg, myname, str_opt, str_pkg)
+        printf("%s:\n", str_opt)
+        printf(g("  -d, --deps           download files for dependencies from AUR as well\n"))
     end
         printf(g("      --config <path>  set an alternate configuration file\n"))
         printf(g("      --logfile <path> set an alternate log file\n"))
