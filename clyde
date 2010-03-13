@@ -53,6 +53,7 @@ local function usage(op, myname)
         printf(g("operations:\n"))
         printf("    %s {-h --help}\n", myname)
         printf("    %s {-V --version}\n", myname)
+        printf("    %s {   --stats}\n", myname)
         printf("    %s {-Q --query}   [%s] [%s]\n", myname, str_opt, str_pkg)
         printf("    %s {-R --remove}  [%s] <%s>\n", myname, str_opt, str_pkg)
         printf("    %s {-S --sync}    [%s] [%s]\n", myname, str_opt, str_pkg)
@@ -96,6 +97,7 @@ local function usage(op, myname)
     elseif(op == "PM_OP_SYNC") then
 	printf("%s:  %s {-S --sync} [%s] [%s]\n", str_usg, myname, str_opt, str_pkg)
         printf("%s:\n", str_opt)
+        printf(g("  -a, --aur            only search or install packages from AUR\n"))
         printf(g("      --asdeps         install packages as non-explicitly installed\n"))
         printf(g("      --asexplicit     install packages as explicitly installed\n"))
         printf(g("  -c, --clean          remove old packages from cache directory (-cc for all)\n"))
@@ -113,6 +115,7 @@ local function usage(op, myname)
         printf(g("      --ignore <pkg>   ignore a package upgrade (can be used more than once)\n"))
         printf(g("      --ignoregroup <grp>\
                        ignore a group upgrade (can be used more than once)\n"))
+        printf(g("      --repos          only search or install packages from the configured repositories\n"))
         printf(g("  -q, --quiet          show less information for query and search\n"))
     end
         printf(g("      --config <path>  set an alternate configuration file\n"))
@@ -125,6 +128,9 @@ local function usage(op, myname)
         printf(g("  -r, --root <path>    set an alternate installation root\n"))
         printf(g("  -b, --dbpath <path>  set an alternate database location\n"))
         printf(g("      --cachedir <dir> set an alternate package cache location\n"))
+        printf(g("      --editor <prg>   edit the PKGBUILD with the configured editor\n"))
+        printf(g("      --color          enable colors\n"))
+        printf(g("      --nocolor        disable colors\n"))
     end
 end
 --[[
