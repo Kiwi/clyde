@@ -2,11 +2,12 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
-
+#include <signal.h>
 //#include "gettext.h"
 #include <locale.h>
 #include <libintl.h>
 
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
@@ -129,7 +130,6 @@ static int clyde_isatty(lua_State *L)
 {
     const int val = lua_tointeger(L, 1);
     const int result = isatty(val);
-//    printf("HIHIHI%i", result);
     lua_pushnumber(L, result);
 
     return 1;
@@ -163,10 +163,33 @@ static int clyde_ioctl(lua_State *L)
     return 2;
 }
 
+static int clyde_mkdir(lua_State *L)
+{
+    char const *path = luaL_checkstring(L, 1);
+    mode_t mode = luaL_checknumber(L, 2);
+    if (-1 != mkdir(path, mode)) {
+        lua_pushnumber(L, 0);
+
+        return 1;
+    } else {
+        int err = errno;
+        lua_pushnil(L);
+        lua_pushstring(L, strerror(err));
+        lua_pushinteger(L, err);
+
+        return 3;
+    }
+}
+
+static int clyde_umask(lua_State *L)
+{
+        mode_t cmask = luaL_checkint(L, 1);
+        cmask = umask(cmask);
+        lua_pushnumber(L, cmask);
+        return 1;
+}
 
 static luaL_Reg const pkg_funcs[] = {
-//    { "getcols",                    clyde_getcols },
-
     { "bindtextdomain",             clyde_bindtextdomain },
     { "textdomain",                 clyde_textdomain },
     { "gettext",                    clyde_gettext },
@@ -176,7 +199,8 @@ static luaL_Reg const pkg_funcs[] = {
     { "access",                     clyde_access },
     { "isatty",                     clyde_isatty },
     { "ioctl",                      clyde_ioctl },
-//    { "indentprint",                clyde_indentprint },
+    { "mkdir",                      clyde_mkdir },
+    { "umask",                      clyde_umask },
     { NULL,                         NULL}
 };
 
