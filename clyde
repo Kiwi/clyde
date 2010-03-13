@@ -290,6 +290,7 @@ local longopts = {
         {"stats",       "no_argument",      0,  'OP_STATS'},
         {"editor",      "required_argument",0,  'OP_EDITOR'},
         {"repos",       "no_argument",      0,  'OP_REPOS'},
+        {"getpkgbuild", "no_argument",      0,  'G'},
     --[[
     --pacman feature functions
     --]]
@@ -382,6 +383,7 @@ local longopts = {
         ['OP_REPOS'] = function()
             config.op_s_search_repos_only = true
         end;
+        ['G'] = settrans('PM_OP_GETPKG');
         --[[
         --pacman feature functions
         --]]
@@ -402,6 +404,7 @@ local longopts = {
         ['d'] = function()
             config.op_q_deps = true
             tblinsert(config.flags, "T_F_NODEPS")
+            config.op_g_get_deps = true
         end;
         ['e'] = function() config.op_q_explicit = true end;
         ['f'] = function() tblinsert(config.flags, "T_F_FORCE") end;
@@ -509,7 +512,7 @@ local longopts = {
 --        ['OP_ARCH'] = function() end;
     }
     local shortopts = "RUQSTr:b:vkhscVfmnoldepqituwyg"
-    local clydeshortopts = "a"
+    local clydeshortopts = "Ga"
     shortopts = shortopts..clydeshortopts
     local opttable = {}
 
@@ -575,7 +578,7 @@ local function setlibpaths()
         result = alpm.option_set_dbpath(config.dbpath)
 
         if (result ~= 0) then
-            eprintf("LOG_ERROR", g("problem setting dbpath '%s' (%s)\n"), config.dbpath, alpm.strerorrlast)
+            eprintf("LOG_ERROR", g("problem setting dbpath '%s' (%s)\n"), config.dbpath, alpm.strerrorlast())
             cleanup(result)
         end
     end
@@ -995,6 +998,7 @@ function main()
         ['PM_OP_REMOVE'] = function() remove.main(pm_targets) end;
         ['PM_OP_SYNC'] = function() sync.main(pm_targets) end;
         ['PM_OP_DEPTEST'] = function() deptest.main(pm_targets) end;
+        ['PM_OP_GETPKG'] = function() sync.getpkgbuild(pm_targets) end;
     }
 
     local install ={}
