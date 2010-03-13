@@ -10,6 +10,8 @@ local packages = require "clydelib.packages"
 local transinit = require "clydelib.transinit"
 local aur = require "clydelib.aur"
 local upgrade = require "clydelib.upgrade"
+local rmrf = util.rmrf
+local makepath = util.makepath
 local eprintf = util.eprintf
 local lprintf = util.lprintf
 local printf = util.printf
@@ -115,10 +117,162 @@ local function prune(tbl, terms)
         end
     end
 end
---TODO add these...
---local function sync_cleandb(dbpath, keep_used)
---local function sync_cleandb_all()
---local function sync_cleancache(level)
+
+local function sync_cleandb(dbpath, keep_used)
+    local dir = lfs.chdir(dbpath)
+    local found = false
+    if (not dir) then
+        eprintf("LOG_ERROR", g("could not access database directory\n"))
+        return 1
+    end
+    for file in lfs.dir(dbpath) do
+        found = false
+        repeat
+        if (file == "." or file == "..") then
+            break
+        end
+        if (file == "sync" or file == "local") then
+            break
+        end
+        local path = lfs.currentdir().."/"..file
+        local attr = lfs.attributes(path)
+        assert(type(attr) == "table")
+        if (attr.mode ~= "directory") then
+            break
+        end
+
+        if (keep_used) then
+            local syncdbs = alpm.option_get_syncdbs()
+            for i, db in ipairs(syncdbs) do
+            repeat
+                if (db:db_get_name() == file) then
+                    found = true
+                    break
+                end
+            until 1
+            end
+        end
+
+        if (not found) then
+            if (not yesno(g("Do you want to remove %s?"), path)) then
+                break
+            end
+
+            if (rmrf(path)) then
+                eprintf("LOG_ERROR", g("could not remove directory\n"))
+                return 1
+            end
+        end
+        until 1
+    end
+
+    return 0
+end
+
+local function sync_cleandb_all()
+    local dbpath = alpm.option_get_dbpath()
+    printf(g("Database directory: %s\n"), dbpath)
+    if (not yesno(g("Do you want to remove unused repositories?"))) then
+        return 0
+    end
+
+    sync_cleandb(dbpath, false)
+
+    sync_cleandb(dbpath.."sync/", true)
+
+    printf(g("Database directory cleaned up\n"))
+
+    return 0
+end
+
+local function sync_cleancache(level)
+    local cachedirs = alpm.option_get_cachedirs()
+    local cachedir = cachedirs[1]
+
+    if (level == 1) then
+        printf(g("Cache directory: %s\n"), cachedir)
+        if (config.cleanmethod == "CLEAN_KEEPINST") then
+            if (not yesno(g("Do you want to remove uninstalled packages from cache?"))) then
+                return 0
+            end
+        elseif (config.cleanmethod == "CLEAN_KEEPCUR") then
+            if (not yesno(g("Do you want to remove outdated packages from cache?"))) then
+                return 0
+            end
+        else
+            return 1
+        end
+        printf(g("removing old packages from cache...\n"))
+
+        local dir = lfs.chdir(cachedir)
+        if (not dir) then
+            eprintf("LOG_ERROR", g("could not access cache directory"))
+            return 1
+        end
+
+        for file in lfs.dir(cachedir) do
+            local delete = true
+            local sync_dbs = alpm.option_get_syncdbs()
+            repeat
+            if (file == "." or file == "..") then
+                break
+            end
+            local path = cachedir..file
+            local localpkg, err = alpm.pkg_load(path, false)
+            if (err ~= 0 or not localpkg) then
+                if (yesno(g("File %s does not seem to be a valid package, remove it?"), path)) then
+                    os.remove(path)
+                end
+                break
+            end
+
+            if (config.cleanmethod == "CLEAN_KEEPINST") then
+                local pkg = db_local:db_get_pkg(localpkg:pkg_get_name())
+                if (pkg and alpm.pkg_vercmp(localpkg:pkg_get_version(), pkg:pkg_get_version()) == 0) then
+                    delete = false
+                end
+            elseif (config.cleanmethod == "CLEAN_KEEPCUR") then
+                for i, db in ipairs(sync_dbs) do
+                    repeat
+                        local pkg = db:db_get_pkg(localpkg:pkg_get_name())
+                        if (pkg and alpm.pkg_vercmp(localpkg:pkg_get_version(), pkg:pkg_get_version()) == 0) then
+                            delete = false
+                            break
+                        end
+                    until 1
+                end
+            else
+                delete = false
+            end
+
+            localpkg = nil
+
+            if (delete) then
+                os.remove(path)
+            end
+            until 1
+        end
+    else
+        printf(g("Cache directory: %s\n"), cachedir)
+        if (not noyes(g("Do you want to remove ALL files from cache?"))) then
+            return 0
+        end
+        printf(g("removing all files from cache...\n"))
+
+        if (rmrf(cachedir)) then
+            eprintf("LOG_ERROR", g("could not remove cache directory\n"))
+            return 1
+        end
+
+        if (makepath(cachedir)) then
+            eprintf("LOG_ERROR", g("could not create new cache directory\n"))
+            return 1
+        end
+    end
+
+    return 0
+end
+
 local function sync_synctree(level, syncs)
     local success = 0
     local ret
@@ -171,6 +325,12 @@ function sync_search(syncs, targets, shownumbers, install)
         end
     end
 
+    local packages = {}
+    local pkgcache = localdb:db_get_pkgcache()
+    for i, pkg in ipairs(pkgcache) do
+        packages[pkg:pkg_get_name()] = true
+    end
+
     if (not config.op_s_search_aur_only) then
     for i, db in ipairs(syncs) do
         repeat
@@ -186,13 +346,16 @@ function sync_search(syncs, targets, shownumbers, install)
                 found = true
             end
 
+
+
             for i, pkg in ipairs(ret) do
                 pkgcount = pkgcount + 1
                 pkgnames[pkgcount] = pkg:pkg_get_name()
                 --TODO: show versions if different
                 if (not config.quiet) then
                     local dbcolor = dbcolors[db:db_get_name()] or C.magb
-                    if (localdb:db_get_pkg(pkg:pkg_get_name())) then
+                   -- if (localdb:db_get_pkg(pkg:pkg_get_name())) then
+                   if (packages[pkg:pkg_get_name()]) then
                         printf("%s%s%s %s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold.."[installed]"..C.reset)
                     else
                         printf("%s%s%s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
@@ -682,13 +845,19 @@ end
 
 local function download_extract(target)
     local user = os.getenv("SUDO_USER") or "root"
+    local myuid = utilcore.geteuid()
+    --local oldmask = utilcore.umask(tonumber("700", 8))
     local host = "aur.archlinux.org"
     aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
     aur.dispatcher()
+    --utilcore.umask(oldmask)
     lfs.chdir("/tmp/clyde/"..target)
+    os.execute("chmod 700 /tmp/clyde/"..target)
     os.execute("bsdtar -xf " .. target .. ".tar.gz")
-    os.execute("chown "..user..":users -R /tmp/clyde")
-    os.execute("chmod 700 -R /tmp/clyde/"..target)
+    if (myuid == 0) then
+        os.execute("chown "..user..":users -R /tmp/clyde")
+    end
+--    os.execute("chmod 700 -R /tmp/clyde/"..target)
 end
 
 local function customizepkg(target)
@@ -914,13 +1083,39 @@ local function pacmaninstallable(target)
     return false
 end
 
+function getpkgbuild(targets)
+    local provided = {}
+    local needs = {}
+    local caninstall = {}
+    local needsdeps = {}
+    local aurpkgs = {}
+    updateprovided(provided)
+
+    getalldeps(targets, needs, needsdeps, caninstall, provided)
+    if (config.op_g_get_deps) then
+        for i, pkg in ipairs(needs) do
+            if (not pacmaninstallable(pkg)) then
+           -- tblinsert(pacmanpkgs, pkg)
+        --else
+            --tblinsert(aurpkgs, pkg)
+                download_extract(pkg)
+            end
+        end
+    else
+        for i, pkg in ipairs(targets) do
+            if (not pacmaninstallable(pkg)) then
+                download_extract(pkg)
+            end
+        end
+    end
+end
+
 local function aur_install(targets)
     local mkpkgopts = table.concat(config.mkpkgopts)
     local provided = {}
     local needs = {}
     local caninstall = {}
     local needsdeps = {}
-    local _
     updateprovided(provided)
 
 --TODO use memonization to improve performance
@@ -929,8 +1124,7 @@ local function aur_install(targets)
     local memomakedepends = {}
 
 
-    local donewithdeps
-    donewithdeps, needsdeps = getalldeps(targets, needs, needsdeps, caninstall, provided)
+    getalldeps(targets, needs, needsdeps, caninstall, provided)
 
     config.flagsdupe = tblstrdup(config.flags)
 
@@ -1251,9 +1445,9 @@ local function clyde_sync(targets)
             return 1
         end
         --TODO: write sync_cleancache and sync_cleandb_all
-        --ret = ret + sync_cleancache(config.op_s_clean)
+        ret = ret + sync_cleancache(config.op_s_clean)
         printf("\n")
-        --ret = ret + sync_cleandb_all()
+        ret = ret + sync_cleandb_all()
 
         if (trans_release() == -1) then
             ret = ret + 1
