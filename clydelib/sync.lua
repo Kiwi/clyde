@@ -1160,7 +1160,7 @@ local function aur_install(targets)
     config.noconfirm = noconfirm
 
     local installedtbl = {}
-    local needscount = #needs
+    local needscount = #needs - #pacmanpkgs
     while (#installedtbl < needscount ) do
         repeat
         updateprovided(provided)
@@ -1168,7 +1168,7 @@ local function aur_install(targets)
         getalldeps(targets, needs, needsdeps, caninstall, provided)
 
         for i, pkg in ipairs(aurpkgs) do
-                if (tblisin(caninstall, pkg) and not tblisin(installedtbl, pkg)) then
+            if (tblisin(caninstall, pkg) and not tblisin(installedtbl, pkg)) then
                 if (tblisin(targets, pkg) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
                     or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
                         and not (tblisin(config.flagsdupe, "T_F_ALLDEPS")))) then
