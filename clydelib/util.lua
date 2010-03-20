@@ -347,12 +347,14 @@ end
 
 function list_display(title, list, nospace, extracols)
     local len, cols = 0, 0
+
     if (title and type(title) == "string") then
         len = #title
         if (not nospace) then
             printf("%s ", title)
         end
     end
+
     if (not next(list) or checkempty(list)) then
         printf("%s\n", "None")
     else
@@ -360,6 +362,7 @@ function list_display(title, list, nospace, extracols)
         for i, str in ipairs(list) do
             local s = #str + 2
             local maxcols = getcols()
+
             if (s + cols > maxcols) then
                 cols = len
                 printf("\n")
@@ -367,6 +370,7 @@ function list_display(title, list, nospace, extracols)
                     printf(" ")
                 end
             end
+
             printf("%s  ", str)
             cols = cols + s - (extracols or 0)
         end
@@ -556,6 +560,21 @@ function getpkgbuildarray(carch, pkgbuild, str)
         ]], carch, pkgbuild, str))
     local ret = fd:read("*l")
     fd:close()
+    return ret
+end
+
+function getpkgbuildarraylinebreak(carch, pkgbuild, str)
+    local fd = io.popen(string.format([[
+    /bin/bash -c 'CARCH=%s
+    . %s
+    for i in "${%s[@]}"; do
+        echo "$i";
+    done'
+    ]], carch, pkgbuild, str))
+    local ret = fd:read("*a")
+    fd:close()
+    ret = strsplit(ret, "\n")
+    ret[#ret] = nil
     return ret
 end
 
