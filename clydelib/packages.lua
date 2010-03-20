@@ -151,8 +151,13 @@ pkg)
     tmpfile:write(pkgbuild)
     tmpfile:close()
     local carch = util.getbasharray("/etc/makepkg.conf", "CARCH")
+
     local function gpa(field)
         return util.getpkgbuildarray(carch, tmp, field)
+    end
+
+    local function gpaopt(field)
+        return = util.getpkgbuildarraylinebreak(carch, tmp, field)
     end
 
     local function gpat(field)
@@ -167,7 +172,7 @@ pkg)
     list_display("Provides       :", gpat("provides"))
     list_display("Depends On     :", gpat("depends"))
     list_display("Make Depends   :", gpat("makedepends"))
-    list_display_linebreak("Optional Deps  :", gpat("optdepends"))
+    list_display_linebreak("Optional Deps  :", gpaopt("optdepends"))
     list_display("Conflicts With :", gpat("conflicts"))
     list_display("Replaces       :", gpat("replaces"))
     string_display("Architecture   :", gpa("arch"))
