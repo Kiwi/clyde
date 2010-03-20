@@ -157,7 +157,7 @@ pkg)
     end
 
     local function gpaopt(field)
-        return = util.getpkgbuildarraylinebreak(carch, tmp, field)
+        return util.getpkgbuildarraylinebreak(carch, tmp, field)
     end
 
     local function gpat(field)
