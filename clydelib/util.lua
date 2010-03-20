@@ -555,7 +555,7 @@ end
 function getpkgbuildarray(carch, pkgbuild, str)
     local fd =  io.popen(string.format([[
         /bin/bash -c 'CARCH=%s
-        . %s
+        . %s &> /dev/null
         echo "${%s[@]}"'
         ]], carch, pkgbuild, str))
     local ret = fd:read("*l")
@@ -566,7 +566,7 @@ end
 function getpkgbuildarraylinebreak(carch, pkgbuild, str)
     local fd = io.popen(string.format([[
     /bin/bash -c 'CARCH=%s
-    . %s
+    . %s &> /dev/null
     for i in "${%s[@]}"; do
         echo "$i";
     done'
