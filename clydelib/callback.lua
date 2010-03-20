@@ -66,20 +66,24 @@ function fill_progress(bar_percent, disp_percent, proglen)
                     elseif (i == hashlen - hash ) then
                         if (lasthash == hash) then
                             if (mouth ~= 0) then
-                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("C"))
+                                printf(C.yelb("C"))
+                                --printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("C"))
 --                                printf("\27[1;33m∩ C\27[m")
                             else
-                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("c"))
+                                printf(C.yelb("c"))
+                                --printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("c"))
 --                                printf("\27[1;33m∩ c\27[m")
                             end
                         else
                             lasthash = hash
                             if mouth == 1 then mouth = 0 else mouth = 1 end
                             if (mouth ~= 0) then
-                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("C"))
+                                printf(C.yelb("C"))
+                                --printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("C"))
 --                                printf("\27[1;33m∩ C\27[m")
                             else
-                                printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("c"))
+                                printf(C.yelb("c"))
+                                --printf(C.yel(string.char(0xe2, 0x88, 0xa9)).." "..C.yelb("c"))
 --                                printf("\27[1;33m∩ c\27[m")
                             end
                         end
@@ -96,23 +100,24 @@ function fill_progress(bar_percent, disp_percent, proglen)
                     printf("-")
                 end
             end
-            printf("]\27[K")
+            printf("]")
+            --printf("]\27[K")
         end
         if (proglen > 5) then
-            if (bar_percent ~= 100 and config.chomp) then
-                printf("\27[3D] %3d%% ", disp_percent)
-            else
+            --if (bar_percent ~= 100 and config.chomp) then
+                --printf("\27[3D] %3d%% ", disp_percent)
+            --else
                 printf(" %3d%%", disp_percent)
-            end
+            --end
         end
         if (bar_percent == 100) then
             printf("\n")
         else
-            if (config.chomp) then
-                printf("\27[1A\r")
-            else
+            --if (config.chomp) then
+                --printf("\27[1A\r")
+            --else
                 printf("\r")
-            end
+            --end
         end
         io.stdout:flush()
 end
