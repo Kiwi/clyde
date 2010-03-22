@@ -56,9 +56,9 @@ local function query_fileowner(targets)
     end
 
     for i, filepath in ipairs(gsubtargets) do
-        local file, err = lfs.attributes("/"..filepath)
+        local file, err = lfs.symlinkattributes("/"..filepath)
         if (not file) then
-            file, err = lfs.attributes(filepath)
+            file, err = lfs.symlinkattributes(filepath)
             if (not file) then
                 local result
                 result, err = access("/"..filepath, "R_OK")
