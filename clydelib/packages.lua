@@ -54,6 +54,7 @@ function dump_pkg_backups(pkg)
 end
 
 function dump_pkg_full(pkg, level)
+    local bl = #C.bright("")
     local reason, bdatestr, idatestr, bdate, idate, requiredby, depstrings
     if (not pkg or not level) then
         return
@@ -86,43 +87,43 @@ function dump_pkg_full(pkg, level)
     if (level > 0) then
         requiredby = pkg:pkg_compute_requiredby()
     end
-    string_display("Name           :", pkg:pkg_get_name())
-    string_display("Version        :", pkg:pkg_get_version())
-    string_display("URL            :", pkg:pkg_get_url())
-    list_display("Licenses       :", pkg:pkg_get_licenses())
-    list_display("Groups         :", pkg:pkg_get_groups())
-    list_display("Provides       :", pkg:pkg_get_provides())
-    list_display("Depends On     :", depstrings)
-    list_display_linebreak("Optional Deps  :", pkg:pkg_get_optdepends())
+    string_display(C.bright("Name           :"), C.bright(pkg:pkg_get_name()), bl)
+    string_display(C.bright("Version        :"), C.greb(pkg:pkg_get_version()), bl)
+    string_display(C.bright("URL            :"), C.cyab(pkg:pkg_get_url()), bl)
+    list_display(C.bright("Licenses       :"), pkg:pkg_get_licenses(), false, 0, bl - 1)
+    list_display(C.bright("Groups         :"), pkg:pkg_get_groups(), false, 0, bl - 1)
+    list_display(C.bright("Provides       :"), pkg:pkg_get_provides(), false, 0, bl - 1)
+    list_display(C.bright("Depends On     :"), depstrings, false, 0, bl - 1)
+    list_display_linebreak(C.bright("Optional Deps  :"), pkg:pkg_get_optdepends())
     if (level > 0) then
-        list_display("Required By    :", requiredby)
+        list_display(C.bright("Required By    :"), requiredby, false, 0, bl - 1)
         requiredby = nil
     end
-    list_display("Conflicts With :", pkg:pkg_get_conflicts())
-    list_display("Replaces       :", pkg:pkg_get_replaces())
+    list_display(C.bright("Conflicts With :"), pkg:pkg_get_conflicts(), false, 0, bl - 1)
+    list_display(C.bright("Replaces       :"), pkg:pkg_get_replaces(), false, 0, bl - 1)
     if (level < 0) then
-        printf("Download Size  : %6.2f K\n", pkg:pkg_get_size() / 1024)
+        printf(C.bright("Download Size").."  : %6.2f K\n", pkg:pkg_get_size() / 1024)
     end
     if (level == 0) then
-        printf("Compressed Size: %6.2f K\n", pkg:pkg_get_size() / 1024)
+        printf(C.bright("Compressed Size:").." %6.2f K\n", pkg:pkg_get_size() / 1024)
     end
-    printf("Installed Size : %6.2f K\n", pkg:pkg_get_isize() / 1024)
-    string_display("Packager       :", pkg:pkg_get_packager())
-    string_display("Architecture   :", pkg:pkg_get_arch())
-    string_display("Build Date     :", bdatestr)
+    printf(C.bright("Installed Size :").." %6.2f K\n", pkg:pkg_get_isize() / 1024)
+    string_display(C.bright("Packager       :"), pkg:pkg_get_packager(), bl)
+    string_display(C.bright("Architecture   :"), pkg:pkg_get_arch(), bl)
+    string_display(C.bright("Build Date     :"), bdatestr, bl)
     if (level > 0) then
-        string_display("Install Date   :", idatestr)
-        string_display("Install Reason :", reason)
+        string_display(C.bright("Install Date   :"), idatestr, bl)
+        string_display(C.bright("Install Reason :"), reason, bl)
     end
     if (level >= 0) then
         local scriptlet = pkg:pkg_has_scriptlet()
         if scriptlet == 1 then scriptlet = "Yes" else scriptlet = "No" end
-        string_display("Install Script :", scriptlet)
+        string_display(C.bright("Install Script :"), scriptlet, bl)
     end
     if (level < 0) then
-        string_display("MD5 Sum        :", pkg:pkg_get_md5sum())
+        string_display(C.bright("MD5 Sum        :"), pkg:pkg_get_md5sum(), bl)
     end
-    string_display("Description    :", pkg:pkg_get_desc())
+    string_display(C.bright("Description    :"), pkg:pkg_get_desc(), bl)
     if (level > 1) then
         dump_pkg_backups(pkg)
     end
@@ -134,11 +135,12 @@ function dump_pkg_sync(pkg, treename)
     if (pkg == nil) then
         return
     end
-    string_display("Repository     :", treename)
+    string_display(C.bright("Repository     :"), treename)
     dump_pkg_full(pkg, -1)
 end
 
 function dump_pkg_full_aur(pkg, level)
+    local bl = #C.bright("")
     if (not pkg or not level) then
         return
     end
@@ -164,19 +166,19 @@ pkg)
         return strsplit(gpa(field), " ") or {}
     end
 
-    string_display("Name           :", pkg)
-    string_display("Version        :", gpa("pkgver").."-"..gpa("pkgrel"))
-    string_display("URL            :", gpa("url"))
-    list_display("Licenses       :", gpat("license"))
-    list_display("Groups         :", gpat("groups"))
-    list_display("Provides       :", gpat("provides"))
-    list_display("Depends On     :", gpat("depends"))
-    list_display("Make Depends   :", gpat("makedepends"))
-    list_display_linebreak("Optional Deps  :", gpaopt("optdepends"))
-    list_display("Conflicts With :", gpat("conflicts"))
-    list_display("Replaces       :", gpat("replaces"))
-    string_display("Architecture   :", gpa("arch"))
-    string_display("Description    :", gpa("pkgdesc"))
+    string_display(C.bright("Name           :"), C.bright(pkg), bl)
+    string_display(C.bright("Version        :"), C.greb(gpa("pkgver").."-"..gpa("pkgrel")), bl)
+    string_display(C.bright("URL            :"), C.cyab(gpa("url")))
+    list_display(C.bright("Licenses       :"), gpat("license"), false, 0, bl - 1)
+    list_display(C.bright("Groups         :"), gpat("groups"), false, 0, bl - 1)
+    list_display(C.bright("Provides       :"), gpat("provides"), false, 0, bl - 1)
+    list_display(C.bright("Depends On     :"), gpat("depends"), false, 0, bl - 1)
+    list_display(C.bright("Make Depends   :"), gpat("makedepends"), false, 0, bl - 1)
+    list_display_linebreak(C.bright("Optional Deps  :"), gpaopt("optdepends"), bl - 1)
+    list_display(C.bright("Conflicts With :"), gpat("conflicts"), false, 0, bl - 1)
+    list_display(C.bright("Replaces       :"), gpat("replaces"), false, 0, bl - 1)
+    string_display(C.bright("Architecture   :"), gpa("arch"), bl)
+    string_display(C.bright("Description    :"), gpa("pkgdesc"), bl)
     printf("\n")
     os.remove(tmp)
 end
@@ -185,7 +187,7 @@ function dump_pkg_sync_aur(pkg)
     if (pkg == nil) then
         return
     end
-    string_display("Repository     :", "aur")
+    string_display(C.bright("Repository     :"), C.magb("aur"))
     dump_pkg_full_aur(pkg, -1)
 end
 
@@ -196,7 +198,7 @@ function dump_pkg_files(pkg, quiet)
 
     for i, file in ipairs(pkgfiles) do
         if (not quiet) then
-            printf( "%s %s%s\n", pkgname, root, file)
+            printf( "%s %s%s\n", C.bright(pkgname), root, file)
         else
             printf("%s%s\n", root, file)
         end
