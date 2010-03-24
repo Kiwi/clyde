@@ -1179,7 +1179,7 @@ local function aur_install(targets)
                     installed = installed + 1
                     tblinsert(installedtbl, pkg)
                 else
-                    tblinsert(config,flags, "T_F_ALLDEPS")
+                    tblinsert(config.flags, "T_F_ALLDEPS")
                     download_extract(pkg)
                     customizepkg(pkg)
                     makepkg(pkg, mkpkgopts)
