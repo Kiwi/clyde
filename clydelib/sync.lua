@@ -645,7 +645,7 @@ local function sync_aur_trans(targets)
     end
 
     if (config.op_s_upgrade > 0) then
-        printf(g(C.blub("::")..C.whib(" Starting full system upgrade..\n")))
+        printf(g(C.blub("::")..C.bright(" Starting full system upgrade..\n")))
         alpm.logaction("starting full system upgrade\n")
         local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
 
@@ -669,12 +669,12 @@ local function sync_aur_trans(targets)
                         retval = 1
                         return transcleanup()
                     end
-                    printf(g(C.blub("::")..C.whib(" %s package not found, searching for group...\n")), targ)
+                    printf(g(C.blub("::")..C.bright(" %s package not found, searching for group...\n")), targ)
                     for i, db in ipairs(sync_dbs) do
                         local grp = db:db_readgrp(targ)
                         if (grp) then
                             found = true
-                            printf(g(C.blub("::")..C.whib(" group %s (including ignored packages):\n")), targ)
+                            printf(g(C.blub("::")..C.bright(" group %s (including ignored packages):\n")), targ)
                             local grppkgs = grp:grp_get_pkgs()
                             local pkgs = tblremovedupes(grppkgs)
                             local pkgnames = {}
@@ -682,13 +682,13 @@ local function sync_aur_trans(targets)
                                 tblinsert(pkgnames, pkgname:pkg_get_name())
                             end
                             list_display("   ", pkgnames)
-                            if (yesno(g(C.blub("::")..C.whib(" Install whole content?")))) then
+                            if (yesno(g(C.blub("::")..C.bright(" Install whole content?")))) then
                                 for i, pkgname in ipairs(pkgnames) do
                                     tblinsert(targets, pkgname)
                                 end
                             else
                                 for i, pkgname in ipairs(pkgnames) do
-                                    if (yesno(g(C.blub("::")..C.whib(" Install %s from group %s?")), pkgname, targ)) then
+                                    if (yesno(g(C.blub("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
                                         tblinsert(targets, pkgname)
                                     end
                                 end
@@ -699,7 +699,7 @@ local function sync_aur_trans(targets)
                     end
 
                     if (not found) then
-                        printf(C.blub("::")..C.whib(" %s group not found, searching AUR...\n"), targ)
+                        printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
                         local inforesults = aur.getgzip(infourl)
                         if (not inforesults) then
@@ -737,12 +737,12 @@ local function sync_aur_trans(targets)
             for i, miss in ipairs(data) do
                 local dep = miss:miss_get_dep()
                 local depstring = dep:dep_compute_string()
-                printf(g(C.blub("::")..C.whib(" %s: requires %s\n")), miss:miss_get_target(), depstring)
+                printf(g(C.blub("::")..C.bright(" %s: requires %s\n")), miss:miss_get_target(), depstring)
             end
 
         elseif (alpm.pm_errno() == "P_E_CONFLICTING_DEPS") then
             for i, conflict in ipairs(data) do
-                printf(g(C.blub("::")..C.whib(" %s: conflicts with %s\n")), conflict:conflict_get_package1(), conflict:conflict_get_package2())
+                printf(g(C.blub("::")..C.bright(" %s: conflicts with %s\n")), conflict:conflict_get_package1(), conflict:conflict_get_package2())
             end
         end
         retval = 1
@@ -774,7 +774,7 @@ local function sync_aur_trans(targets)
     --TODO: write this function to pretty up install list, or something
 --    display_aurtargets(aurpkgs)
 --    if (next(aurpkgs)) then
---        printf(C.greb("\n==>")..C.whib(" Installing the following packages from AUR\n"))
+--        printf(C.greb("\n==>")..C.bright(" Installing the following packages from AUR\n"))
 --        list_display("", aurpkgs)
 --        print(" (Plus dependencies)")
 --    end
@@ -782,9 +782,9 @@ local function sync_aur_trans(targets)
 --[[
     local confirm
     if (config.op_s_downloadonly) then
-        confirm = yesno(C.yelb("==>")..C.whib(" Proceed with download?"))
+        confirm = yesno(C.yelb("==>")..C.bright(" Proceed with download?"))
     else
-        confirm = yesno(C.yelb("==>")..C.whib(" Proceed with installation?"))
+        confirm = yesno(C.yelb("==>")..C.bright(" Proceed with installation?"))
     end
     if (not confirm) then
         return transcleanup()
@@ -813,7 +813,7 @@ local function sync_aur_trans(targets)
             end
         end
 
-        printf(g(C.redb("==>")..C.whib("Errors occured, no packages were upgraded.\n")))
+        printf(g(C.redb("==>")..C.bright("Errors occured, no packages were upgraded.\n")))
         retval = 1
         return transcleanup()
     end
@@ -882,7 +882,7 @@ local function customizepkg(target)
         printf("\n")
 
         repeat
-            local response = yesno(C.yelb("==> ")..C.whib("Edit the PKGBUILD (highly recommended for security reasons)?"))
+            local response = yesno(C.yelb("==> ")..C.bright("Edit the PKGBUILD (highly recommended for security reasons)?"))
             if (response) then
                 os.execute(editor.." PKGBUILD")
             end
@@ -890,7 +890,7 @@ local function customizepkg(target)
         local instfile = getbasharray("PKGBUILD", "install")
         if (instfile and #instfile > 0) then
             repeat
-                local response = yesno(C.yelb("==> ")..C.whib("Edit "..instfile.." (highly recommended for security reasons)?"))
+                local response = yesno(C.yelb("==> ")..C.bright("Edit "..instfile.." (highly recommended for security reasons)?"))
                 if (response) then
                     os.execute(editor.." "..instfile)
                 end
@@ -1213,7 +1213,7 @@ local function sync_trans(targets)
     end
 
     if (config.op_s_upgrade > 0) then
-        printf(g(C.blub("::")..C.whib(" Starting full system upgrade...\n")))
+        printf(g(C.blub("::")..C.bright(" Starting full system upgrade...\n")))
         alpm.logaction("starting full system upgrade\n")
         local op_s_upgrade
         if (config.op_s_upgrade >= 2) then
@@ -1242,12 +1242,12 @@ local function sync_trans(targets)
                         retval = 1
                         return transcleanup()
                     end
-                    printf(g(C.blub("::")..C.whib(" %s package not found, searching for group...\n")), targ)
+                    printf(g(C.blub("::")..C.bright(" %s package not found, searching for group...\n")), targ)
                     for i, db in ipairs(sync_dbs) do
                         local grp = db:db_readgrp(targ)
                         if (grp) then
                             found = true
-                            printf(g(C.blub("::")..C.whib(" group %s (including ignored packages):\n")), targ)
+                            printf(g(C.blub("::")..C.bright(" group %s (including ignored packages):\n")), targ)
                             local grppkgs = grp:grp_get_pkgs()
                             local pkgs = tblremovedupes(grppkgs)
                             local pkgnames = {}
@@ -1255,13 +1255,13 @@ local function sync_trans(targets)
                                 tblinsert(pkgnames, pkgname:pkg_get_name())
                             end
                             list_display("   ", pkgnames)
-                            if (yesno(g(C.blub("::")..C.whib(" Install whole content?")))) then
+                            if (yesno(g(C.blub("::")..C.bright(" Install whole content?")))) then
                                 for i, pkgname in ipairs(pkgnames) do
                                     tblinsert(targets, pkgname)
                                 end
                             else
                                 for i, pkgname in ipairs(pkgnames) do
-                                    if (yesno(g(C.blub("::")..C.whib(" Install %s from group %s?")), pkgname, targ)) then
+                                    if (yesno(g(C.blub("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
                                         tblinsert(targets, pkgname)
                                     end
                                 end
@@ -1272,7 +1272,7 @@ local function sync_trans(targets)
                     end
 
                     if (not found) then
-                        printf(C.blub("::")..C.whib(" %s group not found, searching AUR...\n"), targ)
+                        printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
                         local inforesults = aur.getgzip(infourl)
                         if (not inforesults) then
@@ -1310,11 +1310,11 @@ local function sync_trans(targets)
             for i, miss in ipairs(data) do
                 local dep = miss:miss_get_dep()
                 local depstring = dep:dep_compute_string()
-                printf(g(C.blub("::")..C.whib(" %s: requires %s\n")), miss:miss_get_target(), depstring)
+                printf(g(C.blub("::")..C.bright(" %s: requires %s\n")), miss:miss_get_target(), depstring)
             end
         elseif (alpm.pm_errno() == "P_E_CONFLICTING_DEPS") then
             for i, conflict in ipairs(data) do
-                printf(g(C.blub("::")..C.whib(" %s: conflicts with %s\n")), conflict:conflict_get_package1(), conflict:conflict_get_package2())
+                printf(g(C.blub("::")..C.bright(" %s: conflicts with %s\n")), conflict:conflict_get_package1(), conflict:conflict_get_package2())
             end
         end
         retval = 1
@@ -1371,11 +1371,11 @@ local function sync_trans(targets)
 
     if (next(aurpkgs)) then
         if (next(packages)) then
-            printf(C.greb("\n==>")..C.whib(" Installing the following packages from repos\n"))
+            printf(C.greb("\n==>")..C.bright(" Installing the following packages from repos\n"))
             display_synctargets(packages)
         end
 
-        printf(C.greb("\n==>")..C.whib(" Installing the following packages from AUR\n"))
+        printf(C.greb("\n==>")..C.bright(" Installing the following packages from AUR\n"))
         local str = string.format(g("Targets (%d):"), #needs)
         list_display(str, needs)
     else
@@ -1386,9 +1386,9 @@ local function sync_trans(targets)
 
     local confirm
     if (config.op_s_downloadonly) then
-        confirm = yesno(C.yelb("==>")..C.whib(" Proceed with download?"))
+        confirm = yesno(C.yelb("==>")..C.bright(" Proceed with download?"))
     else
-        confirm = yesno(C.yelb("==>")..C.whib(" Proceed with installation?"))
+        confirm = yesno(C.yelb("==>")..C.bright(" Proceed with installation?"))
     end
     if (not confirm) then
         return transcleanup()
@@ -1416,7 +1416,7 @@ local function sync_trans(targets)
             end
         end
 
-        printf(g(C.redb("==>")..C.whib("Errors occured, no packages were upgraded.\n")))
+        printf(g(C.redb("==>")..C.bright("Errors occured, no packages were upgraded.\n")))
         retval = 1
         return transcleanup()
     end
@@ -1463,7 +1463,7 @@ local function clyde_sync(targets)
     end
 
     if (config.op_s_sync > 0) then
-        printf(g(C.blub("::")..C.whib(" Synchronizing package databases...\n")))
+        printf(g(C.blub("::")..C.bright(" Synchronizing package databases...\n")))
         alpm.logaction("synchronizing package lists\n")
         if (not sync_synctree(config.op_s_sync, sync_dbs)) then
           return 1
@@ -1505,9 +1505,9 @@ local function clyde_sync(targets)
             local tmp = tbldiff(targets, packages)
             if (config.op_s_upgrade > 0 or next(tmp)) then
                 tmp = nil
-                printf(g(C.blub("::")..C.whib(" The following packages should be upgraded first :\n")))
+                printf(g(C.blub("::")..C.bright(" The following packages should be upgraded first :\n")))
                 list_display("   ", packages)
-                if (yesno(g(C.yelb("::")..C.whib(" Do you want to cancel the current operation\n::and upgrade these packages now?")))) then
+                if (yesno(g(C.yelb("::")..C.bright(" Do you want to cancel the current operation\n::and upgrade these packages now?")))) then
                     targs = packages
                     config.flags = {}
                     config.op_s_upgrade = 0
