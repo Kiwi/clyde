@@ -743,7 +743,7 @@ local function _parseconfig(file, givensection, givendb)
     ['NoUpgrade'] = function(str)
         setrepeatingoption(str, "NoUpgrade", alpm.option_add_noupgrade) end;
     ['NoExtract'] = function(str)
-        setrepeatingoption(str, "NoExtract", alpm.options_add_noextract) end;
+        setrepeatingoption(str, "NoExtract", alpm.option_add_noextract) end;
     ['IgnorePkg'] = function(str)
         setrepeatingoption(str, "IgnorePkg", alpm.option_add_ignorepkg) end;
     ['IgnoreGroup'] = function(str)
