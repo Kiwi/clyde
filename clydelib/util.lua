@@ -322,10 +322,11 @@ function indentprint(str, indent, space)
 
 end
 
-function string_display(title, string)
-    local len
+function string_display(title, string, adjust)
+    local len = 0
     if (title and type(title) == "string") then
-        len = #title
+        adjust = adjust or 0
+        len = #title - adjust
         printf("%s ", title)
     end
     if (not string or #string == 0) then
@@ -345,11 +346,11 @@ local function checkempty(tbl)
     return true
 end
 
-function list_display(title, list, nospace, extracols)
+function list_display(title, list, nospace, extracols, adjust)
     local len, cols = 0, 0
-
     if (title and type(title) == "string") then
-        len = #title
+        adjust = adjust or 0
+        len = #title - adjust
         if (not nospace) then
             printf("%s ", title)
         end
@@ -378,10 +379,11 @@ function list_display(title, list, nospace, extracols)
     end
 end
 
-function list_display_linebreak(title, list)
+function list_display_linebreak(title, list, adjust)
     local len = 0
     if (title and type(title) == "string") then
-        len = #title
+        adjust = adjust or 0
+        len = #title - adjust
         printf("%s ", title)
     end
 
