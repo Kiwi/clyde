@@ -34,7 +34,7 @@ function download(host, file)
             ltn12.sink.file(f)
             ),
 }
-io.write(string.format(C.greb("==>")..C.whib(" Downloading %s\n\n"),filename))
+io.write(string.format(C.greb("==>")..C.bright(" Downloading %s\n\n"),filename))
 end
 
 aurthreads = {}    -- list of all live threads
