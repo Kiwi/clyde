@@ -78,29 +78,43 @@ local function clyde_upgrade(targets)
     transret, data = alpm.trans_prepare(data)
 
     if (transret == -1) then
-        eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), alpm.strerrorlast())
-        if (alpm.strerrorlast() == "could not satisfy dependencies") then
+        eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"),
+            alpm.strerrorlast())
+        if (alpm.pm_errno() == "P_E_PKG_INVALID_ARCH") then
+            for i, pkg in ipairs(data) do
+                printf(C.blub("::")..
+                    C.bright(" package %s does not have a valid architecture\n"),
+                    pkg)
+            end
+        elseif (alpm.pm_errno() == "P_E_UNSATISFIED_DEPS") then
             for i, miss in ipairs(data) do
                 local dep = miss:miss_get_dep()
                 local depstring = dep:dep_compute_string()
-
-                printf(g(C.blub("::")..C.whib(" %s: requires %s\n"), miss:miss_get_target(), depstring))
+                printf(g(C.blub("::")..C.bright(" %s: requires %s\n")),
+                    miss:miss_get_target(), depstring)
                 depstring = nil
             end
-        elseif (alpm.strerrorlast() == g("conflicting dependencies")) then
+        elseif (alpm.pm_errno() == "P_E_CONFLICTING_DEPS") then
             for i, conflict in ipairs(data) do
-                printf(g(C.blub("::")..C.whib(" %s: conflicts with %s\n")), conflict:conflict_get_package1(),
-                    conflict:conflict_get_package2())
+                local package1 = conflict:conflict_get_package1()
+                local package2 = conflict:conflict_get_package2()
+                local reason = conflict:conflict_get_reason()
+
+                if (package1 == reason or package2 == reason) then
+                    printf(g(C.blub("::")..C.bright(" %s and %s are in conflict\n")),
+                        package1, package2)
+                else
+                    printf(g(C.blub("::")..C.bright(" %s and %s are in conflict (%s)\n")),
+                        pakage1, package2, reason)
+                end
             end
-        elseif (alpm.strerrorlast() == g("conflicting files")) then
-            for i, conflict in ipairs(data) do
-                --TODO: figure out how to do this...
-            end
-            printf(g(C.redb("\n==>")..C.whib(" errors occurred, no packages were upgraded.\n")))
         end
-    trans_release()
-    data = nil
+
+        trans_release()
+        data = nil
+        return 1
     end
+
     if (alpm.trans_commit({}) == -1) then
         eprintf("LOG_ERROR", g("failed to commit transaction (%s)\n"), alpm.strerrorlast())
         trans_release()
