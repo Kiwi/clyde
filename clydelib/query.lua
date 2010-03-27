@@ -105,6 +105,7 @@ local function query_search(targets)
         extra = C.greb;
         core = C.redb;
         community = C.magb;
+        testing = C.yelb;
     }
     local searchlist
     local freelist
@@ -271,7 +272,7 @@ local function check(pkg)
             else
                 local result
                 result, err = access("/"..filepath, "R_OK")
-                printf("warning: %s: %s (%s)\n", pkgname, "/"..filepath, strerror(err))
+                eprintf("LOG_ERROR", "%s: %s (%s)\n", pkgname, "/"..filepath, strerror(err))
             end
             errors = errors + 1
         end
@@ -292,6 +293,7 @@ local dbcolors = {
         extra = C.greb;
         core = C.redb;
         community = C.magb;
+        testing = C.yelb;
     }
 
 local packagetbl = {}
