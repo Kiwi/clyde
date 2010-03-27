@@ -135,7 +135,17 @@ function dump_pkg_sync(pkg, treename)
     if (pkg == nil) then
         return
     end
-    string_display(C.bright("Repository     :"), treename)
+
+    local dbcolors = {
+        extra = C.greb;
+        core = C.redb;
+        community = C.magb;
+        testing = C.yelb;
+    }
+
+    local treecolor = dbcolors[treename] or C.magb
+
+    string_display(C.bright("Repository     :"), treecolor(treename))
     dump_pkg_full(pkg, -1)
 end
 
