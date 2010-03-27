@@ -310,6 +310,7 @@ function sync_search(syncs, targets, shownumbers, install)
         extra = C.greb;
         core = C.redb;
         community = C.magb;
+        testing = C.yelb;
     }
     local yelbold = C.yel..C.onblab..C.reverse
     local found = false
@@ -443,7 +444,7 @@ function sync_search(syncs, targets, shownumbers, install)
             C.bright(("-"):rep(60)), C.yelb("==>"), C.yelb("==>"))
 
         local installstring = io.read("*l")
-        local installtbl = strsplit(installstring, " ")
+        local installtbl = strsplit(installstring or "", " ")
         for i, num in ipairs(installtbl) do
             tblinsert(install, pkgnames[tonumber(num)])
         end
@@ -492,14 +493,20 @@ end
 local function sync_info(syncs, targets)
     local ret = 0
     if (next(targets)) then
-        local foundpkg = false
         for i, target in ipairs(targets) do
+            local foundpkg = false
             local slash = target:find("/")
+            local pkgstr
+            local repo
+            local dbmatch = false
+            local db
+
             if (slash) then
-                local pkgstr = target:sub(1, slash)
-                local repo = target:sub(slash)
-                local dbmatch = false
-                local db
+                pkgstr = target:sub(slash + 1)
+                repo = target:sub(1, slash - 1)
+            end
+
+            if (slash and repo ~= "aur") then
                 for i, database in ipairs(syncs) do
                     if (repo == database:db_get_name()) then
                         dbmatch = true
@@ -526,7 +533,7 @@ local function sync_info(syncs, targets)
                     eprintf("LOG_ERROR", g("package '%s' was not found in repository '%s'\n"), pkgstr, repo)
                     ret = ret + 1
                 end
-            else
+            elseif repo ~= "aur" then
                 pkgstr = target
                 for i, db in ipairs(syncs) do
                     local pkgcache = db:db_get_pkgcache()
@@ -538,25 +545,35 @@ local function sync_info(syncs, targets)
                         end
                     end
                 end
-                if (not foundpkg) then
-                    local infourl = aururl..aurmethod.info.."arg="..url.escape(target)
-                    local inforesults = aur.getgzip(infourl)
-                    if (not inforesults) then
-                        return 1
-                    end
-                    local jsonresults = yajl.to_value(inforesults) or {}
+            end
 
-                    if (type(jsonresults.results) ~= "table") then
-                        jsonresults.results = {}
-                    end
-
-                    if (jsonresults.results.Name) then
-                            packages.dump_pkg_sync_aur(target)
-                    else
-                        eprintf("LOG_ERROR", g("package '%s' was not found\n"), pkgstr)
-                        ret = ret + 1
-                    end
+            if (repo == "aur") then
+                target = pkgstr
+            end
+            local infourl
+            local inforesults
+            local jsonresults = {results = {}}
+            if (not foundpkg) then
+                infourl = aururl..aurmethod.info.."arg="..url.escape(target)
+                inforesults = aur.getgzip(infourl)
+                if (not inforesults) then
+                    return 1
                 end
+                jsonresults = yajl.to_value(inforesults) or {}
+
+                if (type(jsonresults.results) ~= "table") then
+                    jsonresults.results = {}
+                end
+            end
+
+            if (jsonresults.results.Name)then
+                    packages.dump_pkg_sync_aur(target)
+            elseif (not foundpkg and repo ~= "aur") then
+                eprintf("LOG_ERROR", g("package '%s' was not found\n"), pkgstr)
+                ret = ret + 1
+            elseif (not foundpkg) then
+                eprintf("LOG_ERROR", "package '%s' was not found in AUR\n", pkgstr)
+                ret = ret + 1
             end
         end
     else
