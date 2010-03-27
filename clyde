@@ -1007,32 +1007,37 @@ function main()
         ['PM_OP_QUERY'] = function() query.main(pm_targets) end;
         ['PM_OP_UPGRADE'] = function() upgrade.main(pm_targets) end;
         ['PM_OP_REMOVE'] = function() remove.main(pm_targets) end;
-        ['PM_OP_SYNC'] = function() sync.main(pm_targets) end;
+        ['PM_OP_SYNC'] = function() return sync.main(pm_targets) end;
         ['PM_OP_DEPTEST'] = function() deptest.main(pm_targets) end;
         ['PM_OP_GETPKG'] = function() sync.getpkgbuild(pm_targets) end;
     }
 
-    local install ={}
-
+    local install = {}
+    local ran = false
     if (config.op ~= "PM_OP_MAIN") then
          ret = lookuptbl[config.op]()
+         ran = true
     elseif next(pm_targets) then
         local syncdb = alpm.option_get_syncdbs()
         sync.sync_search(syncdb, pm_targets, true, install)
         if (next(install)) then
             if (myuid > 0) then
-                os.execute("sudo clyde -S "..table.concat(install, " "))
+                ret = os.execute("sudo clyde -S "..table.concat(install, " "))
+                return ret
             else
-                sync.main(install)
+                ret = sync.main(install)
+                return ret
             end
         end
     else
         eprintf("LOG_ERROR", g("no operation specified (use -h for help)\n"))
-        ret = 1
+        os.exit(1)
     end
 
-    if (alpm.release() == -1) then
-        printf("LOG_ERROR", alpm.strerrorlast())
+    if (next(pm_targets) and ran and ret ~= 1 and ret ~= 0) then
+        if alpm.trans_release() == -1 then
+            eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
+        end
     end
 
     if (type(config.configfile) == "userdata") then
