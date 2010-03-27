@@ -36,6 +36,7 @@ local dump_pkg_files = packages.dump_pkg_files
 local dump_pkg_sync = packages.dump_pkg_sync
 
 local function clyde_remove(targets)
+    local retval = 0
     local function removecleanup()
         if (trans_release() == -1) then
             print("trans_release fail")
@@ -44,7 +45,6 @@ local function clyde_remove(targets)
         return(retval)
     end
 
-    local retval = 0
     local transret
     local data = {}
     if (not next(targets)) then
@@ -141,7 +141,7 @@ local function clyde_remove(targets)
         retval = 1
         return removecleanup()
     end
-    removecleanup()
+    return removecleanup()
 end
 
 function main(targets)
