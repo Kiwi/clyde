@@ -1004,12 +1004,12 @@ function main()
 
 
     local lookuptbl = {
-        ['PM_OP_QUERY'] = function() query.main(pm_targets) end;
-        ['PM_OP_UPGRADE'] = function() upgrade.main(pm_targets) end;
-        ['PM_OP_REMOVE'] = function() remove.main(pm_targets) end;
+        ['PM_OP_QUERY'] = function() return query.main(pm_targets) end;
+        ['PM_OP_UPGRADE'] = function() return upgrade.main(pm_targets) end;
+        ['PM_OP_REMOVE'] = function() return remove.main(pm_targets) end;
         ['PM_OP_SYNC'] = function() return sync.main(pm_targets) end;
-        ['PM_OP_DEPTEST'] = function() deptest.main(pm_targets) end;
-        ['PM_OP_GETPKG'] = function() sync.getpkgbuild(pm_targets) end;
+        ['PM_OP_DEPTEST'] = function() return deptest.main(pm_targets) end;
+        ['PM_OP_GETPKG'] = function() return sync.getpkgbuild(pm_targets) end;
     }
 
     local install = {}
@@ -1034,7 +1034,8 @@ function main()
         os.exit(1)
     end
 
-    if (next(pm_targets) and ran and ret ~= 1 and ret ~= 0) then
+    if (next(pm_targets) and ran and not ret and ret ~= nil) then
+        print(ret)
         if alpm.trans_release() == -1 then
             eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
         end
