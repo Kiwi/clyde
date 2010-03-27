@@ -2,6 +2,7 @@ module(..., package.seeall)
 local alpm = require "lualpm"
 local lfs = require "lfs"
 local utilcore = require "clydelib.utilcore"
+local C = colorize
 
 function printf(...)
     io.write(string.format(...))
@@ -175,10 +176,10 @@ function vfprintf(stream, level, format, ...)
 
 
     local lookuptbl = {
-        ["LOG_DEBUG"] = function() stream:write("debug: ") end;
-        ["LOG_ERROR"] = function() stream:write(gettext("error: ")) end;
-        ["LOG_WARNING"] = function() stream:write(gettext("warning: ")) end;
-        ["LOG_FUNCTION"] = function() stream:write(gettext("function: ")) end;
+        ["LOG_DEBUG"] = function() stream:write(C.redb("debug: ")) end;
+        ["LOG_ERROR"] = function() stream:write(C.redb(gettext("error: "))) end;
+        ["LOG_WARNING"] = function() stream:write(C.redb(gettext("warning: "))) end;
+        ["LOG_FUNCTION"] = function() stream:write(C.redb(gettext("function: "))) end;
     }
     if (lookuptbl[level]) then
         lookuptbl[level]()
@@ -216,9 +217,8 @@ end
 
 function trans_release()
     local transrelease = alpm.trans_release()
-    --print(transrelease)
     if (transrelease == -1) then
-        printf("error: failed to release transaction (%s)\n", alpm.strerrorlast())
+        eprintf("LOG_ERROR", utilcore.gettext("failed to release transaction (%s)\n"), alpm.strerrorlast())
         return -1
     end
     return 0
@@ -485,7 +485,7 @@ local function question(preset, fmt, ...)
         return preset
     end
 
-    local answer = io.stdin:read()
+    local answer = io.stdin:read() or ""
 
     if (#answer == 0) then
         return preset
