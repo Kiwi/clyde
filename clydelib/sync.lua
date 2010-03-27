@@ -449,8 +449,12 @@ function sync_search(syncs, targets, shownumbers, install)
             tblinsert(install, pkgnames[tonumber(num)])
         end
     end
-
-    return (not found)
+    if found then
+        return 0
+    else
+        return 1
+    end
+--    return (not found)
 end
 
 local function sync_group(level, syncs, targets)
