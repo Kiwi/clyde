@@ -96,7 +96,10 @@ local function clyde_upgrade(targets)
             end
         elseif (alpm.pm_errno() == "P_E_CONFLICTING_DEPS") then
             for i, conflict in ipairs(data) do
-                local package1 = conflict:conflict_get_package1()
+                 printf(g(C.blub("::").." %s: conflicts with %s\n"),
+                    conflict:conflict_get_package1(), conflict:conflict_get_package2())
+            end
+            --[[local package1 = conflict:conflict_get_package1()
                 local package2 = conflict:conflict_get_package2()
                 local reason = conflict:conflict_get_reason()
 
@@ -108,6 +111,19 @@ local function clyde_upgrade(targets)
                         pakage1, package2, reason)
                 end
             end
+            --]]
+        elseif (alpm.pm_errno() == "P_E_FILE_CONFLICTS") then
+            for i, conflict in ipairs(data) do
+                if (conflict:fileconflict_get_type() == "FILECONFLICT_TARGET") then
+                    printf(g("%s exists in both '%s' and '%s'\n"), conflict:fileconflict_get_file(),
+                        conflict:fileconflict_get_target(),
+                        conflict:fileconflict_get_ctarget())
+                elseif (conflict:fileconflict_get_type() == "FILECONFLICT_FILESYSTEM") then
+                    printf(g("%s: %s exists in filesystem\n"), conflict:fileconflict_get_target(),
+                        conflict:fileconflict_get_file())
+                end
+            end
+            printf(g("\nerrors occurred, no packages were upgraded.\n"))
         end
 
         trans_release()
