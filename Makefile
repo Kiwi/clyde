@@ -17,7 +17,7 @@ manext = .1
 
 BIN = clyde
 
-.PHONY: lualpm clyde install_lualpm install clean uninstall
+.PHONY: lualpm clyde install_lualpm install_clyde clean uninstall
 
 lualpm:
 	$(CC) $(CFLAGS) $(AFLAG) -lalpm `pkg-config --cflags lua` -shared -o lualpm.so lualpm.c -pedantic -D_FILE_OFFSET_BITS=64 -std=c99 -D_GNU_SOURCE
@@ -29,7 +29,7 @@ clyde:
 install_lualpm:
 	$(INSTALL_PROGRAM) lualpm.so $(DESTDIR)$(libdir)/lualpm.so
 	
-install: lualpm
+install_clyde: lualpm
 	$(INSTALL_PROGRAM) clyde $(DESTDIR)$(bindir)/clyde
 	$(INSTALL_DIR) $(DESTDIR)$(sharedir)/clydelib
 	$(INSTALL_PROGRAM) clydelib/utilcore.so $(DESTDIR)$(libdir)/clydelib/utilcore.so
