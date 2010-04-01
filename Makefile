@@ -17,20 +17,24 @@ manext = .1
 
 BIN = clyde
 
-.PHONY: all install clean uninstall
+.PHONY: lualpm clyde install_lualpm install_clyde clean uninstall
 
-all:
+lualpm:
 	$(CC) $(CFLAGS) $(AFLAG) -lalpm `pkg-config --cflags lua` -shared -o lualpm.so lualpm.c -pedantic -D_FILE_OFFSET_BITS=64 -std=c99 -D_GNU_SOURCE
+
+clyde:
 	$(CC) $(CFLAGS) $(AFLAG) `pkg-config --cflags lua` -shared -o clydelib/utilcore.so clydelib/utilcore.c -pedantic -D_FILE_OFFSET_BITS=64 -std=c99 -D_GNU_SOURCE
 	$(CC) $(CFLAGS) $(AFLAG) -shared -o clydelib/signal.so clydelib/lsignal.c
 
-install:
+install_lualpm:
+	$(INSTALL_PROGRAM) lualpm.so $(DESTDIR)$(libdir)/lualpm.so
+	
+install_clyde: lualpm
 	$(INSTALL_PROGRAM) clyde $(DESTDIR)$(bindir)/clyde
 	$(INSTALL_DIR) $(DESTDIR)$(sharedir)/clydelib
 	$(INSTALL_PROGRAM) clydelib/utilcore.so $(DESTDIR)$(libdir)/clydelib/utilcore.so
 	$(INSTALL_PROGRAM) clydelib/signal.so $(DESTDIR)$(libdir)/clydelib/signal.so
 	$(INSTALL_DATA) clydelib/*.lua $(DESTDIR)$(sharedir)/clydelib/
-	$(INSTALL_PROGRAM) lualpm.so $(DESTDIR)$(libdir)/lualpm.so
 
 clean:
 	-rm -f *.so *.o
