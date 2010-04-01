@@ -1,0 +1,456 @@
+.\" generated with Ronn/v0.4.1
+.\" http://github.com/rtomayko/ronn/
+.
+.TH "CLYDE" "8" "March 2010" "" "Clyde Manual"
+.
+.SH "NAME"
+\fBclyde\fR \-\- next\-generation libalpm/makepkg wrapper
+.
+.SH "SYNOPSYS"
+\fBclyde\fR \fIOPERATION\fR [\fIOPTIONS\fR] [\fIPACKAGES\fR]
+.
+.SH "DESCRIPTION"
+The next\-generation libalpm/makepkg wrapper with AUR support, multithreaded
+downloading, and colorized output.   Trust us, it's the best! Now in open beta!
+.
+.SH "OPERATIONS"
+\fB\-h\fR \fB\-\-help\fR
+.
+.br
+\fB\-V\fR \fB\-\-version\fR
+.
+.br
+\fB\-Q\fR \fB\-\-query\fR   [\fIOPTIONS\fR] [\fIPACKAGES\fR]
+.
+.br
+\fB\-R\fR \fB\-\-remove\fR  [\fIOPTIONS\fR] \fIPACKAGES\fR
+.
+.br
+\fB\-S\fR \fB\-\-sync\fR    [\fIOPTIONS\fR] [\fIPACKAGES\fR]
+.
+.br
+\fB\-U\fR \fB\-\-upgrade\fR [\fIOPTIONS\fR] \fIFILES\fR
+.
+.SH "QUERY OPTIONS"
+.
+.TP
+\fB\-c,\fR \fB\-\-changelog\fR
+view the changelog of a package
+.
+.TP
+\fB\-d,\fR \fB\-\-deps\fR
+list packages installed as dependencies [\fIfilter\fR]
+.
+.TP
+\fB\-e,\fR \fB\-\-explicit\fR
+list packages explicitly installed [\fIfilter\fR]
+.
+.TP
+\fB\-g,\fR \fB\-\-groups\fR
+view all members of a package group
+.
+.TP
+\fB\-i,\fR \fB\-\-info\fR
+view package information (\-ii for backup files)
+.
+.TP
+\fB\-k,\fR \fB\-\-check\fR
+check that the files owned by the package(s) are present
+.
+.TP
+\fB\-l,\fR \fB\-\-list\fR
+list the contents of the queried package
+.
+.TP
+\fB\-m,\fR \fB\-\-foreign\fR
+list installed packages not found in sync db(s) [\fIfilter\fR]
+.
+.TP
+\fB\-o,\fR \fB\-\-owns\fR \fIFILE\fR
+  query the package that owns \fIFILE\fR
+.
+.TP
+\fB\-p,\fR \fB\-\-file\fR \fIPACKAGE\fR
+query a package file instead of the database
+.
+.TP
+\fB\-s,\fR \fB\-\-search\fR \fIREGEX\fR
+search locally\-installed packages for matching strings
+.
+.TP
+\fB\-t,\fR \fB\-\-unrequired\fR
+list packages not required by any package [\fIfilter\fR]
+.
+.TP
+\fB\-u,\fR \fB\-\-upgrades\fR
+list outdated packages [\fIfilter\fR]
+.
+.TP
+\fB\-q,\fR \fB\-\-quiet\fR
+show less information for query and search
+.
+.TP
+\fB\-\-config\fR \fIPATH\fR
+set an alternate configuration file
+.
+.TP
+\fB\-\-logfile\fR \fIPATH\fR
+set an alternate log file
+.
+.TP
+\fB\-\-noconfirm\fR
+do not ask for any confirmation
+.
+.TP
+\fB\-\-noprogressbar\fR
+do not show a progress bar when downloading files
+.
+.TP
+\fB\-\-noscriptlet\fR
+do not execute the install scriptlet if one exists
+.
+.TP
+\fB\-v,\fR \fB\-\-verbose\fR
+be verbose
+.
+.TP
+\fB\-\-debug\fR
+display debug messages
+.
+.TP
+\fB\-r,\fR \fB\-\-root\fR \fIPATH\fR
+set an alternate installation root
+.
+.TP
+\-b, \-\-dbpath \fIPATH\fR
+set an alternate database location
+.
+.TP
+\-\-cachedir \fIDIR\fR
+set an alternate package cache location
+.
+.SH "REMOVE OPTIONS"
+.
+.TP
+\fB\-c,\fR \fB\-\-cascade\fR
+remove packages and all packages that depend on them
+.
+.TP
+\fB\-d,\fR \fB\-\-nodeps\fR
+ skip dependency checks
+.
+.TP
+\fB\-k,\fR \fB\-\-dbonly\fR
+only remove database entry, do not remove files
+.
+.TP
+\fB\-n,\fR \fB\-\-nosave\fR
+remove configuration files as well
+.
+.TP
+\fB\-s,\fR \fB\-\-recursive\fR
+remove dependencies also (that won't break packages)
+(\-ss includes explicitly installed dependencies too)
+.
+.TP
+\fB\-u,\fR \fB\-\-unneeded\fR
+remove unneeded packages (that won't break packages)
+.
+.TP
+\fB\-\-config\fR \fIPATH\fR
+set an alternate configuration file
+.
+.TP
+\fB\-\-logfile\fR \fIPATH\fR
+set an alternate log file
+.
+.TP
+\fB\-\-noconfirm\fR
+do not ask for any confirmation
+.
+.TP
+\fB\-\-noprogressbar\fR
+do not show a progress bar when downloading files
+.
+.TP
+\fB\-\-noscriptlet\fR
+do not execute the install scriptlet if one exists
+.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+be verbose
+.
+.TP
+\fB\-\-debug\fR
+display debug messages
+.
+.TP
+\fB\-r,\fR \fB\-\-root\fR \fIPATH\fR
+set an alternate installation root
+.
+.TP
+\fB\-b,\fR \fB\-\-dbpath\fR \fIPATH\fR
+set an alternate database location
+.
+.TP
+\fB\-\-cachedir\fR \fIDIR\fR
+set an alternate package cache location
+.
+.SH "SYNC OPTIONS"
+.
+.TP
+\fB\-\-asdeps\fR
+install packages as non\-explicitly installed
+.
+.TP
+\fB\-\-asexplicit\fR
+install packages as explicitly installed
+.
+.TP
+\fB\-c,\fR \fB\-\-clean\fR
+remove old packages from cache directory (\-cc for all)
+.
+.TP
+\fB\-d,\fR \fB\-\-nodeps\fR
+skip dependency checks
+.
+.TP
+\fB\-f,\fR \fB\-\-force\fR
+force install, overwrite conflicting files
+.
+.TP
+\fB\-g,\fR \fB\-\-groups\fR
+view all members of a package group
+.
+.TP
+\fB\-i,\fR \fB\-\-info\fR
+view package information
+.
+.TP
+\fB\-l,\fR \fB\-\-list\fR \fIREPO\fR
+view a list of packages in a \fIREPO\fR
+.
+.TP
+\fB\-p,\fR \fB\-\-print\-uris\fR
+print out URIs for given packages and their dependencies
+.
+.TP
+\fB\-s,\fR \fB\-\-search\fR \fIREGEX\fR
+search remote repositories for matching strings
+.
+.TP
+\fB\-u,\fR \fB\-\-sysupgrade\fR
+upgrade installed packages (\-uu allows downgrade)
+.
+.TP
+\fB\-w,\fR \fB\-\-downloadonly\fR
+download packages but do not install/upgrade anything
+.
+.TP
+\fB\-y,\fR \fB\-\-refresh\fR
+download fresh package databases from the server
+.
+.TP
+\fB\-\-needed\fR
+don't reinstall up to date packages
+.
+.TP
+\fB\-\-ignore\fR \fIPKG\fR
+ignore a package upgrade (can be used more than once)
+.
+.TP
+\fB\-\-ignoregroup\fR \fIGRP\fR
+ignore a group upgrade (can be used more than once)
+.
+.TP
+\fB\-q,\fR \fB\-\-quiet\fR
+show less information for query and search
+.
+.TP
+\fB\-\-config\fR \fIPATH\fR
+set an alternate configuration file
+.
+.TP
+\fB\-\-logfile\fR \fIPATH\fR
+set an alternate log file
+.
+.TP
+\fB\-\-noconfirm\fR
+do not ask for any confirmation
+.
+.TP
+\fB\-\-noprogressbar\fR
+do not show a progress bar when downloading files
+.
+.TP
+\fB\-\-noscriptlet\fR
+do not execute the install scriptlet if one exists
+.
+.TP
+\fB\-v,\fR \fB\-\-verbose\fR
+be verbose
+.
+.TP
+\fB\-\-debug\fR
+display debug messages
+.
+.TP
+\fB\-r,\fR \fB\-\-root\fR \fIPATH\fR
+set an alternate installation root
+.
+.TP
+\fB\-b,\fR \fB\-\-dbpath\fR \fIPATH\fR
+set an alternate database location
+.
+.TP
+\fB\-\-cachedir\fR \fIDIR\fR
+set an alternate package cache location
+.
+.SH "UPGRADE OPTIONS"
+.
+.TP
+\fB\-\-asdeps\fR
+install packages as non\-explicitly installed
+.
+.TP
+\fB\-\-asexplicit\fR
+install packages as explicitly installed
+.
+.TP
+\fB\-d,\fR \fB\-\-nodeps\fR
+skip dependency checks
+.
+.TP
+\fB\-f,\fR \fB\-\-force\fR
+force install, overwrite conflicting files
+.
+.TP
+\fB\-\-config\fR \fIPATH\fR
+set an alternate configuration file
+.
+.TP
+\fB\-\-logfile\fR \fIPATH\fR
+set an alternate log file
+.
+.TP
+\fB\-\-noconfirm\fR
+do not ask for any confirmation
+.
+.TP
+\fB\-\-noprogressbar\fR
+do not show a progress bar when downloading files
+.
+.TP
+\fB\-\-noscriptlet\fR
+do not execute the install scriptlet if one exists
+.
+.TP
+\fB\-v,\fR \fB\-\-verbose\fR
+be verbose
+.
+.TP
+\fB\-\-debug\fR
+display debug messages
+.
+.TP
+\fB\-r\fR, \fB\-\-root\fR \fIPATH\fR
+set an alternate installation root
+.
+.TP
+\fB\-b,\fR \fB\-\-dbpath\fR \fIPATH\fR
+set an alternate database location
+.
+.TP
+\fB\-\-cachedir\fR \fIDIR\fR
+set an alternate package cache location
+.
+.SH "BUGS"
+WARNING: This program is currently in beta state. Therefore, use it at your
+own risk. The developers are not responsible if it breaks your system, fries
+your motherboard, or eats your babies.
+.
+.P
+That is all.
+.
+.P
+PS: If any of the aformentioned catastrophies does happen, please forward us
+bug reports... If anything overly drastic happens, PICS OR GTFO!
+\-\-Ghost1227
+.
+.P
+A note from the lead developer (DigitalKiwi):
+.
+.P
+In all seriousness: It should be perfectly safe to use, it only lacks a few
+features that pacman has. Bugs can be posted to github under issues or at
+http://bugs.archuser.com/index.php?project=4 or DigitalKiwi on freenode
+.
+.P
+It is still lacking some of the AUR support that it will have, so if you find
+it lacking wait a while and come back and you may be pleasantly surprised.
+.
+.P
+Thank you for your interest in Clyde, I hope it serves you well, leave
+feedback if you like and I will take it into consideraion.
+.
+.SH "LICENSE"
+Clyde is released under a multi\-part license as follows:
+.
+.P
+Clyde makepkg/libalpm wrapper
+Copyright (C) 2009, Robert Djubek <envy1988.AT.gmail.com>
+All rights reserved.
+.
+.P
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+.
+.P
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+.
+.P
+You should have received a copy of the GNU General Public License
+along with this program. If not, see \fIhttp://www.gnu.org/licenses/\fR
+.
+.P
+lualpm libalpm binding library
+.
+.P
+Copyright (C) 2009 Robert Djubek <envy1988.AT.gmail.com>
+All Rights Reserved.
+.
+.P
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+.
+.P
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+.
+.P
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+.
+.P
+Original concept for clyde and logo design are
+intellectual property of Daniel J Griffiths <ghost1227@archlinux.us>
+.
+.SH "SEE ALSO"
+\fBpacman\fR(8), \fBlibalpm\fR(3)
+.
+.P
+See Kiwi's Clyde repository on Github: http://github.com/Kiwi/clyde

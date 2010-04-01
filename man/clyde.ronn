@@ -1,0 +1,279 @@
+clyde(8) -- next-generation libalpm/makepkg wrapper
+================================================
+
+SYNOPSYS
+--------
+
+`clyde` _OPERATION_ [_OPTIONS_] [_PACKAGES_]
+
+DESCRIPTION
+-----------
+
+The next-generation libalpm/makepkg wrapper with AUR support, multithreaded
+downloading, and colorized output.   Trust us, it's the best! Now in open beta!
+
+OPERATIONS
+----------
+
+`-h` `--help`  
+`-V` `--version`  
+`-Q` `--query`   [_OPTIONS_] [_PACKAGES_]  
+`-R` `--remove`  [_OPTIONS_] _PACKAGES_  
+`-S` `--sync`    [_OPTIONS_] [_PACKAGES_]  
+`-U` `--upgrade` [_OPTIONS_] _FILES_  
+
+QUERY OPTIONS
+-------------
+
+* `-c,` `--changelog`:
+  view the changelog of a package
+* `-d,` `--deps`:
+  list packages installed as dependencies [_filter_]
+* `-e,` `--explicit`:
+  list packages explicitly installed [_filter_]
+* `-g,` `--groups`:
+  view all members of a package group
+* `-i,` `--info`:
+  view package information (-ii for backup files)
+* `-k,` `--check`:
+  check that the files owned by the package(s) are present
+* `-l,` `--list`:
+  list the contents of the queried package
+* `-m,` `--foreign`:
+  list installed packages not found in sync db(s) [_filter_]
+* `-o,` `--owns` _FILE_:
+    query the package that owns _FILE_
+* `-p,` `--file` _PACKAGE_:
+  query a package file instead of the database
+* `-s,` `--search` _REGEX_:
+  search locally-installed packages for matching strings
+* ` -t,` `--unrequired`:
+  list packages not required by any package [_filter_]
+* `-u,` `--upgrades`:
+  list outdated packages [_filter_]
+* `-q,` `--quiet`:
+  show less information for query and search
+* `--config` _PATH_:
+  set an alternate configuration file
+* `--logfile` _PATH_:
+  set an alternate log file
+* `--noconfirm`:
+  do not ask for any confirmation
+* `--noprogressbar`:
+  do not show a progress bar when downloading files
+* `--noscriptlet`:
+  do not execute the install scriptlet if one exists
+* `-v,` `--verbose`:
+  be verbose
+* `--debug`:
+  display debug messages
+* `-r,` `--root` _PATH_:
+  set an alternate installation root
+*  -b, --dbpath _PATH_:
+  set an alternate database location
+* --cachedir _DIR_:
+  set an alternate package cache location
+
+REMOVE OPTIONS
+--------------
+* `-c,` `--cascade`:
+  remove packages and all packages that depend on them
+* `-d,` `--nodeps`:
+   skip dependency checks
+* `-k,` `--dbonly`:
+  only remove database entry, do not remove files
+* `-n,` `--nosave`:
+  remove configuration files as well
+* `-s,` `--recursive`:
+  remove dependencies also (that won't break packages)
+  (-ss includes explicitly installed dependencies too)
+* `-u,` `--unneeded`:
+  remove unneeded packages (that won't break packages)
+* `--config` _PATH_:
+  set an alternate configuration file
+* `--logfile` _PATH_:
+  set an alternate log file
+* `--noconfirm`:
+  do not ask for any confirmation
+* `--noprogressbar`:
+  do not show a progress bar when downloading files
+* `--noscriptlet`:
+  do not execute the install scriptlet if one exists
+* `-v`, `--verbose`:
+  be verbose
+* `--debug`:
+  display debug messages
+* `-r,` `--root` _PATH_:
+  set an alternate installation root
+* `-b,` `--dbpath` _PATH_:
+  set an alternate database location
+* `--cachedir` _DIR_:
+  set an alternate package cache location
+
+SYNC OPTIONS
+------------
+* `--asdeps`:
+  install packages as non-explicitly installed
+* `--asexplicit`:
+  install packages as explicitly installed
+* `-c,` `--clean`:
+  remove old packages from cache directory (-cc for all)
+* `-d,` `--nodeps`:
+  skip dependency checks
+* `-f,` `--force`:
+  force install, overwrite conflicting files
+* `-g,` `--groups`:
+  view all members of a package group
+* `-i,` `--info`:
+  view package information
+* `-l,` `--list` _REPO_:
+  view a list of packages in a _REPO_
+* `-p,` `--print-uris`:
+  print out URIs for given packages and their dependencies
+* `-s,` `--search` _REGEX_:
+  search remote repositories for matching strings
+* `-u,` `--sysupgrade`:
+  upgrade installed packages (-uu allows downgrade)
+* `-w,` `--downloadonly`:
+  download packages but do not install/upgrade anything
+* `-y,` `--refresh`:
+  download fresh package databases from the server
+* `--needed`:
+  don't reinstall up to date packages
+* `--ignore` _PKG_:
+  ignore a package upgrade (can be used more than once)
+* `--ignoregroup` _GRP_:
+  ignore a group upgrade (can be used more than once)
+* `-q,` `--quiet`:
+  show less information for query and search
+* `--config` _PATH_:
+  set an alternate configuration file
+* `--logfile` _PATH_:
+  set an alternate log file
+* `--noconfirm`:
+  do not ask for any confirmation
+* `--noprogressbar`:
+  do not show a progress bar when downloading files
+* `--noscriptlet`:
+  do not execute the install scriptlet if one exists
+* `-v,` `--verbose`:
+  be verbose
+* `--debug`:
+  display debug messages
+* `-r,` `--root` _PATH_:
+  set an alternate installation root
+* `-b,` `--dbpath` _PATH_:
+  set an alternate database location
+* `--cachedir` _DIR_:
+  set an alternate package cache location
+
+UPGRADE OPTIONS
+---------------
+* `--asdeps`:
+  install packages as non-explicitly installed
+* `--asexplicit`:
+  install packages as explicitly installed
+* `-d,` `--nodeps`:
+  skip dependency checks
+* `-f,` `--force`:
+  force install, overwrite conflicting files
+* `--config` _PATH_:
+  set an alternate configuration file
+* `--logfile` _PATH_:
+  set an alternate log file
+* `--noconfirm`:
+  do not ask for any confirmation
+* `--noprogressbar`:
+  do not show a progress bar when downloading files
+* `--noscriptlet`:
+  do not execute the install scriptlet if one exists
+* `-v,` `--verbose`:
+  be verbose
+* `--debug`:
+  display debug messages
+* `-r`, `--root` _PATH_:
+  set an alternate installation root
+* `-b,` `--dbpath` _PATH_:
+  set an alternate database location
+* `--cachedir` _DIR_:
+  set an alternate package cache location
+
+BUGS
+----
+
+WARNING: This program is currently in beta state. Therefore, use it at your
+own risk. The developers are not responsible if it breaks your system, fries
+your motherboard, or eats your babies.
+
+That is all.
+
+PS: If any of the aformentioned catastrophies does happen, please forward us
+bug reports... If anything overly drastic happens, PICS OR GTFO!
+--Ghost1227
+
+A note from the lead developer (DigitalKiwi):
+
+In all seriousness: It should be perfectly safe to use, it only lacks a few
+features that pacman has. Bugs can be posted to github under issues or at
+http://bugs.archuser.com/index.php?project=4 or DigitalKiwi on freenode
+
+It is still lacking some of the AUR support that it will have, so if you find
+it lacking wait a while and come back and you may be pleasantly surprised.
+
+Thank you for your interest in Clyde, I hope it serves you well, leave
+feedback if you like and I will take it into consideraion.
+
+LICENSE
+-------
+
+Clyde is released under a multi-part license as follows:
+ 
+Clyde makepkg/libalpm wrapper
+Copyright (C) 2009, Robert Djubek <envy1988.AT.gmail.com>
+All rights reserved.
+ 
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+ 
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+ 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>
+ 
+ 
+lualpm libalpm binding library
+ 
+Copyright (C) 2009 Robert Djubek <envy1988.AT.gmail.com>
+All Rights Reserved.
+ 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+ 
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+ 
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+  
+Original concept for clyde and logo design are
+intellectual property of Daniel J Griffiths \<ghost1227@archlinux.us\>
+ 
+SEE ALSO
+--------
+`pacman`(8), `libalpm`(3)
+
+See Kiwi's Clyde repository on Github: http://github.com/Kiwi/clyde
