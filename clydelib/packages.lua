@@ -94,7 +94,7 @@ function dump_pkg_full(pkg, level)
     list_display(C.bright("Groups         :"), pkg:pkg_get_groups(), false, 0, bl - 1)
     list_display(C.bright("Provides       :"), pkg:pkg_get_provides(), false, 0, bl - 1)
     list_display(C.bright("Depends On     :"), depstrings, false, 0, bl - 1)
-    list_display_linebreak(C.bright("Optional Deps  :"), pkg:pkg_get_optdepends())
+    list_display_linebreak(C.bright("Optional Deps  :"), pkg:pkg_get_optdepends(), bl)
     if (level > 0) then
         list_display(C.bright("Required By    :"), requiredby, false, 0, bl - 1)
         requiredby = nil
