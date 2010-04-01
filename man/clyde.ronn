@@ -15,12 +15,14 @@ downloading, and colorized output.   Trust us, it's the best! Now in open beta!
 OPERATIONS
 ----------
 
-`-h` `--help`  
-`-V` `--version`  
-`-Q` `--query`   [_OPTIONS_] [_PACKAGES_]  
-`-R` `--remove`  [_OPTIONS_] _PACKAGES_  
-`-S` `--sync`    [_OPTIONS_] [_PACKAGES_]  
-`-U` `--upgrade` [_OPTIONS_] _FILES_  
+`-h` `--help`
+`-V` `--version`
+`--stats`
+`-Q` `--query`   [_OPTIONS_] [_PACKAGES_]
+`-R` `--remove`  [_OPTIONS_] _PACKAGES_
+`-S` `--sync`    [_OPTIONS_] [_PACKAGES_]
+`-U` `--upgrade` [_OPTIONS_] _FILES_
+`-G` `--getpkgbuild` [_OPTIONS_] [_PACKAGES_]
 
 QUERY OPTIONS
 -------------
@@ -69,10 +71,16 @@ QUERY OPTIONS
   display debug messages
 * `-r,` `--root` _PATH_:
   set an alternate installation root
-*  -b, --dbpath _PATH_:
+* `-b,` `--dbpath` _PATH_:
   set an alternate database location
-* --cachedir _DIR_:
+* `--cachedir` _DIR_:
   set an alternate package cache location
+* `--editor` _PRG_:
+  edit the PKGBUILD with the configured editor
+* `--color`:
+  enable colors
+* `--nocolor`:
+  disable colors
 
 REMOVE OPTIONS
 --------------
@@ -109,9 +117,17 @@ REMOVE OPTIONS
   set an alternate database location
 * `--cachedir` _DIR_:
   set an alternate package cache location
+* `--editor` _PRG_:
+  edit the PKGBUILD with the configured editor
+* `--color`:
+  enable colors
+* `--nocolor`:
+  disable colors
 
 SYNC OPTIONS
 ------------
+* `-a,` `--aur`:
+  only search or install packages from AUR
 * `--asdeps`:
   install packages as non-explicitly installed
 * `--asexplicit`:
@@ -166,6 +182,12 @@ SYNC OPTIONS
   set an alternate database location
 * `--cachedir` _DIR_:
   set an alternate package cache location
+* `--editor` _PRG_:
+  edit the PKGBUILD with the configured editor
+* `--color`:
+  enable colors
+* `--nocolor`:
+  disable colors
 
 UPGRADE OPTIONS
 ---------------
@@ -197,6 +219,50 @@ UPGRADE OPTIONS
   set an alternate database location
 * `--cachedir` _DIR_:
   set an alternate package cache location
+* `--editor` _PRG_:
+  edit the PKGBUILD with the configured editor
+* `--color`:
+  enable colors
+* `--nocolor`:
+  disable colors
+
+GETPKGBUILD OPTIONS
+-------------------
+
+* `-d,` `--deps`:
+  download files for dependencies from AUR as well
+* `--config` _PATH_:
+  set an alternate configuration file
+* `--logfile` _PATH_:
+  set an alternate log file
+* `--noconfirm`:
+  do not ask for any confirmation
+* `--noprogressbar`:
+  do not show a progress bar when downloading files
+* `--noscriptlet`:
+  do not execute the install scriptlet if one exists
+* `-v,` `--verbose`:
+  be verbose
+* `--debug`:
+  display debug messages
+* `-r`, `--root` _PATH_:
+  set an alternate installation root
+* `-b,` `--dbpath` _PATH_:
+  set an alternate database location
+* `--cachedir` _DIR_:
+  set an alternate package cache location
+* `--editor` _PRG_:
+  edit the PKGBUILD with the configured editor
+* `--color`:
+  enable colors
+* `--nocolor`:
+  disable colors
+
+FILES
+-----
+
+* `/etc/clyde.conf`:
+  clyde configuration file, see `pacman.conf`(5) for general syntax
 
 BUGS
 ----
@@ -274,6 +340,6 @@ intellectual property of Daniel J Griffiths \<ghost1227@archlinux.us\>
  
 SEE ALSO
 --------
-`pacman`(8), `libalpm`(3)
+`pacman`(8), `pacman.conf`(5),`libalpm`(3)
 
 See Kiwi's Clyde repository on Github: http://github.com/Kiwi/clyde

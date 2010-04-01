@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.4.1
 .\" http://github.com/rtomayko/ronn/
 .
-.TH "CLYDE" "8" "March 2010" "" "Clyde Manual"
+.TH "CLYDE" "8" "April 2010" "" "Clyde Manual"
 .
 .SH "NAME"
 \fBclyde\fR \-\- next\-generation libalpm/makepkg wrapper
@@ -20,6 +20,9 @@ downloading, and colorized output.   Trust us, it's the best! Now in open beta!
 \fB\-V\fR \fB\-\-version\fR
 .
 .br
+\fB\-\-stats\fR
+.
+.br
 \fB\-Q\fR \fB\-\-query\fR   [\fIOPTIONS\fR] [\fIPACKAGES\fR]
 .
 .br
@@ -30,6 +33,9 @@ downloading, and colorized output.   Trust us, it's the best! Now in open beta!
 .
 .br
 \fB\-U\fR \fB\-\-upgrade\fR [\fIOPTIONS\fR] \fIFILES\fR
+.
+.br
+\fB\-G\fR \fB\-\-getpkgbuild\fR [\fIOPTIONS\fR] [\fIPACKAGES\fR]
 .
 .SH "QUERY OPTIONS"
 .
@@ -122,12 +128,24 @@ display debug messages
 set an alternate installation root
 .
 .TP
-\-b, \-\-dbpath \fIPATH\fR
+\fB\-b,\fR \fB\-\-dbpath\fR \fIPATH\fR
 set an alternate database location
 .
 .TP
-\-\-cachedir \fIDIR\fR
+\fB\-\-cachedir\fR \fIDIR\fR
 set an alternate package cache location
+.
+.TP
+\fB\-\-editor\fR \fIPRG\fR
+edit the PKGBUILD with the configured editor
+.
+.TP
+\fB\-\-color\fR
+enable colors
+.
+.TP
+\fB\-\-nocolor\fR
+disable colors
 .
 .SH "REMOVE OPTIONS"
 .
@@ -196,7 +214,23 @@ set an alternate database location
 \fB\-\-cachedir\fR \fIDIR\fR
 set an alternate package cache location
 .
+.TP
+\fB\-\-editor\fR \fIPRG\fR
+edit the PKGBUILD with the configured editor
+.
+.TP
+\fB\-\-color\fR
+enable colors
+.
+.TP
+\fB\-\-nocolor\fR
+disable colors
+.
 .SH "SYNC OPTIONS"
+.
+.TP
+\fB\-a,\fR \fB\-\-aur\fR
+only search or install packages from AUR
 .
 .TP
 \fB\-\-asdeps\fR
@@ -306,6 +340,18 @@ set an alternate database location
 \fB\-\-cachedir\fR \fIDIR\fR
 set an alternate package cache location
 .
+.TP
+\fB\-\-editor\fR \fIPRG\fR
+edit the PKGBUILD with the configured editor
+.
+.TP
+\fB\-\-color\fR
+enable colors
+.
+.TP
+\fB\-\-nocolor\fR
+disable colors
+.
 .SH "UPGRADE OPTIONS"
 .
 .TP
@@ -363,6 +409,82 @@ set an alternate database location
 .TP
 \fB\-\-cachedir\fR \fIDIR\fR
 set an alternate package cache location
+.
+.TP
+\fB\-\-editor\fR \fIPRG\fR
+edit the PKGBUILD with the configured editor
+.
+.TP
+\fB\-\-color\fR
+enable colors
+.
+.TP
+\fB\-\-nocolor\fR
+disable colors
+.
+.SH "GETPKGBUILD OPTIONS"
+.
+.TP
+\fB\-d,\fR \fB\-\-deps\fR
+download files for dependencies from AUR as well
+.
+.TP
+\fB\-\-config\fR \fIPATH\fR
+set an alternate configuration file
+.
+.TP
+\fB\-\-logfile\fR \fIPATH\fR
+set an alternate log file
+.
+.TP
+\fB\-\-noconfirm\fR
+do not ask for any confirmation
+.
+.TP
+\fB\-\-noprogressbar\fR
+do not show a progress bar when downloading files
+.
+.TP
+\fB\-\-noscriptlet\fR
+do not execute the install scriptlet if one exists
+.
+.TP
+\fB\-v,\fR \fB\-\-verbose\fR
+be verbose
+.
+.TP
+\fB\-\-debug\fR
+display debug messages
+.
+.TP
+\fB\-r\fR, \fB\-\-root\fR \fIPATH\fR
+set an alternate installation root
+.
+.TP
+\fB\-b,\fR \fB\-\-dbpath\fR \fIPATH\fR
+set an alternate database location
+.
+.TP
+\fB\-\-cachedir\fR \fIDIR\fR
+set an alternate package cache location
+.
+.TP
+\fB\-\-editor\fR \fIPRG\fR
+edit the PKGBUILD with the configured editor
+.
+.TP
+\fB\-\-color\fR
+enable colors
+.
+.TP
+\fB\-\-nocolor\fR
+disable colors
+.
+.SH "FILES"
+.
+.TP
+\fB/etc/clyde.conf\fR
+clyde configuration file, see \fBpacman.conf\fR(5) for general syntax
 .
 .SH "BUGS"
 WARNING: This program is currently in beta state. Therefore, use it at your
@@ -450,7 +572,7 @@ Original concept for clyde and logo design are
 intellectual property of Daniel J Griffiths <ghost1227@archlinux.us>
 .
 .SH "SEE ALSO"
-\fBpacman\fR(8), \fBlibalpm\fR(3)
+\fBpacman\fR(8), \fBpacman.conf\fR(5),\fBlibalpm\fR(3)
 .
 .P
 See Kiwi's Clyde repository on Github: http://github.com/Kiwi/clyde
