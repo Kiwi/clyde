@@ -58,7 +58,7 @@ local function clyde_remove(targets)
 
     for i, targ in ipairs(targets) do
         if (alpm.trans_addtarget(targ) == -1) then
-            if (alpm.strerrorlast() == g("could not find or read package")) then
+            if (alpm.pm_errno() == "P_E_PKG_NOT_FOUND") then
                 printf(g("%s not found, searching for group...\n"), targ)
                 local grp = db_local:db_readgrp(targ)
                 if (not grp) then
@@ -71,11 +71,11 @@ local function clyde_remove(targets)
                     for i, pkgname in ipairs(packages) do
                         tblinsert(pkgnames, pkgname:pkg_get_name())
                     end
-                    printf(g(":: group %s:\n"), targ)
+                    printf(g(C.blub("::")..C.bright(" group %s:\n")), targ)
                     list_display("   ", pkgnames)
                     local all = yesno(g("    Remove whole content?"))
                     for i, pkgn in ipairs(pkgnames) do
-                        if (all or yesno(g(":: Remove %s from group %s?"), pkgn, targ)) then
+                        if (all or yesno(g(C.yelb("::")..C.bright(" Remove %s from group %s?")), pkgn, targ)) then
                             if (alpm.trans_addtarget(pkgn) == -1) then
                                 eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
                                 retval = 1
@@ -98,11 +98,11 @@ local function clyde_remove(targets)
 
     if (transret == -1) then
         eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), alpm.strerrorlast())
-        if (alpm.strerrorlast() == g("could not satisfy dependencies")) then
+        if (alpm.pm_errno() == "P_E_UNSATISFIED_DEPS") then
             for i, miss in ipairs(data) do
                 local dep = miss:miss_get_dep()
                 local depstring = dep:dep_compute_string()
-                printf(g(":: %s: requires %s\n"), miss:miss_get_target(), depstring)
+                printf(g(C.blub("::")..C.bright(" %s: requires %s\n")), miss:miss_get_target(), depstring)
                 depstring = nil
             end
             data =  nil
