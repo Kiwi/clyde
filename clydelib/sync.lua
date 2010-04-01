@@ -10,6 +10,7 @@ local packages = require "clydelib.packages"
 local transinit = require "clydelib.transinit"
 local aur = require "clydelib.aur"
 local upgrade = require "clydelib.upgrade"
+local callback = require "clydelib.callback"
 local rmrf = util.rmrf
 local makepath = util.makepath
 local eprintf = util.eprintf
@@ -302,7 +303,7 @@ local function sync_synctree(level, syncs)
     if (success == 0) then
         eprintf("LOG_ERROR", g("failed to synchronize any database\n"))
     end
-    return success > 0
+    return success > 0 and 1 or 0
 end
 
 function sync_search(syncs, targets, shownumbers, install)
@@ -571,7 +572,7 @@ local function sync_info(syncs, targets)
             end
 
             if (jsonresults.results.Name)then
-                    packages.dump_pkg_sync_aur(target)
+                packages.dump_pkg_sync_aur(target)
             elseif (not foundpkg and repo ~= "aur") then
                 eprintf("LOG_ERROR", g("package '%s' was not found\n"), pkgstr)
                 ret = ret + 1
@@ -703,13 +704,13 @@ local function sync_aur_trans(targets)
                                 tblinsert(pkgnames, pkgname:pkg_get_name())
                             end
                             list_display("   ", pkgnames)
-                            if (yesno(g(C.blub("::")..C.bright(" Install whole content?")))) then
+                            if (yesno(g(C.yelb("::")..C.bright(" Install whole content?")))) then
                                 for i, pkgname in ipairs(pkgnames) do
                                     tblinsert(targets, pkgname)
                                 end
                             else
                                 for i, pkgname in ipairs(pkgnames) do
-                                    if (yesno(g(C.blub("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
+                                    if (yesno(g(C.yelb("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
                                         tblinsert(targets, pkgname)
                                     end
                                 end
@@ -738,7 +739,7 @@ local function sync_aur_trans(targets)
                         end
 
                     end
-                    local pkgs = db_local:db_get_pkgcache()
+--                    local pkgs = db_local:db_get_pkgcache()
 
                     if (not found) then
                         eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
@@ -864,25 +865,40 @@ local function updateprovided(tbl)
     end
 end
 
-local function download_extract(target)
+local function download_extract(target, currentdir)
+    local retmv, retex, ret
     local user = os.getenv("SUDO_USER") or "root"
     local myuid = utilcore.geteuid()
     --local oldmask = utilcore.umask(tonumber("700", 8))
     local host = "aur.archlinux.org"
-    aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target))
+    aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target), user)
     aur.dispatcher()
     --utilcore.umask(oldmask)
-    lfs.chdir("/tmp/clyde/"..target)
-    os.execute("chmod 700 /tmp/clyde/"..target)
-    os.execute("bsdtar -xf " .. target .. ".tar.gz")
-    if (myuid == 0) then
-        os.execute("chown "..user..":users -R /tmp/clyde")
+    if (not currentdir) then
+        lfs.chdir("/tmp/clyde-"..user.."/"..target)
+        os.execute("chmod 700 /tmp/clyde-"..user.."/"..target)
+        os.execute("bsdtar -xf " .. target .. ".tar.gz &>/dev/null")
+        if (myuid == 0) then
+            os.execute("chown "..user..":users -R /tmp/clyde-"..user)
+        end
+    else
+--        os.execute("mv /tmp/clyde-"..user.."/"..target.."/"..target..".tar.gz "..lfs.currentdir())
+        retmv = os.execute(string.format("mv /tmp/clyde-%s/%s/%s.tar.gz %s &>/dev/null",
+            user, target, target, lfs.currentdir()))
+        retex = os.execute("bsdtar -xf "..target..".tar.gz &>/dev/null")
+        if(retex == 0 and retmv == 0) then
+            printf(C.greb("==>")..C.bright(" Extracted %s.tar.gz to current directory\n"), target)
+        else
+            lprintf("LOG_ERROR", "could not extract %s.tar.gz\n", target)
+        end
     end
 --    os.execute("chmod 700 -R /tmp/clyde/"..target)
+
 end
 
 local function customizepkg(target)
-    lfs.chdir("/tmp/clyde/"..target.."/"..target)
+    local user = os.getenv("SUDO_USER") or "root"
+    lfs.chdir("/tmp/clyde-"..user.."/"..target.."/"..target)
     if (not config.noconfirm) then
         local editor
         if (not config.editor) then
@@ -945,7 +961,7 @@ local function installpkgs(targets)
     end
     local user = os.getenv("SUDO_USER") or "root"
     local packagedir = getbasharrayuser("/etc/makepkg.conf", "PKGDEST", user)
-            or "/tmp/clyde/"..target.."/"..target
+            or "/tmp/clyde-"..user.."/"..target.."/"..target
 
     local pkgs = {}
     local toinstall = {}
@@ -1119,13 +1135,13 @@ function getpkgbuild(targets)
            -- tblinsert(pacmanpkgs, pkg)
         --else
             --tblinsert(aurpkgs, pkg)
-                download_extract(pkg)
+                download_extract(pkg, true)
             end
         end
     else
         for i, pkg in ipairs(targets) do
             if (not pacmaninstallable(pkg)) then
-                download_extract(pkg)
+                download_extract(pkg, true)
             end
         end
     end
@@ -1215,6 +1231,51 @@ local function aur_install(targets)
     end
 end
 
+local function trans_aurupgrade(targets)
+    local pkgcache = db_local:db_get_pkgcache()
+    local foreign = {}
+    local possibleaurpkgs = {}
+    local aurpkgs = {}
+    local len
+    for i, pkg in ipairs (pkgcache) do
+        local name = pkg:pkg_get_name()
+        if (not pacmaninstallable(name)) then
+            tblinsert(foreign, {name = name; version = pkg:pkg_get_version()})
+            possibleaurpkgs[name] = true
+        end
+    end
+
+    printf(C.blub("::")..C.bright(" Synchronizing AUR database...\n"))
+    for i, pkg in ipairs(foreign) do
+        local message = string.format(" aur%s%3.0f/%3.0f", (" "):rep(20), i, #foreign)
+        printf("\r%s", message)
+        len = #message
+        repeat
+        local infourl = aururl..aurmethod.info.."arg="..url.escape(pkg.name)
+        local inforesults = aur.getgzip(infourl)
+        if (not inforesults) then
+            break
+        end
+
+        local jsonresults = yajl.to_value(inforesults) or {}
+
+        if (type(jsonresults.results == "table")) then
+            if jsonresults.results.Name then
+                if possibleaurpkgs[jsonresults.results.Name] then
+                    aurpkgs[pkg.name] = jsonresults.results.Version
+                    callback.fill_progress(math.floor(i*100/#foreign), math.ceil(i*100/#foreign), util.getcols() - len)
+                    if (alpm.pkg_vercmp(jsonresults.results.Version, pkg.version) == 1) then
+                        tblinsert(targets, pkg.name)
+                    end
+                end
+            end
+        end
+        until 1
+    end
+
+    callback.fill_progress(100, 100, util.getcols() - len)
+end
+
 local function sync_trans(targets)
     local retval = 0
     local found
@@ -1236,17 +1297,18 @@ local function sync_trans(targets)
     if (config.op_s_upgrade > 0) then
         printf(g(C.blub("::")..C.bright(" Starting full system upgrade...\n")))
         alpm.logaction("starting full system upgrade\n")
-        local op_s_upgrade
-        if (config.op_s_upgrade >= 2) then
-            op_s_upgrade = 1
-        else
-            op_s_upgrade = 0
-        end
+        local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
 
         if (alpm.trans_sysupgrade(op_s_upgrade) == -1) then
             eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
             retval = 1
             return transcleanup()
+        end
+
+        if (config.op_s_upgrade_aur) then
+            config.op_s_upgrade = 0
+            trans_aurupgrade(aurpkgs)
+            targets = aurpkgs
         end
     else
         for i, targ in ipairs(targets) do
@@ -1276,13 +1338,13 @@ local function sync_trans(targets)
                                 tblinsert(pkgnames, pkgname:pkg_get_name())
                             end
                             list_display("   ", pkgnames)
-                            if (yesno(g(C.blub("::")..C.bright(" Install whole content?")))) then
+                            if (yesno(g(C.yelb("::")..C.bright(" Install whole content?")))) then
                                 for i, pkgname in ipairs(pkgnames) do
                                     tblinsert(targets, pkgname)
                                 end
                             else
                                 for i, pkgname in ipairs(pkgnames) do
-                                    if (yesno(g(C.blub("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
+                                    if (yesno(g(C.yelb("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
                                         tblinsert(targets, pkgname)
                                     end
                                 end
@@ -1311,7 +1373,7 @@ local function sync_trans(targets)
                         end
 
                     end
-                    local pkgs = db_local:db_get_pkgcache()
+--                    local pkgs = db_local:db_get_pkgcache()
 
                     if (not found) then
                         eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
@@ -1343,7 +1405,7 @@ local function sync_trans(targets)
     end
 
     local packages = alpm.trans_get_pkgs()
-    if (not next(packages) and not found) then
+    if (not next(packages) and not found and not next(aurpkgs)) then
         printf(g(" local database is up to date\n"));
         return transcleanup()
     end
@@ -1460,12 +1522,11 @@ local function clyde_sync(targets)
 
     if (config.op_s_clean > 0) then
         local ret = 0
-        local transinit = trans_init("T_T_SYNC", {})
+        local transinitret = trans_init("T_T_SYNC", {})
 
-        if (transinit == -1) then
+        if (transinitret == -1) then
             return 1
         end
-        --TODO: write sync_cleancache and sync_cleandb_all
         ret = ret + sync_cleancache(config.op_s_clean)
         printf("\n")
         ret = ret + sync_cleandb_all()
@@ -1486,7 +1547,7 @@ local function clyde_sync(targets)
     if (config.op_s_sync > 0) then
         printf(g(C.blub("::")..C.bright(" Synchronizing package databases...\n")))
         alpm.logaction("synchronizing package lists\n")
-        if (not sync_synctree(config.op_s_sync, sync_dbs)) then
+        if (sync_synctree(config.op_s_sync, sync_dbs) ~= 1) then
           return 1
         end
     end
