@@ -34,6 +34,7 @@ local community = community
 local dump_pkg_changelog = packages.dump_pkg_changelog
 local dump_pkg_files = packages.dump_pkg_files
 local dump_pkg_sync = packages.dump_pkg_sync
+local C = colorize
 
 local function clyde_remove(targets)
     local retval = 0
