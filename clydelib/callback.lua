@@ -4,6 +4,7 @@ local utilcore = require "clydelib.utilcore"
 local alpm = require "lualpm"
 local socket = require "socket"
 colorize = require "clydelib.colorize"
+local C = colorize
 local g = utilcore.gettext
 local printf = util.printf
 local vfprintf = util.vfprintf
@@ -424,7 +425,7 @@ cb_trans_evt = {
         io.stdout:flush()
     end;
     ["T_E_RETRIEVE_START"] = function(data1)
-        printf(g(":: Retrieving packages from %s...\n"), data1)
+        printf(g(C.blub("::")..C.bright(" Retrieving packages from %s...\n")), data1)
         io.stdout:flush()
     end;
     ["T_E_FILECONFLICTS_DONE"] = function()
@@ -452,18 +453,18 @@ cb_trans_evt = {
 
 cb_trans_conv = {
     ["T_C_INSTALL_IGNOREPKG"] = function(data1)
-        local response = yesno(g(":: %s is in IgnorePkg/IgnoreGroup. Install anyway?"),
+        local response = yesno(g(C.yelb("::")..C.bright(" %s is in IgnorePkg/IgnoreGroup. Install anyway?")),
             data1:pkg_get_name())
         return response
     end;
     ["T_C_REPLACE_PKG"] = function(data1, data2, data3)
-        local response = yesno(g(":: Replace %s with %s/%s?"),
+        local response = yesno(g(C.yelb("::")..C.bright(" Replace %s with %s/%s?")),
             data1:pkg_get_name(),
             data3, data2:pkg_get_name())
         return response
     end;
     ["T_C_CONFLICT_PKG"] = function(data1, data2)
-        local response = yesno(g(":: %s conflicts with %s. Remove %s?"),
+        local response = yesno(g(C.yelb("::")..C.bright(" %s conflicts with %s. Remove %s?")),
             data1, data2, data2)
         return response
     end;
@@ -472,7 +473,7 @@ cb_trans_conv = {
         for i, pkg in ipairs(data1) do
             table.insert(namelist, pkg:pkg_get_name())
         end
-        printf(g(":: the following pakage(s) cannot be upgraded due to unresolvable dependencies:\n"))
+        printf(g(C.blub("::")..C.bight(" the following pakage(s) cannot be upgraded due to unresolvable dependencies:\n")))
         list_display("     ", namelist)
         local response = yesno(g("\nDo you want to skip the above package(s) for this upgrade?"))
         return response
@@ -480,14 +481,14 @@ cb_trans_conv = {
     ["T_C_LOCAL_NEWER"] = function(data1)
         local response
         if (not config.op_s_downloadonly) then
-            response = yesno(g(":: %s-%s: local version is newer. Upgrade anyway?"),
+            response = yesno(g(C.yelb("::")..C.bright(" %s-%s: local version is newer. Upgrade anyway?")),
                 data1:pkg_get_name(), data1:pkg_get_version())
         else
             response = true
         end
     end;
     ["T_C_CORRUPTED_PKG"] = function(data1)
-        local response = yesno(g(":: File %s is corrupted. Do you want to delete it?"),
+        local response = yesno(g(C.yelb("::")..C.bright(" File %s is corrupted. Do you want to delete it?")),
             data1)
     end;
 }
