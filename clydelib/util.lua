@@ -3,6 +3,7 @@ local alpm = require "lualpm"
 local lfs = require "lfs"
 local utilcore = require "clydelib.utilcore"
 local C = colorize
+local g = utilcore.gettext
 
 function printf(...)
     io.write(string.format(...))
@@ -154,7 +155,6 @@ function tblstrdup(tbl)
 end
 
 function vfprintf(stream, level, format, ...)
-    local gettext = utilcore.gettext
     local ret = 0
     local stream = stream
     if (not tblisin(config.logmask, level)) then
@@ -177,9 +177,9 @@ function vfprintf(stream, level, format, ...)
 
     local lookuptbl = {
         ["LOG_DEBUG"] = function() stream:write(C.redb("debug: ")) end;
-        ["LOG_ERROR"] = function() stream:write(C.redb(gettext("error: "))) end;
-        ["LOG_WARNING"] = function() stream:write(C.redb(gettext("warning: "))) end;
-        ["LOG_FUNCTION"] = function() stream:write(C.redb(gettext("function: "))) end;
+        ["LOG_ERROR"] = function() stream:write(C.redb(g("error: "))) end;
+        ["LOG_WARNING"] = function() stream:write(C.redb(g("warning: "))) end;
+        ["LOG_FUNCTION"] = function() stream:write(C.redb(g("function: "))) end;
     }
     if (lookuptbl[level]) then
         lookuptbl[level]()
@@ -193,7 +193,6 @@ function vfprintf(stream, level, format, ...)
 end
 
 function fprintf(stream, format, ...)
-    local gettext = utilcore.gettext
     local stream = stream
 
     if (stream == "stderr") then
@@ -218,7 +217,7 @@ end
 function trans_release()
     local transrelease = alpm.trans_release()
     if (transrelease == -1) then
-        eprintf("LOG_ERROR", utilcore.gettext("failed to release transaction (%s)\n"), alpm.strerrorlast())
+        eprintf("LOG_ERROR", g("failed to release transaction (%s)\n"), alpm.strerrorlast())
         return -1
     end
     return 0
@@ -330,7 +329,7 @@ function string_display(title, string, adjust)
         printf("%s ", title)
     end
     if (not string or #string == 0) then
-        printf("None")
+        printf(g("None"))
     else
         indentprint(string, len)
     end
@@ -357,7 +356,7 @@ function list_display(title, list, nospace, extracols, adjust)
     end
 
     if (not next(list) or checkempty(list)) then
-        printf("%s\n", "None")
+        printf("%s\n", g("None"))
     else
         cols = len
         for i, str in ipairs(list) do
@@ -388,7 +387,7 @@ function list_display_linebreak(title, list, adjust)
     end
 
     if (not next(list) or checkempty(list)) then
-        printf("%s\n", "None")
+        printf("%s\n", g("None"))
     else
         indentprint(list[1], len)
         printf("\n")
@@ -403,7 +402,6 @@ function list_display_linebreak(title, list, adjust)
 end
 
 function display_targets(pkgs, install)
-    local g = utilcore.gettext
     local isize, dlsize, mbisize, mbdlsize = 0, 0, 0, 0
     local str
     local targets = {}
@@ -462,7 +460,6 @@ function display_synctargets(syncpkgs)
 end
 
 local function question(preset, fmt, ...)
-    local gettext = utilcore.gettext
     local stream
 
     if (config.noconfirm) then
@@ -475,9 +472,9 @@ local function question(preset, fmt, ...)
     fprintf(stream, fmt, ...)
 
     if (preset) then
-        fprintf(stream, " %s ", gettext("[Y/n]"))
+        fprintf(stream, " %s ", g("[Y/n]"))
     else
-        fprintf(stream, " %s ", gettext("[y/N]"))
+        fprintf(stream, " %s ", g("[y/N]"))
     end
 
     if (config.noconfirm) then
@@ -491,9 +488,9 @@ local function question(preset, fmt, ...)
         return preset
     end
 
-    if ((not strcasecmp(answer, gettext("Y"))) or (not strcasecmp(answer, gettext("YES")))) then
+    if ((not strcasecmp(answer, g("Y"))) or (not strcasecmp(answer, g("YES")))) then
         return true
-    elseif ((not strcasecmp(answer, gettext("N"))) or (not strcasecmp(answer, gettext("NO")))) then
+    elseif ((not strcasecmp(answer, g("N"))) or (not strcasecmp(answer, g("NO")))) then
         return false
     end
     return false
