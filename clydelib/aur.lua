@@ -8,12 +8,12 @@ local zlib = require "zlib"
 local yajl = require "yajl"
 local C = colorize
 
-function download(host, file)
+function download(host, file, user)
     local filename = file:match(".+/(.+)$")
     local foldername = file:match(".+/(.+)/.+$")
-    lfs.mkdir("/tmp/clyde")
-    lfs.mkdir("/tmp/clyde/"..foldername)
-    local f, err = io.open("/tmp/clyde/"..foldername.. "/" ..filename, "w")
+    lfs.mkdir("/tmp/clyde-"..user)
+    lfs.mkdir("/tmp/clyde-"..user.."/"..foldername)
+    local f, err = io.open("/tmp/clyde-"..user.."/"..foldername.. "/" ..filename, "w")
     local received = 0
     local r, c, h = http.request {
         method = "HEAD",
@@ -34,14 +34,14 @@ function download(host, file)
             ltn12.sink.file(f)
             ),
 }
-io.write(string.format(C.greb("==>")..C.bright(" Downloading %s\n\n"),filename))
+io.write(string.format(C.greb("==>")..C.bright(" Downloading %s\n"),filename))
 end
 
 aurthreads = {}    -- list of all live threads
-function get (host, file)
+function get(host, file, user)
       -- create coroutine
     local co = coroutine.create(function ()
-        download(host, file)
+        download(host, file, user)
       end)
       -- insert it in the list
       table.insert(aurthreads, co)
