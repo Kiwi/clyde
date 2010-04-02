@@ -12,8 +12,8 @@ bindir = $(exec_prefix)/bin
 sharedir = $(prefix)/share/lua/5.1
 libdir = $(prefix)/lib/lua/5.1
 mandir = $(prefix)/share/man
-man1dir = $(mandir)/man1
-manext = .1
+man8dir = $(mandir)/man8
+manext = .8
 
 BIN = clyde
 
@@ -35,6 +35,7 @@ install_clyde: lualpm
 	$(INSTALL_PROGRAM) clydelib/utilcore.so $(DESTDIR)$(libdir)/clydelib/utilcore.so
 	$(INSTALL_PROGRAM) clydelib/signal.so $(DESTDIR)$(libdir)/clydelib/signal.so
 	$(INSTALL_DATA) clydelib/*.lua $(DESTDIR)$(sharedir)/clydelib/
+	$(INSTALL_DATA) man/clyde.8 $(DESTDIR)$(man8dir)/clyde$(manext)
 
 clean:
 	-rm -f *.so *.o
