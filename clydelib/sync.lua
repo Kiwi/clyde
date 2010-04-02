@@ -525,11 +525,11 @@ local function sync_info(syncs, targets)
                     return 1
                 end
 
-                local pkgcache = db:db_get_pkgache()
+                local pkgcache = db:db_get_pkgcache()
                 for i, pkg in ipairs(pkgcache) do
                     if (pkgstr == pkg:pkg_get_name()) then
                         dump_pkg_sync(pkg, db:db_get_name())
-                        foundpkg = false
+                        foundpkg = true
                         break
                     end
                 end
