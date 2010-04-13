@@ -1423,11 +1423,20 @@ local function sync_trans(targets)
         return transcleanup()
     end
 
-    local needs, provided, pacmanpkgs, needsdeps, caninstall = {}, {}, {}, {}, {}
+    local needs, provided, needsdeps, caninstall, possibleaur =
+        {}, {}, {}, {}, {}
+
+    for i, pkg in ipairs(targets) do
+        if (not pacmaninstallable(pkg)) then
+            tblinsert(possibleaur, pkg)
+        end
+    end
+
     updateprovided(provided)
-    getalldeps(targets, needs, needsdeps, caninstall, provided)
+    getalldeps(possibleaur, needs, needsdeps, caninstall, provided)
 
     local needsdupe = tblstrdup(needs)
+
     for i, pkg in ipairs(needsdupe) do
         if (pacmaninstallable(pkg)) then
             for i, db in ipairs(sync_dbs) do
@@ -1442,10 +1451,7 @@ local function sync_trans(targets)
                     end
                     if (not inpackages) then
                         tblinsert(packages, loaded)
-                        local found, indx = tblisin(needs, pkg)
-                        if (found) then
-                            fastremove(needs, indx)
-                        end
+                        removetblentry(needs, pkg)
                     end
                 end
             end
