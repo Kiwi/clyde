@@ -639,7 +639,7 @@ local function config_init(uid)
                     printf("Editor: ")
                 end
             end
-            clydeconf = clydeconf:gsub("/etc/pacman.conf", "/etc/clyde.conf")
+            clydeconf = clydeconf:gsub(CONFFILE, CLYDECONF)
             local options = {
                 "#Colors are enabled by default. To disable them, uncomment the following line";
                 "#NoColor";
@@ -651,6 +651,7 @@ local function config_init(uid)
                 editor, table.concat(options, "\n"), clydeconf)
             fdclyde:write(clydeconf)
             fdclyde:close()
+            os.execute("chmod 644 "..CLYDECONF)
             printf("Congratulations! Your new config is ready to use.\nAdditional defaults have been set, please check '%s' to make sure they are what you desire\n", CLYDECONF)
             config.configfile = CLYDECONF
         end
