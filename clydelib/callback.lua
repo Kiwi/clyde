@@ -365,8 +365,7 @@ cb_trans_evt = {
         alpm.logaction(string.format("installed %s (%s)\n",
             data1:pkg_get_name(),
             data1:pkg_get_version()))
-            --TODO: write display_optdepends
-            --display_optdepends(data1)
+            util.display_optdepends(data1)
         io.stdout:flush()
         end;
     ["T_E_REMOVE_START"] = function(data1)
@@ -392,8 +391,7 @@ cb_trans_evt = {
             data1:pkg_get_name(),
             data2:pkg_get_version(),
             data1:pkg_get_version()))
-            --TODO: write display_new_optdepends
-            --display_new_optdepends(data2, data1)
+            util.display_new_optdepends(data2, data1)
         io.stdout:flush()
     end;
     ["T_E_INTEGRITY_START"] = function()
