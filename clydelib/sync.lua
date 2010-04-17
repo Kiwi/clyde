@@ -1246,13 +1246,16 @@ local function trans_aurupgrade(targets)
     end
 
     printf(C.blub("::")..C.bright(" Synchronizing AUR database...\n"))
+    local count = 0
     for i, pkg in ipairs(foreign) do
         local message = string.format(" aur%s%3.0f/%3.0f", (" "):rep(20), i, #foreign)
         printf("\r%s", message)
         len = #message
         repeat
+        count = count + 1
         local infourl = aururl..aurmethod.info.."arg="..url.escape(pkg.name)
         local inforesults = aur.getgzip(infourl)
+        callback.fill_progress(math.floor(count*100/#foreign), math.ceil(count*100/#foreign), util.getcols() - len)
         if (not inforesults) then
             break
         end
@@ -1263,7 +1266,6 @@ local function trans_aurupgrade(targets)
             if jsonresults.results.Name then
                 if possibleaurpkgs[jsonresults.results.Name] then
                     aurpkgs[pkg.name] = jsonresults.results.Version
-                    callback.fill_progress(math.floor(i*100/#foreign), math.ceil(i*100/#foreign), util.getcols() - len)
                     if (alpm.pkg_vercmp(jsonresults.results.Version, pkg.version) == 1) then
                         tblinsert(targets, pkg.name)
                     end
@@ -1272,8 +1274,6 @@ local function trans_aurupgrade(targets)
         end
         until 1
     end
-
-    callback.fill_progress(100, 100, util.getcols() - len)
 end
 
 local function sync_trans(targets)
