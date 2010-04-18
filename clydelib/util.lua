@@ -471,7 +471,7 @@ end
 
 function display_optdepends(pkg)
     local optdeps = pkg:pkg_get_optdepends()
-    if (optdeps) then
+    if (optdeps and next(optdeps)) then
         printf(g("Optional dependencies for %s\n"), pkg:pkg_get_name())
         list_display_linebreak("   ", optdeps)
     end
