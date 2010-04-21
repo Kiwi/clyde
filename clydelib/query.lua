@@ -289,17 +289,17 @@ local function check(pkg)
     end
 end
 
-local dbcolors = {
+local packagetbl = {}
+local repos = {}
+
+local function display(pkg)
+    local dbcolors = {
         extra = C.greb;
         core = C.redb;
         community = C.magb;
         testing = C.yelb;
     }
 
-local packagetbl = {}
-local repos = {}
-
-local function display(pkg)
     if (not next(packagetbl)) then
 
         repos = alpm.option_get_syncdbs()
