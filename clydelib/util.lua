@@ -459,6 +459,24 @@ function display_synctargets(syncpkgs)
     display_targets(pkglist, true)
 end
 
+function display_new_optdepends(oldpkg, newpkg)
+    local old = oldpkg:pkg_get_optdepends()
+    local new = newpkg:pkg_get_optdepends()
+    local optdeps = tbldiff(new, old)
+    if (next(optdeps)) then
+        printf(g("New optional dependencies for %s\n"), newpkg:pkg_get_name())
+        list_display_linebreak("   ", optdeps)
+    end
+end
+
+function display_optdepends(pkg)
+    local optdeps = pkg:pkg_get_optdepends()
+    if (optdeps and next(optdeps)) then
+        printf(g("Optional dependencies for %s\n"), pkg:pkg_get_name())
+        list_display_linebreak("   ", optdeps)
+    end
+end
+
 local function question(preset, fmt, ...)
     local stream
 
