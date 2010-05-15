@@ -33,7 +33,7 @@ _clyde_opts_common=(
 _clyde_opts_pkgfile=(
 	'-d[Skip dependency checks]'
 	'-f[Overwrite conflicting files]'
-	'*:package file:_files -g "*.pkg.tar.gz(.)"'
+	'*:Pacman package:_files -g "*.pkg.tar.*(.)"'
 )
 
 # options for passing to _arguments: subactions for --query command
@@ -128,7 +128,7 @@ _clyde_action_query() {
 			_arguments -s : \
 				"$_clyde_opts_common[@]" \
 				"$_clyde_opts_query_modifiers[@]" \
-				'*:package file:_files -g "*.pkg.tar.gz"'
+				'*:package file pacman package:_files -g "*.pkg.tar.*"'
 				;;
 		query_group)
 			_arguments -s : \
@@ -303,11 +303,11 @@ _clyde() {
 				"$_clyde_opts_query_modifiers[@]" \
 				'*:package file:_files'
 				;;
-		-Q*p*) # file *.pkg.tar.gz
+		-Q*p*) # file *.pkg.tar.gz or *.pkg.tar.gz
 			_arguments -s : \
 				"$_clyde_opts_common[@]" \
 				"$_clyde_opts_query_modifiers[@]" \
-				'*:package file:_files -g "*.pkg.tar.gz"'
+				'*:Pacman package:_files -g "*.pkg.tar.*"'
 				;;
 		-Q*)  _clyde_action_query    ;;
 		-R*)  _clyde_action_remove   ;;
