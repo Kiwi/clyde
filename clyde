@@ -112,6 +112,7 @@ local function usage(op, myname)
         printf(g("  -u, --sysupgrade     upgrade installed packages (-uu allows downgrade)\n"))
         printf(g("  -w, --downloadonly   download packages but do not install/upgrade anything\n"))
         printf(g("  -y, --refresh        download fresh package databases from the server\n"))
+        printf(g("      --user <user>    user to run makepkg as when installing software from AUR\n"))
         printf(g("      --needed         don't reinstall up to date packages\n"))
         printf(g("      --ignore <pkg>   ignore a package upgrade (can be used more than once)\n"))
         printf(g("      --ignoregroup <grp>\
@@ -302,6 +303,7 @@ local longopts = {
         {"editor",      "required_argument",0,  'OP_EDITOR'},
         {"repos",       "no_argument",      0,  'OP_REPOS'},
         {"getpkgbuild", "no_argument",      0,  'G'},
+        {"user",        "required_argument",0,  'OP_BUILD'},
     --[[
     --pacman feature functions
     --]]
@@ -395,6 +397,9 @@ local longopts = {
             config.op_s_search_repos_only = true
         end;
         ['G'] = settrans('PM_OP_GETPKG');
+        ['OP_BUILD'] = function(opt)
+            config.op_s_build_user = opt
+        end;
         --[[
         --pacman feature functions
         --]]
@@ -645,6 +650,8 @@ local function config_init(uid)
                 "#NoColor";
                 "#Searching AUR is enabled by default. Uncomment the following line to only search with --aur";
                 "#ReposOnly";
+                "#You must set this to a normal user to install packages from AUR safely while running without sudo";
+                "BuildUser = "..util.getbuilduser();
             }
             clydeconf = string.format(
                 "#\n# CLYDE OPTIONS\n#\n[clydeoptions]\nEditor = %s\n%s\n%s",
@@ -725,6 +732,12 @@ local function _parseconfig(file, givensection, givendb)
         if (not config.op_s_search_aur_only) then
             config.op_s_search_repos_only = true
             lprintf("LOG_DEBUG", "config: reposonly\n")
+        end
+    end;
+    ['BuildUser'] = function(str)
+        if (not config.op_s_build_user) then
+            config.op_s_build_user = str
+            lprintf("LOG_DEBUG", "config: builduser\n")
         end
     end;
         --[[
@@ -1023,7 +1036,11 @@ function main()
         sync.sync_search(syncdb, pm_targets, true, install)
         if (next(install)) then
             if (myuid > 0) then
-                ret = os.execute("sudo clyde -S "..table.concat(install, " "))
+                if (os.getenv("SUDO_USER")) then
+                    ret = os.execute("sudo clyde -S "..table.concat(install, " "))
+                else
+                    ret = os.execute("su -c 'clyde -S "..table.concat(install, " ").." '")
+                end
                 return ret
             else
                 ret = sync.main(install)
