@@ -14,6 +14,7 @@ libdir = $(prefix)/lib/lua/5.1
 mandir = $(prefix)/share/man
 man8dir = $(mandir)/man8
 zshcompdir = /usr/share/zsh/site-functions
+bashcompdir = /etc/bash_completion.d
 manext = .8
 
 BIN = clyde
@@ -37,8 +38,8 @@ install_clyde: lualpm
 	$(INSTALL_PROGRAM) clydelib/signal.so $(DESTDIR)$(libdir)/clydelib/signal.so
 	$(INSTALL_DATA) clydelib/*.lua $(DESTDIR)$(sharedir)/clydelib/
 	$(INSTALL_DATA) man/clyde.8 $(DESTDIR)$(man8dir)/clyde$(manext)
-	$(INSTALL_DATA) extras/_clyde $(DESTDIR)$(zshcompdir)/_clyde
-
+	if test -d $(zshcompdir) ; then $(INSTALL_DATA) extras/_clydezsh $(DESTDIR)$(zshcompdir)/_clyde ; fi
+	if test -d $(bashcompdir) ; then $(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde ; fi
 clean:
 	-rm -f *.so *.o
 
@@ -46,3 +47,5 @@ uninstall:
 	rm -f $(DESTDIR)$(libdir)/lualpm.so
 	rm -Rf $(DESTDIR)$(sharedir)/clydelib
 	rm -f $(DESTDIR)$(bindir)/clyde
+	if test -f $(DESTDIR)$(zshcompdir)/_clyde ; then rm -f $(DESTDIR)$(zshcompdir)/_clyde ; fi
+	if test -f $(DESTDIR)$(bashcompdir)/clyde ; then rm -f $(DESTDIR)$(bashcompdir)/clyde ; fi
