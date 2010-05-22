@@ -13,6 +13,7 @@ sharedir = $(prefix)/share/lua/5.1
 libdir = $(prefix)/lib/lua/5.1
 mandir = $(prefix)/share/man
 man8dir = $(mandir)/man8
+zshcompdir = /usr/share/zsh/site-functions
 manext = .8
 
 BIN = clyde
@@ -36,6 +37,7 @@ install_clyde: lualpm
 	$(INSTALL_PROGRAM) clydelib/signal.so $(DESTDIR)$(libdir)/clydelib/signal.so
 	$(INSTALL_DATA) clydelib/*.lua $(DESTDIR)$(sharedir)/clydelib/
 	$(INSTALL_DATA) man/clyde.8 $(DESTDIR)$(man8dir)/clyde$(manext)
+	$(INSTALL_DATA) extras/_clyde $(DESTDIR)$(zshcompdir)/_clyde
 
 clean:
 	-rm -f *.so *.o
