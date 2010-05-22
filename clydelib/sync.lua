@@ -867,7 +867,7 @@ end
 
 local function download_extract(target, currentdir)
     local retmv, retex, ret
-    local user = os.getenv("SUDO_USER") or "root"
+    local user = util.getbuilduser()
     local myuid = utilcore.geteuid()
     --local oldmask = utilcore.umask(tonumber("700", 8))
     local host = "aur.archlinux.org"
@@ -897,7 +897,7 @@ local function download_extract(target, currentdir)
 end
 
 local function customizepkg(target)
-    local user = os.getenv("SUDO_USER") or "root"
+    local user = util.getbuilduser()
     lfs.chdir("/tmp/clyde-"..user.."/"..target.."/"..target)
     if (not config.noconfirm) then
         local editor
@@ -937,12 +937,14 @@ local function customizepkg(target)
 end
 
 local function makepkg(target, mkpkgopts)
-    local user = os.getenv("SUDO_USER")
+    local user = util.getbuilduser()
     local result
-    if (user) then
+    if (user ~= "root") then
         result = os.execute("su "..user.." -c 'makepkg -f' "..mkpkgopts)
     else
-        local response = noyes(C.redb("==> ")..C.whi(C.onred("Running makepkg as root is a bad idea! Continue anyway?")))
+        printf(C.redb("==> ")..C.bright(C.onred("Running makepkg as root is a bad idea!")))
+        printf("\n"..C.redb("==> ")..C.bright("To avoid this message please set BuildUser in clyde.conf\n"))
+        local response = noyes(C.redb("==> ")..C.bright("Continue anyway?"))
         if (response)  then
             result = os.execute("makepkg -f --asroot "..mkpkgopts)
         else
@@ -950,7 +952,7 @@ local function makepkg(target, mkpkgopts)
         end
     end
     if (result ~= 0) then
-        print("Build failed")
+        eprintf("LOG_ERROR", "%s\n", "Build failed")
         cleanup(1)
     end
 end
@@ -959,7 +961,7 @@ local function installpkgs(targets)
     if (type(targets) ~= "table") then
         targets = {targets}
     end
-    local user = os.getenv("SUDO_USER") or "root"
+    local user = util.getbuilduser()
     local packagedir = getbasharrayuser("/etc/makepkg.conf", "PKGDEST", user)
             or "/tmp/clyde-"..user.."/"..target.."/"..target
 
