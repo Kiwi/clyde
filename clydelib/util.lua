@@ -110,6 +110,10 @@ function tbljoin(tbl1, tbl2)
     return t
 end
 
+function getbuilduser()
+    return config.op_s_build_user or os.getenv("SUDO_USER") or "root"
+end
+
 function tblisin(tbl, search)
     for i, val in ipairs(tbl) do
         if (val == search) then
