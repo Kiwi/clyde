@@ -9,6 +9,7 @@ return {
 ['op_use_color'] = nil;
 ['editor'] = nil;
 ['op_g_get_deps'] = false;
+['op_s_build_user'] = false;
     --[[
     --pacman feature functions
     --]]
