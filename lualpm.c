@@ -2471,6 +2471,7 @@ static int lalpm_pm_errno(lua_State *L)
         Sym(PKG_OPEN);
         Sym(PKG_CANT_REMOVE);
         Sym(PKG_INVALID_NAME);
+        Sym(PKG_INVALID_ARCH);
         Sym(PKG_REPO_NOT_FOUND);
             /* Deltas */
         Sym(DLT_INVALID);
