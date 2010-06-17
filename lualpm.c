@@ -277,28 +277,6 @@ check_constant(
 #define Constants(name) static constant_t const name ##_constants[] = {
 #define EndConstants { NULL, 0 } };
 
-Constants(transtype)
-#define Sym(x) { "T_T_" #x, PM_TRANS_TYPE_ ## x }
-    Sym(UPGRADE),
-    Sym(REMOVE),
-    Sym(REMOVEUPGRADE),
-    Sym(SYNC),
-#undef Sym
-EndConstants
-
-static pmtranstype_t
-check_transtype(lua_State *L, int narg)
-{
-    return check_constant(L, narg, transtype_constants,
-                          "expected a pmtranstype_t");
-}
-
-static int
-push_transtype(lua_State *L, pmtranstype_t t)
-{
-    return push_constant(L, t, transtype_constants);
-}
-
 Constants(transflag)
 #define Sym(x) { "T_F_" #x, PM_TRANS_FLAG_ ## x }
     Sym(NODEPS),
@@ -2229,19 +2207,18 @@ progress_cb_gateway_unprotected(pmtransprog_t t, const char *s, int a, int b, in
     }
 }
 
-/* int alpm_trans_init(pmtranstype_t type, pmtransflag_t flags,
+/* int alpm_trans_init(pmtransflag_t flags,
                     alpm_trans_cb_event cb_event, alpm_trans_cb_conv conv,
                     alpm_trans_cb_progress cb_progress); */
 static int lalpm_trans_init(lua_State *L)
 {
-    pmtranstype_t type = check_transtype(L, 1);
-    pmtransflag_t flags = check_transflags_table(L, 2);
-    lua_pushvalue(L, 3);
+    pmtransflag_t flags = check_transflags_table(L, 1);
+    lua_pushvalue(L, 2);
     lua_setfield(L, LUA_REGISTRYINDEX, "lualpm: events callback table");
-    lua_pushvalue(L, 4);
+    lua_pushvalue(L, 3);
     lua_setfield(L, LUA_REGISTRYINDEX, "lualpm: conversations callback table");
-    register_callback(L, trans_cb_progress_key, 5);
-    const int result = alpm_trans_init(type, flags,
+    register_callback(L, trans_cb_progress_key, 4);
+    const int result = alpm_trans_init(flags,
                                        event_cb_gateway_unprotected,
                                        conversation_cb_gateway_unprotected,
                                        progress_cb_gateway_unprotected);
