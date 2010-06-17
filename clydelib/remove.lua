@@ -127,7 +127,7 @@ local function clyde_remove(targets)
     end
 
     if (tblisin(config.flags, "T_F_RECURSE") or tblisin(config.flags, "T_F_CASCADE")) then
-        local pkglist = alpm.trans_get_pkgs()
+        local pkglist = alpm.trans_get_remove()
         display_targets(pkglist, false)
         printf("\n")
 
