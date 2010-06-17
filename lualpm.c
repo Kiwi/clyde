@@ -2225,19 +2225,6 @@ static int lalpm_trans_sysupgrade(lua_State *L)
     return 1;
 }
 
-/* int alpm_trans_addtarget(char *target); */
-static int lalpm_trans_addtarget(lua_State *L)
-{
-    char *targetcopy;
-    const char *target = luaL_checkstring(L, 1);
-    targetcopy = strdup(target);
-    const int result = alpm_trans_addtarget(targetcopy);
-    free(targetcopy);
-    lua_pushnumber(L, result);
-
-    return 1;
-}
-
 /* int alpm_trans_prepare(alpm_list_t **data); */
 static int lalpm_trans_prepare(lua_State *L)
 {
@@ -2502,7 +2489,6 @@ static luaL_Reg const pkg_funcs[] =
     { "trans_get_flags",            lalpm_trans_get_flags },
     { "trans_get_pkgs",             lalpm_trans_get_pkgs },
     { "trans_sysupgrade",           lalpm_trans_sysupgrade },
-    { "trans_addtarget",            lalpm_trans_addtarget },
     { "trans_prepare",              lalpm_trans_prepare },
     { "trans_commit",               lalpm_trans_commit },
     { "trans_interrupt",            lalpm_trans_interrupt },
