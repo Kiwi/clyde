@@ -68,7 +68,7 @@ local function clyde_upgrade(targets)
 
     printf(g("loading package data...\n"))
     for i, targ in ipairs(targets) do
-        if (alpm.trans_addtarget(targ) == -1) then
+        if (alpm.add_target(targ) == -1) then
             eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
             trans_release()
             return 1

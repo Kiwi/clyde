@@ -679,7 +679,7 @@ local function sync_aur_trans(targets)
     else
         for i, targ in ipairs(targets) do
             repeat
-                if (alpm.trans_addtarget(targ) == -1) then
+                if (alpm.sync_target(targ) == -1) then
                     found = false
                     if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
                         alpm.pm_errno() == "P_E_PKG_IGNORED") then
@@ -1315,7 +1315,7 @@ local function sync_trans(targets)
     else
         for i, targ in ipairs(targets) do
             repeat
-                if (alpm.trans_addtarget(targ) == -1) then
+                if (alpm.sync_target(targ) == -1) then
                     found = false
                     if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
                         alpm.pm_errno() == "P_E_PKG_IGNORED") then

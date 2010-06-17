@@ -58,7 +58,7 @@ local function clyde_remove(targets)
     end
 
     for i, targ in ipairs(targets) do
-        if (alpm.trans_addtarget(targ) == -1) then
+        if (alpm.remove_target(targ) == -1) then
             if (alpm.pm_errno() == "P_E_PKG_NOT_FOUND") then
                 printf(g("%s not found, searching for group...\n"), targ)
                 local grp = db_local:db_readgrp(targ)
@@ -77,7 +77,7 @@ local function clyde_remove(targets)
                     local all = yesno(g("    Remove whole content?"))
                     for i, pkgn in ipairs(pkgnames) do
                         if (all or yesno(g(C.yelb("::")..C.bright(" Remove %s from group %s?")), pkgn, targ)) then
-                            if (alpm.trans_addtarget(pkgn) == -1) then
+                            if (alpm.remove_target(pkgn) == -1) then
                                 eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
                                 retval = 1
                                 pkgnames = nil
