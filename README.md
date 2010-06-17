@@ -1,15 +1,15 @@
-= Clyde update for Pacman 3.4
+# Clyde update for Pacman 3.4
 
 Here is the readme for my branch of Clyde that should work with
 Pacman 3.4.  This is mostly working by now.  Not quite, though.  Test
 test program breaks.
 
-= Building example
+# Building example
 
 You don't have to install pacman 3.4 just to test if this works.  You
 can install pacman to a non-standard directory.  This is what I did.
 
-== Build pacman
+## Build pacman
 
     git clone git://projects.archlinux.org/pacman
     cd pacman
@@ -23,7 +23,7 @@ _~/pacmantest/include_.
 
 Now you can build clyde like so:
 
-== Build clyde
+## Build clyde
 
     git clone -b pacman3.4 git://github.com/juster/clyde.git
     cd clyde
@@ -33,7 +33,7 @@ Now you can build clyde like so:
 
 So on and so forth...
 
-= Authors
+# Authors
 
 Clyde is written by DigitalKiwi and Ghost1227.
 Clyde was updated to use pacman 3.4 by juster.
