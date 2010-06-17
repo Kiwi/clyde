@@ -490,7 +490,7 @@ static int lalpm_db_set_pkgreason ( lua_State *L )
 
     alpm_reason = PKGREASON_COUNT;
     for ( int i=0; i < PKGREASON_COUNT ; ++i ) {
-        if ( strcmp( pkg_reason, PKGREASON_STR[ i ] ) == 0 ) {
+        if ( strcmp( pkg_reason, PKGREASON_TOSTR[ i ] ) == 0 ) {
             alpm_reason = i;
         }
     }
@@ -498,7 +498,7 @@ static int lalpm_db_set_pkgreason ( lua_State *L )
     result = ( alpm_reason < PKGREASON_COUNT
                ? alpm_db_set_pkgreason( db, pkg_name, alpm_reason )
                : -1 );
-    lua_pushnumber( result );
+    lua_pushnumber( L, result );
     return 1;
 }
 
@@ -2307,11 +2307,11 @@ static int lalpm_sync_sysupgrade(lua_State *L)
 /* int alpm_sync_target(char *target); */
 static int lalpm_sync_target(lua_State *L)
 {
-    char *pkgname;
+    const char *pkgname;
     int result;
 
     pkgname = luaL_checkstring(L, 1);
-    result  = alpm_sync_target(pkgname);
+    result  = alpm_sync_target((char *)pkgname);
 
     lua_pushinteger(L, result);
     return 1;
@@ -2325,13 +2325,13 @@ static int lalpm_sync_target(lua_State *L)
 /* int alpm_sync_dbtarget(char *db, char *target); */
 static int lalpm_sync_dbtarget(lua_State *L)
 {
-    char *db, *pkgname;
+    const char *db, *pkgname;
     int result;
 
     db      = luaL_checkstring(L, 1);
     pkgname = luaL_checkstring(L, 2);
     
-    result = alpm_sync_dbtarget(db, pkgname);
+    result = alpm_sync_dbtarget((char *)db, (char *)pkgname);
 
     lua_pushinteger(L, result);
     return 1;
@@ -2341,11 +2341,11 @@ static int lalpm_sync_dbtarget(lua_State *L)
 /* int alpm_add_target(char *target); */
 static int lalpm_add_target(lua_State *L)
 {
-    char *pkgfile;
+    const char *pkgfile;
     int result;
 
     pkgfile = luaL_checkstring(L, 1);
-    result  = alpm_add_target(pkgfile);
+    result  = alpm_add_target((char *)pkgfile);
 
     lua_pushinteger(L, result);
     return 1;
@@ -2357,11 +2357,11 @@ static int lalpm_add_target(lua_State *L)
  * int alpm_remove_target(char *target); */
 static int lalpm_remove_target(lua_State *L)
 {
-    char *pkgname;
+    const char *pkgname;
     int result;
 
     pkgname = luaL_checkstring(L, 1);
-    result  = alpm_remove_target(pkgname);
+    result  = alpm_remove_target((char *)pkgname);
 
     lua_pushinteger(L, result);
     return 1;

@@ -46,4 +46,4 @@ struct __pmfileconflict_t {
     char *ctarget;
 };
 
-#endif _ALPM_MIA_H
+#endif /* _ALPM_MIA_H */
