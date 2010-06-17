@@ -2295,6 +2295,69 @@ static int lalpm_sync_sysupgrade(lua_State *L)
     return 1;
 }
 
+/* int alpm_sync_target(char *target); */
+static int lalpm_sync_target(lua_State *L)
+{
+    char *pkgname;
+    int result;
+
+    pkgname = luaL_checkstring(L, 1);
+    result  = alpm_sync_target(pkgname);
+
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+/* I would rename the following three functions if I were the owner...
+   think these functions have horrible names.  dbtarget is not so
+   bad... the others?  bleh.  -juster */
+
+/* "trans_sync_fromdb" */
+/* int alpm_sync_dbtarget(char *db, char *target); */
+static int lalpm_sync_dbtarget(lua_State *L)
+{
+    char *db, *pkgname;
+    int result;
+
+    db      = luaL_checkstring(L, 1);
+    pkgname = luaL_checkstring(L, 2);
+    
+    result = alpm_sync_dbtarget(db, pkgname);
+
+    lua_pushinteger(L, result);
+    return 1;
+}
+
+/* "trans_add_pkgfile" this adds a pkgfile to the transaction */
+/* int alpm_add_target(char *target); */
+static int lalpm_add_target(lua_State *L)
+{
+    char *pkgfile;
+    int result;
+
+    pkgfile = luaL_checkstring(L, 1);
+    result  = alpm_add_target(pkgfile);
+
+    lua_pushinteger(L, result);
+    return 1;
+}    
+
+/* Denotes a package to be removed.
+ * It does not remove a target from the to-be-installed list.
+ * "trans_uninstall" perhaps?  This name is the worst.
+ * int alpm_remove_target(char *target); */
+static int lalpm_remove_target(lua_State *L)
+{
+    char *pkgname;
+    int result;
+
+    pkgname = luaL_checkstring(L, 1);
+    result  = alpm_remove_target(pkgname);
+
+    lua_pushinteger(L, result);
+    return 1;
+}    
+
 /* int alpm_depcmp(pmpkg_t *pkg, pmdepend_t *dep); */
 static int lalpm_depcmp(lua_State *L)
 {
@@ -2494,7 +2557,10 @@ static luaL_Reg const pkg_funcs[] =
     { "trans_release",              lalpm_trans_release },
 
     { "sync_sysupgrade",            lalpm_sync_sysupgrade },
-
+    { "sync_target",                lalpm_sync_target     },
+    { "sync_dbtarget",              lalpm_sync_dbtarget   },
+    { "add_target",                 lalpm_add_target      },
+    { "remove_target",              lalpm_remove_target   },
 
     { "depcmp",                     lalpm_depcmp },
     { "checkdeps",                  lalpm_checkdeps },
