@@ -1,8 +1,8 @@
 # Clyde update for Pacman 3.4
 
 Here is the readme for my branch of Clyde that should work with
-Pacman 3.4.  This is mostly working by now.  Not quite, though.  Test
-test program breaks.
+Pacman 3.4.  This is mostly working by now.  Not quite, though.  The
+test program breaks on changelog stuff.
 
 # Building example
 
@@ -33,7 +33,7 @@ Now you can build clyde like so:
 
 So on and so forth...
 
-# Authors
+# TODO List
 
-Clyde is written by DigitalKiwi and Ghost1227.
-Clyde was updated to use pacman 3.4 by juster.
+* alpm_pkg_unused_deltas
+* alpm_cb_fetch callback
