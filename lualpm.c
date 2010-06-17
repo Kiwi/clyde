@@ -1240,6 +1240,16 @@ static int lalpm_conflict_get_package2(lua_State *L)
     return 1;
 }
 
+/* const char *alpm_conflict_get_reason(pmconflict_t *conflict); */
+static int lalpm_conflict_get_reason(lua_State *L)
+{
+    pmconflict_t *conflict = check_pmconflict(L, 1);
+    const char *result = alpm_conflict_get_reason(conflict);
+    push_string(L, result);
+
+    return 1;
+}
+
 static pmconflict_t **push_pmconflict_box(lua_State *L)
 {
     pmconflict_t **box = lua_newuserdata(L, sizeof(pmconflict_t*));
@@ -1249,6 +1259,7 @@ static pmconflict_t **push_pmconflict_box(lua_State *L)
         static luaL_Reg const methods[] = {
             { "conflict_get_package1",  lalpm_conflict_get_package1 },
             { "conflict_get_package2",  lalpm_conflict_get_package2 },
+            { "conflict_get_reason",    lalpm_conflict_get_reason    },
             { NULL,                     NULL }
         };
         lua_newtable(L);

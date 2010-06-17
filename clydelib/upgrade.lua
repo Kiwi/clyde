@@ -96,8 +96,11 @@ local function clyde_upgrade(targets)
             end
         elseif (alpm.pm_errno() == "P_E_CONFLICTING_DEPS") then
             for i, conflict in ipairs(data) do
-                 printf(g(C.blub("::")..C.bright(" %s: conflicts with %s\n")),
-                    conflict:conflict_get_package1(), conflict:conflict_get_package2())
+                 printf(g( C.blub("::")..
+                        C.bright(" %s: conflicts with %s (%s)\n")),
+                    conflict:conflict_get_package1(),
+                    conflict:conflict_get_package2(),
+                    conflict:conflict_get_reason())
             end
             --[[local package1 = conflict:conflict_get_package1()
                 local package2 = conflict:conflict_get_package2()
