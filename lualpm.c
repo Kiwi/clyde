@@ -2538,8 +2538,8 @@ static luaL_Reg const pkg_funcs[] =
     { "option_add_ignoregrp",       lalpm_option_add_ignoregrp }, /* works */
     { "option_set_ignoregrps",      lalpm_option_set_ignoregrps },
     { "option_remove_ignoregrp",    lalpm_option_remove_ignoregrp }, /* works */
-/*    { "option_get_arch",            lalpm_option_get_arch }, */
-/*    { "option_set_arch",            lalpm_option_set_arch }, */
+    { "option_get_arch",            lalpm_option_get_arch },
+    { "option_set_arch",            lalpm_option_set_arch },
     { "option_set_usedelta",        lalpm_option_set_usedelta }, /* works */
     { "option_get_localdb",         lalpm_option_get_localdb }, /* works */
     { "option_get_syncdbs",         lalpm_option_get_syncdbs }, /* works */
