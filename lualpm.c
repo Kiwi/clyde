@@ -177,6 +177,10 @@ typedef enum types {
     PMFILECONFLICT_T
 } types;
 
+/* The pkgreason_t enum is either 0 or 1 ... map these to strings */
+const char * PKGREASON_TOSTR[] = { "P_R_EXPLICIT", "P_R_DEPEND" };
+#define PKGREASON_COUNT 2
+
 static int
 push_typed_object(lua_State *L, types value_type, void *value)
 {
@@ -493,6 +497,33 @@ static int lalpm_db_search(lua_State *L)
     return 1;
 }
 
+/* int alpm_db_set_pkgreason
+   (pmdb_t *db, const char *name, pmpkgreason_t reason); */
+static int lalpm_db_set_pkgreason ( lua_State *L )
+{
+    const char *pkg_name, *pkg_reason;
+    pmpkgreason_t alpm_reason;
+    pmdb_t *db;
+    int result;
+
+    db         = check_pmdb( L, 1 );
+    pkg_name   = luaL_checkstring( L, 2 );
+    pkg_reason = luaL_checkstring( L, 3 );
+
+    alpm_reason = PKGREASON_COUNT;
+    for ( int i=0; i < PKGREASON_COUNT ; ++i ) {
+        if ( strcmp( pkg_reason, PKGREASON_STR[ i ] ) == 0 ) {
+            alpm_reason = i;
+        }
+    }
+
+    result = ( alpm_reason < PKGREASON_COUNT
+               ? alpm_db_set_pkgreason( db, pkg_name, alpm_reason )
+               : -1 );
+    lua_pushnumber( result );
+    return 1;
+}
+
 /*methods have pmdb_t as first arg */
 static pmdb_t **push_pmdb_box(lua_State *L)
 {
@@ -511,6 +542,7 @@ static pmdb_t **push_pmdb_box(lua_State *L)
             { "db_readgrp",             lalpm_db_readgrp },
             { "db_get_grpcache",        lalpm_db_get_grpcache },
             { "db_search",              lalpm_db_search },
+            { "db_set_pkgreason",       lalpm_db_set_pkgreason },
             { NULL,                     NULL }
         };
         lua_newtable(L);
@@ -694,8 +726,7 @@ static int lalpm_pkg_get_reason(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     pmpkgreason_t reason = alpm_pkg_get_reason(pkg);
-    const char *list[] = {"P_R_EXPLICIT", "P_R_DEPEND"};
-    push_string(L, list[reason]);
+    push_string(L, PKGREASON_TOSTR[reason]);
 
     return 1;
 }
