@@ -113,7 +113,7 @@ local function clyde_remove(targets)
     end
 
     local holdpkg = false
-    local transpkgs = alpm.trans_get_pkgs()
+    local transpkgs = alpm.trans_get_remove()
     for i, pkg in ipairs(transpkgs) do
         if (tblisin(config.holdpkg, pkg:pkg_get_name())) then
             lprintf("LOG_WARNING", g("%s is designated as a HoldPkg.\n"), pkg:pkg_get_name())

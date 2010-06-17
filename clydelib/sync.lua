@@ -775,7 +775,7 @@ local function sync_aur_trans(targets)
         return transcleanup()
     end
 
-    local packages = alpm.trans_get_pkgs()
+    local packages = alpm.trans_get_add()
     --[[
     if (not next(packages) and not found) then
         printf(g(" local database is up to date\n"));
@@ -1414,7 +1414,7 @@ local function sync_trans(targets)
         return transcleanup()
     end
 
-    local packages = alpm.trans_get_pkgs()
+    local packages = alpm.trans_get_add()
     if (not next(packages) and not found and not next(aurpkgs)) then
         printf(g(" local database is up to date\n"));
         return transcleanup()

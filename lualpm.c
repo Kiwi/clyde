@@ -1930,10 +1930,19 @@ static int lalpm_trans_get_flags(lua_State *L)
     return push_transflags_table(L, x);
 }
 
-/* alpm_list_t * alpm_trans_get_pkgs(); */
-static int lalpm_trans_get_pkgs(lua_State *L)
+/* alpm_list_t * alpm_trans_get_add(); */
+static int lalpm_trans_get_add(lua_State *L)
 {
-    alpm_list_t *list = alpm_trans_get_pkgs();
+    alpm_list_t *list = alpm_trans_get_add();
+    alpm_list_to_any_table(L, list, PMPKG_T);
+
+    return 1;
+}
+
+/* alpm_list_t * alpm_trans_get_remove(); */
+static int lalpm_trans_get_remove(lua_State *L)
+{
+    alpm_list_t *list = alpm_trans_get_remove();
     alpm_list_to_any_table(L, list, PMPKG_T);
 
     return 1;
@@ -2562,7 +2571,8 @@ static luaL_Reg const pkg_funcs[] =
     { "pkg_vercmp",                 lalpm_pkg_vercmp },
     { "trans_init",                 lalpm_trans_init },
     { "trans_get_flags",            lalpm_trans_get_flags },
-    { "trans_get_pkgs",             lalpm_trans_get_pkgs },
+    { "trans_get_add",              lalpm_trans_get_add },
+    { "trans_get_remove",           lalpm_trans_get_remove },
     { "trans_prepare",              lalpm_trans_prepare },
     { "trans_commit",               lalpm_trans_commit },
     { "trans_interrupt",            lalpm_trans_interrupt },
