@@ -671,7 +671,7 @@ local function sync_aur_trans(targets)
         alpm.logaction("starting full system upgrade\n")
         local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
 
-        if (alpm.trans_sysupgrade(op_s_upgrade) == -1) then
+        if (alpm.sync_sysupgrade(op_s_upgrade) == -1) then
             eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
             retval = 1
             return transcleanup()
@@ -1301,7 +1301,7 @@ local function sync_trans(targets)
         alpm.logaction("starting full system upgrade\n")
         local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
 
-        if (alpm.trans_sysupgrade(op_s_upgrade) == -1) then
+        if (alpm.sync_sysupgrade(op_s_upgrade) == -1) then
             eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
             retval = 1
             return transcleanup()

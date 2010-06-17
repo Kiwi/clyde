@@ -2215,16 +2215,6 @@ static int lalpm_trans_init(lua_State *L)
     return 1;
 }
 
-/* int alpm_trans_sysupgrade(int enable_downgrade); */
-static int lalpm_trans_sysupgrade(lua_State *L)
-{
-    const int enable_downgrade = lua_tointeger(L, 1);
-    const int result = alpm_trans_sysupgrade(enable_downgrade);
-    lua_pushnumber(L, result);
-
-    return 1;
-}
-
 /* int alpm_trans_prepare(alpm_list_t **data); */
 static int lalpm_trans_prepare(lua_State *L)
 {
@@ -2290,6 +2280,16 @@ static int lalpm_trans_interrupt(lua_State *L)
 static int lalpm_trans_release(lua_State *L)
 {
     const int result = alpm_trans_release();
+    lua_pushnumber(L, result);
+
+    return 1;
+}
+
+/* int alpm_sync_sysupgrade(int enable_downgrade); */
+static int lalpm_sync_sysupgrade(lua_State *L)
+{
+    const int enable_downgrade = lua_tointeger(L, 1);
+    const int result = alpm_sync_sysupgrade(enable_downgrade);
     lua_pushnumber(L, result);
 
     return 1;
@@ -2488,11 +2488,13 @@ static luaL_Reg const pkg_funcs[] =
     { "trans_init",                 lalpm_trans_init },
     { "trans_get_flags",            lalpm_trans_get_flags },
     { "trans_get_pkgs",             lalpm_trans_get_pkgs },
-    { "trans_sysupgrade",           lalpm_trans_sysupgrade },
     { "trans_prepare",              lalpm_trans_prepare },
     { "trans_commit",               lalpm_trans_commit },
     { "trans_interrupt",            lalpm_trans_interrupt },
     { "trans_release",              lalpm_trans_release },
+
+    { "sync_sysupgrade",            lalpm_sync_sysupgrade },
+
 
     { "depcmp",                     lalpm_depcmp },
     { "checkdeps",                  lalpm_checkdeps },
