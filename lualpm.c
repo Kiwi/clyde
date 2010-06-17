@@ -1798,8 +1798,6 @@ static int lalpm_option_remove_ignoregrp(lua_State *L)
 }
 
 /* const char *alpm_option_get_arch(); */
-/* does not exist in Pacman v3.3.0 - libalpm v4.0.0, in git */
-/*
 static int lalpm_option_get_arch(lua_State *L)
 {
     const char *result = alpm_option_get_arch();
@@ -1807,11 +1805,8 @@ static int lalpm_option_get_arch(lua_State *L)
 
     return 1;
 }
-*/
 
 /* void alpm_option_set_arch(const char *arch); */
-/* does not exist in Pacman v3.3.0 - libalpm v4.0.0, in git */
-/*
 static int lalpm_option_set_arch(lua_State *L)
 {
     const char *arch = luaL_checkstring(L, 1);
@@ -1819,7 +1814,6 @@ static int lalpm_option_set_arch(lua_State *L)
 
     return 0;
 }
-*/
 
 /* void alpm_option_set_usedelta(int usedelta); */
 static int lalpm_option_set_usedelta(lua_State *L)
