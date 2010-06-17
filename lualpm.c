@@ -16,7 +16,6 @@
 
 #include <alpm.h>
 #include <alpm_list.h>
-#include "alpm_mia.h"
 
 /* A global is required for alpm C -> Lua gateways to get their Lua
  * goodness from.  Unfortunately alpm callbacks have no userdata or
