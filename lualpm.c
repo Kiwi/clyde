@@ -1908,17 +1908,6 @@ static int lalpm_pkg_vercmp(lua_State *L)
     return 1;
 }
 
-/* pmtranstype_t alpm_trans_get_type(); */
-static int lalpm_trans_get_type(lua_State *L)
-{
-    pmtranstype_t x = alpm_trans_get_type();
-    if (x == (pmtranstype_t)-1) {
-        raise_last_pm_error(L);
-    }
-
-    return push_transtype(L, x);
-}
-
 /* unsigned int alpm_trans_get_flags(); */
 static int lalpm_trans_get_flags(lua_State *L)
 {
@@ -2509,7 +2498,6 @@ static luaL_Reg const pkg_funcs[] =
     { "db_unregister_all",          lalpm_db_unregister_all },
     { "fetch_pkgurl",               lalpm_fetch_pkgurl },
     { "pkg_vercmp",                 lalpm_pkg_vercmp },
-    { "trans_get_type",             lalpm_trans_get_type },
     { "trans_init",                 lalpm_trans_init },
     { "trans_get_flags",            lalpm_trans_get_flags },
     { "trans_get_pkgs",             lalpm_trans_get_pkgs },
