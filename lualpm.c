@@ -809,16 +809,6 @@ static int lalpm_pkg_get_backup(lua_State *L)
     return 1;
 }
 
-/* alpm_list_t *alpm_pkg_get_removes(pmpkg_t *pkg); */
-static int lalpm_pkg_get_removes(lua_State *L)
-{
-    pmpkg_t *pkg = check_pmpkg(L, 1);
-    alpm_list_t *list = alpm_pkg_get_removes(pkg);
-    alpm_list_to_any_table(L, list, PMPKG_T);
-
-    return 1;
-}
-
 /* pmdb_t *alpm_pkg_get_db(pmpkg_t *pkg); */
 static int lalpm_pkg_get_db(lua_State *L)
 {
@@ -991,7 +981,6 @@ static pmpkg_t **push_pmpkg_box(lua_State *L)
             { "pkg_get_replaces",       lalpm_pkg_get_replaces },
             { "pkg_get_files",          lalpm_pkg_get_files },
             { "pkg_get_backup",         lalpm_pkg_get_backup },
-            { "pkg_get_removes",        lalpm_pkg_get_removes },
             { "pkg_get_db",             lalpm_pkg_get_db },
             { "pkg_changelog_open",     lalpm_pkg_changelog_open },
             { "pkg_changelog_read",     lalpm_pkg_changelog_read },
