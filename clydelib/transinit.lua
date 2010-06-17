@@ -7,8 +7,8 @@ local printf = util.printf
 local eprintf = util.eprintf
 local g = utilcore.gettext
 
-function trans_init(ttype, flags)
-    local ret  = alpm.trans_init(ttype, flags, callback.cb_trans_evt, callback.cb_trans_conv, callback.cb_trans_progress)
+function trans_init(flags)
+    local ret  = alpm.trans_init(flags, callback.cb_trans_evt, callback.cb_trans_conv, callback.cb_trans_progress)
     if (ret == -1) then
         eprintf("LOG_ERROR", g("failed to init transaction (%s)\n"), alpm.strerrorlast())
         if (alpm.pm_errno() == "P_E_HANDLE_LOCK") then

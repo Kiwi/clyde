@@ -278,7 +278,7 @@ local function sync_synctree(level, syncs)
     local success = 0
     local ret
 
-    if (trans_init("T_T_SYNC", config.flags) == -1) then
+    if (trans_init(config.flags) == -1) then
         return 0
     end
 
@@ -662,7 +662,7 @@ local function sync_aur_trans(targets)
         return retval
     end
 
-    if (trans_init("T_T_SYNC", config.flags) == -1) then
+    if (trans_init(config.flags) == -1) then
         return 1
     end
 
@@ -1292,7 +1292,7 @@ local function sync_trans(targets)
         return retval
     end
 
-    if (trans_init("T_T_SYNC", config.flags) == -1) then
+    if (trans_init(config.flags) == -1) then
         return 1
     end
 
@@ -1530,7 +1530,7 @@ local function clyde_sync(targets)
 
     if (config.op_s_clean > 0) then
         local ret = 0
-        local transinitret = trans_init("T_T_SYNC", {})
+        local transinitret = trans_init({})
 
         if (transinitret == -1) then
             return 1

@@ -62,7 +62,7 @@ local function clyde_upgrade(targets)
     targets = nil
     targets = tblstrdup(temptargs)
 
-    if (trans_init("T_T_UPGRADE", config.flags) == -1) then
+    if (trans_init(config.flags) == -1) then
         return 1
     end
 

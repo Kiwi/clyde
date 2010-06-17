@@ -53,7 +53,7 @@ local function clyde_remove(targets)
         return 1
     end
 
-    if (trans_init("T_T_REMOVE", config.flags) == -1) then
+    if (trans_init(config.flags) == -1) then
         return 1
     end
 
