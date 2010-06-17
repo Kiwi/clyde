@@ -521,7 +521,7 @@ static pmdb_t **push_pmdb_box(lua_State *L)
 
     return box;
 }
-/* int alpm_pkg_load(const char *filename, unsigned short full, pmpkg_t **pkg); */
+/* int alpm_pkg_load(const char *filename, int full, pmpkg_t **pkg); */
 /* lua prototype is pkg, ret = alpm.pkg_load(filename, true/false) */
 static int lalpm_pkg_load(lua_State *L)
 {
@@ -880,21 +880,21 @@ static int lalpm_pkg_changelog_close(lua_State *L)
     return 1;
 }
 
-/* unsigned short alpm_pkg_has_scriptlet(pmpkg_t *pkg); */
+/* int alpm_pkg_has_scriptlet(pmpkg_t *pkg); */
 static int lalpm_pkg_has_scriptlet(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
-    unsigned short result = alpm_pkg_has_scriptlet(pkg);
+    int result = alpm_pkg_has_scriptlet(pkg);
     lua_pushnumber(L, result);
 
     return 1;
 }
 
-/* unsigned short alpm_pkg_has_force(pmpkg_t *pkg); */
+/* int alpm_pkg_has_force(pmpkg_t *pkg); */
 static int lalpm_pkg_has_force(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
-    unsigned short result = alpm_pkg_has_force(pkg);
+    int result = alpm_pkg_has_force(pkg);
     lua_pushnumber(L, result);
 
     return 1;
@@ -1627,16 +1627,16 @@ static int lalpm_option_get_lockfile(lua_State *L)
 
 /* no set_lockfile, path is determined from dbpath */
 
-/* unsigned short alpm_option_get_usesyslog(); */
+/* int alpm_option_get_usesyslog(); */
 static int lalpm_option_get_usesyslog(lua_State *L)
 {
-    unsigned short result = alpm_option_get_usesyslog();
+    int result = alpm_option_get_usesyslog();
     lua_pushnumber(L, result);
 
     return 1;
 }
 
-/* void alpm_option_set_usesyslog(unsigned short usesyslog); */
+/* void alpm_option_set_usesyslog(int usesyslog); */
 static int lalpm_option_set_usesyslog(lua_State *L)
 {
     const int usesyslog = lua_toboolean(L, 1);
@@ -1820,7 +1820,7 @@ static int lalpm_option_set_arch(lua_State *L)
 }
 */
 
-/* void alpm_option_set_usedelta(unsigned short usedelta); */
+/* void alpm_option_set_usedelta(int usedelta); */
 static int lalpm_option_set_usedelta(lua_State *L)
 {
     const int usedelta = lua_toboolean(L, 1);
