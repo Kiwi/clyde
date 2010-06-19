@@ -19,7 +19,7 @@ _gitbranch=${BRANCH:-'pacman3.4'}
 
 build() {
   DIST_DIR="${srcdir}/clyde"
-  msg 'Creating CPANPLUS::Dist::Arch developer package...'
+  msg 'Creating package for pacman 3.4 fork of clyde...'
 
   if [ -d "$DIST_DIR" ] ; then
     warning 'Repository directory already exists!'
@@ -41,6 +41,7 @@ build() {
 
   msg 'Building clyde...'
   make lualpm clyde || return 1
+  msg 'Installing clyde...'
   make DESTDIR=${pkgdir} install_lualpm install_clyde || return 1
   install -Dm644 LICENSE ${pkgdir}/usr/share/licenses/${pkgname}/LICENSE
 }
