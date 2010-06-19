@@ -16,7 +16,6 @@ local realpath = util.realpath
 local indentprint = util.indentprint
 local list_display = util.list_display
 local display_targets = util.display_targets
-local display_synctargets = util.display_synctargets
 local tbljoin = util.tbljoin
 local tblisin = util.tblisin
 local fastremove = util.fastremove

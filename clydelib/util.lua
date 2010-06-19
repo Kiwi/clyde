@@ -448,19 +448,9 @@ function display_targets(pkgs, install)
     end
 end
 
-function display_synctargets(syncpkgs)
-    local pkglist, rpkglist = {}, {}
-    for i, pkg in ipairs(syncpkgs) do
-        tblinsert(pkglist, pkg)
-        local to_replace = pkg:pkg_get_removes()
-
-        for i, rp in ipairs(to_replace) do
-            tblinsert(rpkglist, rp)
-        end
-    end
-
-    display_targets(rpkglist, false)
-    display_targets(pkglist, true)
+function display_alpm_targets()
+    display_targets(alpm.trans_get_remove(), false)
+    display_targets(alpm.trans_get_add(), true)
 end
 
 function display_new_optdepends(oldpkg, newpkg)

@@ -22,7 +22,7 @@ local tblinsert = util.tblinsert
 local realpath = util.realpath
 local indentprint = util.indentprint
 local list_display = util.list_display
-local display_synctargets = util.display_synctargets
+local display_alpm_targets = util.display_alpm_targets
 local tbljoin = util.tbljoin
 local tblisin = util.tblisin
 local fastremove = util.fastremove
@@ -1471,14 +1471,14 @@ local function sync_trans(targets)
     if (next(aurpkgs)) then
         if (next(packages)) then
             printf(C.greb("\n==>")..C.bright(" Installing the following packages from repos\n"))
-            display_synctargets(packages)
+            display_alpm_targets(packages)
         end
 
         printf(C.greb("\n==>")..C.bright(" Installing the following packages from AUR\n"))
         local str = string.format(g("Targets (%d):"), #needs)
         list_display(str, needs)
     else
-        display_synctargets(packages)
+        display_alpm_targets(packages)
     end
 
     printf("\n")
