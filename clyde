@@ -766,11 +766,11 @@ local function _parseconfig(file, givensection, givendb)
         setrepeatingoption(str, "HoldPkg", option_add_holdpkg) end;
     ['SyncFirst'] = function(str)
         setrepeatingoption(str, "SyncFirst", option_add_syncfirst) end;
-    --['Architecture'] = function(str)
-        -- if (not alpm.option_get_arch()) then
-        --    setarch(str)
-        --    end
-    --end;
+    ['Architecture'] = function(str)
+        if (not alpm.option_get_arch()) then
+            alpm.option_set_arch(str)
+        end
+    end;
     ['DBPath'] = function(str)
         if (not config.dbpath) then
             config.dbpath = str
@@ -901,8 +901,7 @@ local function _parseconfig(file, givensection, givendb)
                         end
                     elseif (key == "Server")  then
                         local temp = str:gsub("%$repo", section)
-                        --TODO: fix this when pacman adds this function...
-                        --local arch = alpm.option_get_arch()
+                        local arch = alpm.option_get_arch()
                         if (arch) then
                             local server = temp:gsub("%$arch", arch)
                         else
