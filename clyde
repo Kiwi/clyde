@@ -901,15 +901,19 @@ local function _parseconfig(file, givensection, givendb)
                         end
                     elseif (key == "Server")  then
                         local temp = str:gsub("%$repo", section)
-                        local arch = alpm.option_get_arch()
-                        if (temp:match("%$arch") and not arch) then
-                            lprintf("LOG_ERROR",
-                                    g("The mirror '%s' contains the $arch" ..
-                                      " variable, but no Architecture is defined.\n"), str)
-                            ret = 1
-                            return configcleanup()
+                        local server
+                        if (temp:match("%$arch")) then
+                            local arch = alpm.option_get_arch()
+                            if ( not arch ) then
+                                lprintf("LOG_ERROR",
+                                        g("The mirror '%s' contains the $arch" ..
+                                          " variable, but no Architecture is defined.\n"), str)
+                                ret = 1
+                                return configcleanup()
+                             end
+
+                             server = temp:gsub("%$arch", arch)
                         end
-                        local server = temp:gsub("%$arch", arch)
 
                         if (db:db_setserver(server) ~= 0) then
                             lprintf("LOG_ERROR", g("could not add server URL to database '%s': %s (%s)\n"),
