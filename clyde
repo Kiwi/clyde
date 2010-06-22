@@ -900,9 +900,8 @@ local function _parseconfig(file, givensection, givendb)
                             return configcleanup()
                         end
                     elseif (key == "Server")  then
-                        local temp = str:gsub("%$repo", section)
-                        local server
-                        if (temp:match("%$arch")) then
+                        local server = str:gsub("%$repo", section)
+                        if (server:match("%$arch")) then
                             local arch = alpm.option_get_arch()
                             if ( not arch ) then
                                 lprintf("LOG_ERROR",
@@ -912,7 +911,7 @@ local function _parseconfig(file, givensection, givendb)
                                 return configcleanup()
                              end
 
-                             server = temp:gsub("%$arch", arch)
+                             server = server:gsub("%$arch", arch)
                         end
 
                         if (db:db_setserver(server) ~= 0) then
