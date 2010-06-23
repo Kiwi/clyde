@@ -11,6 +11,7 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/time.h>
+#include <sys/utsname.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -189,6 +190,15 @@ static int clyde_umask(lua_State *L)
         return 1;
 }
 
+static int clyde_arch(lua_State *L)
+{
+    struct utsname un;
+    uname(&un);
+    lua_pushstring(L, un.machine);
+    return 1;
+}
+
+
 static luaL_Reg const pkg_funcs[] = {
     { "bindtextdomain",             clyde_bindtextdomain },
     { "textdomain",                 clyde_textdomain },
@@ -201,6 +211,7 @@ static luaL_Reg const pkg_funcs[] = {
     { "ioctl",                      clyde_ioctl },
     { "mkdir",                      clyde_mkdir },
     { "umask",                      clyde_umask },
+    { "arch",                       clyde_arch },
     { NULL,                         NULL}
 };
 

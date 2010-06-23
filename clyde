@@ -768,6 +768,9 @@ local function _parseconfig(file, givensection, givendb)
         setrepeatingoption(str, "SyncFirst", option_add_syncfirst) end;
     ['Architecture'] = function(str)
         if (not alpm.option_get_arch()) then
+            if (str == "auto") then
+                str = utilcore.arch();
+            end
             alpm.option_set_arch(str)
         end
     end;
