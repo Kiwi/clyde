@@ -51,12 +51,8 @@ install_clyde: clyde
 	    $(DESTDIR)$(libdir)/clydelib/signal.so
 	$(INSTALL_DATA) clydelib/*.lua $(DESTDIR)$(sharedir)/clydelib/
 	$(INSTALL_DATA) man/clyde.8 $(DESTDIR)$(man8dir)/clyde$(manext)
-	if test -d $(zshcompdir) ; then \
-	    $(INSTALL_DATA) extras/_clydezsh $(DESTDIR)$(zshcompdir)/_clyde ; \
-	fi
-	if test -d $(bashcompdir) ; then \
-	    $(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde ; \
-	fi
+	$(INSTALL_DATA) extras/_clydezsh $(DESTDIR)$(zshcompdir)/_clyde
+	$(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde
 
 clean:
 	-rm -f *.so clydelib/*.so
@@ -68,11 +64,7 @@ uninstall_clyde:
 	rm -Rf $(DESTDIR)$(sharedir)/clydelib
 	rm -Rf $(DESTDIR)$(libdir)/clydelib
 	rm -f $(DESTDIR)$(bindir)/clyde $(DESTDIR)$(man8dir)/clyde$(manext)
-	if test -f $(DESTDIR)$(zshcompdir)/_clyde ; then \
-	    rm -f $(DESTDIR)$(zshcompdir)/_clyde  ;      \
-	fi
-	if test -f $(DESTDIR)$(bashcompdir)/clyde ; then \
-	    rm -f $(DESTDIR)$(bashcompdir)/clyde  ;      \
-	fi
+	rm -f $(DESTDIR)$(zshcompdir)/_clyde
+	rm -f $(DESTDIR)$(bashcompdir)/clyde
 
 uninstall: uninstall_lualpm uninstall_clyde
