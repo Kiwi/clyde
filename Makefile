@@ -22,7 +22,7 @@ manext = .8
 all: clyde lualpm
 
 .PHONY: all lualpm clyde install install_lualpm install_clyde \
-        clean uninstall
+        clean uninstall uninstall_lualpm uninstall_clyde
 
 lualpm: lualpm.so
 
@@ -44,7 +44,6 @@ install_lualpm: lualpm.so
 
 install_clyde: clyde
 	$(INSTALL_PROGRAM) clyde $(DESTDIR)$(bindir)/clyde
-
 	$(INSTALL_DIR) $(DESTDIR)$(sharedir)/clydelib
 	$(INSTALL_PROGRAM) clydelib/utilcore.so \
 	    $(DESTDIR)$(libdir)/clydelib/utilcore.so
@@ -52,25 +51,28 @@ install_clyde: clyde
 	    $(DESTDIR)$(libdir)/clydelib/signal.so
 	$(INSTALL_DATA) clydelib/*.lua $(DESTDIR)$(sharedir)/clydelib/
 	$(INSTALL_DATA) man/clyde.8 $(DESTDIR)$(man8dir)/clyde$(manext)
-
-	if test -d $(zshcompdir) ; then
-	    $(INSTALL_DATA) extras/_clydezsh $(DESTDIR)$(zshcompdir)/_clyde
+	if test -d $(zshcompdir) ; then \
+	    $(INSTALL_DATA) extras/_clydezsh $(DESTDIR)$(zshcompdir)/_clyde ; \
 	fi
-	if test -d $(bashcompdir) ; then
-	    $(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde
+	if test -d $(bashcompdir) ; then \
+	    $(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde ; \
 	fi
 
 clean:
 	-rm -f *.so clydelib/*.so
 
-uninstall:
+uninstall_lualpm:
 	rm -f $(DESTDIR)$(libdir)/lualpm.so
-	rm -Rf $(DESTDIR)$(sharedir)/clydelib
-	rm -f $(DESTDIR)$(bindir)/clyde
 
-	if test -f $(DESTDIR)$(zshcompdir)/_clyde ; then
-	    rm -f $(DESTDIR)$(zshcompdir)/_clyde
+uninstall_clyde:
+	rm -Rf $(DESTDIR)$(sharedir)/clydelib
+	rm -Rf $(DESTDIR)$(libdir)/clydelib
+	rm -f $(DESTDIR)$(bindir)/clyde $(DESTDIR)$(man8dir)/clyde$(manext)
+	if test -f $(DESTDIR)$(zshcompdir)/_clyde ; then \
+	    rm -f $(DESTDIR)$(zshcompdir)/_clyde  ;      \
 	fi
-	if test -f $(DESTDIR)$(bashcompdir)/clyde ; then
-	    rm -f $(DESTDIR)$(bashcompdir)/clyde
+	if test -f $(DESTDIR)$(bashcompdir)/clyde ; then \
+	    rm -f $(DESTDIR)$(bashcompdir)/clyde  ;      \
 	fi
+
+uninstall: uninstall_lualpm uninstall_clyde
