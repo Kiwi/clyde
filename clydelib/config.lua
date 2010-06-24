@@ -18,7 +18,7 @@ return {
 ['verbose'] = 0;
 ['version'] = false;
 ['help'] = false;
-['noconfirm'] = false;
+['confirm'] = true;
 ['noprogressbar'] = false;
 ['logmask'] = {};
 --	/* unfortunately, we have to keep track of paths both here and in the library

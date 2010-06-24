@@ -127,6 +127,7 @@ local function usage(op, myname)
         printf(g("      --config <path>  set an alternate configuration file\n"))
         printf(g("      --logfile <path> set an alternate log file\n"))
         printf(g("      --noconfirm      do not ask for any confirmation\n"))
+        printf(g("      --confirm        do ask for confirmation (default)\n"))
         printf(g("      --noprogressbar  do not show a progress bar when downloading files\n"))
         printf(g("      --noscriptlet    do not execute the install scriptlet if one exists\n"))
         printf(g("  -v, --verbose        be verbose\n"))
@@ -305,6 +306,8 @@ local longopts = {
         {"repos",       "no_argument",      0,  'OP_REPOS'},
         {"getpkgbuild", "no_argument",      0,  'G'},
         {"user",        "required_argument",0,  'OP_BUILD'},
+        {"noconfirm",   "no_argument",      0, 'OP_NOCONFIRM'},
+        {"confirm",     "no_argument",      0, 'OP_CONFIRM'},
     --[[
     --pacman feature functions
     --]]
@@ -345,7 +348,6 @@ local longopts = {
         {"verbose",    "no_argument",       0, 'v'},
         {"downloadonly", "no_argument",     0, 'w'},
         {"refresh",    "no_argument",       0, 'y'},
-        {"noconfirm",  "no_argument",       0, 'OP_NOCONFIRM'},
         {"config",     "required_argument", 0, 'OP_CONFIG'},
         {"ignore",     "required_argument", 0, 'OP_IGNORE'},
         {"debug",      "optional_argument", 0, 'OP_DEBUG'},
@@ -475,7 +477,8 @@ local longopts = {
             tblinsert(config.flags, "T_F_NOCONFLICTS")
         end;
         ['y'] = function() config.op_s_sync = config.op_s_sync + 1 end;
-        ['OP_NOCONFIRM'] = function() config.noconfirm = true end;
+        ['OP_NOCONFIRM'] = function() config.confirm = false end;
+        ['OP_CONFIRM'] = function() config.confirm = true end;
         ['OP_CONFIG'] = function(opt) config.configfile = opt end;
         ['OP_IGNORE'] = function(opt)
             if (opt) then
@@ -649,8 +652,13 @@ local function config_init(uid)
             local options = {
                 "#Colors are enabled by default. To disable them, uncomment the following line";
                 "#NoColor";
+                "";
                 "#Searching AUR is enabled by default. Uncomment the following line to only search with --aur";
                 "#ReposOnly";
+                "";
+                "#The default and safe behavior is to ask whether you want to edit the files in an AUR package";
+                "#Uncomment the following line to supress these questions and install the package without reviewing the file";
+                "ConfirmInstall";
                 "#You must set this to a normal user to install packages from AUR safely while running without sudo";
                 "BuildUser = "..util.getbuilduser();
             }
@@ -721,6 +729,12 @@ local function _parseconfig(file, givensection, givendb)
             config.op_use_color = false
             colorize.disable()
             lprintf("LOG_DEBUG", "config: nocolor\n")
+        end
+    end;
+    ['ConfirmInstall'] = function()
+        lprintf("LOG_DEBUG", "config.confirm=%s\n", tostring(config.confirm))
+        if (not config.confirm) then
+            config.confirm = true
         end
     end;
     ['Editor'] = function(str)
@@ -962,7 +976,7 @@ function main()
     localize()
     alpm.initialize()
     config_init(myuid)
-     if (utilcore.isatty(1) == 0 and not config.op_use_color) then
+    if (utilcore.isatty(1) == 0 and not config.op_use_color) then
         colorize.disable()
     end
     alpm.option_set_logcb(callback.cb_log)
@@ -975,6 +989,9 @@ function main()
         eprintf("LOG_ERROR", g("could not register 'local' database (%s)\n"), alpm.strerrorlast())
         cleanup(1)
     end
+
+    -- we first have to read the command line arguments first because the
+    -- location of the config file depends on these
     ret = parseargs()
     if (ret ~= 0) then
         cleanup(ret)

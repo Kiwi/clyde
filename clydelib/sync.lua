@@ -918,7 +918,7 @@ end
 local function customizepkg(target)
     local user = util.getbuilduser()
     lfs.chdir("/tmp/clyde-"..user.."/"..target.."/"..target)
-    if (not config.noconfirm) then
+    if (config.confirm) then
         local editor
         if (not config.editor) then
             printf("No editor is set.\n")
@@ -1191,7 +1191,7 @@ local function aur_install(targets)
     local pacmanexplicit = {}
     local pacmandeps = {}
     local aurpkgs = {}
-    local noconfirm = config.noconfirm
+    local confirm = config.confirm
     for i, pkg in ipairs(needs) do
         if (pacmaninstallable(pkg)) then
             tblinsert(pacmanpkgs, pkg)
@@ -1210,12 +1210,12 @@ local function aur_install(targets)
         end
     end
 
-    config.noconfirm = true
+    config.confirm = false
     sync_aur_trans(pacmanexplicit)
     tblinsert(config.flags, "T_F_ALLDEPS")
     sync_aur_trans(pacmandeps)
     removeflags("T_F_ALLDEPS")
-    config.noconfirm = noconfirm
+    config.confirm = confirm
 
     local installedtbl = {}
     local needscount = #needs - #pacmanpkgs

@@ -65,6 +65,15 @@ function strtrim(str)
     return str
 end
 
+function booltostring(bool)
+    -- this is no joke
+    if bool then
+        return "true"
+    else
+        return "false"
+    end
+end
+
 function basename(name)
     return name:match("/(%w+)$")
 end
@@ -474,10 +483,10 @@ end
 local function question(preset, fmt, ...)
     local stream
 
-    if (config.noconfirm) then
-        stream = "stdout"
-    else
+    if (config.confirm) then
         stream = "stderr"
+    else
+        stream = "stdout"
     end
 
     local str = string.format(fmt, ...)
@@ -489,7 +498,7 @@ local function question(preset, fmt, ...)
         fprintf(stream, " %s ", g("[y/N]"))
     end
 
-    if (config.noconfirm) then
+    if (not config.confirm) then
         fprintf(stream, "\n")
         return preset
     end
