@@ -15,6 +15,7 @@ return {
     --]]
 ['op'] = "PM_OP_MAIN";
 ['quiet'] = false;
+['regex'] = false;
 ['verbose'] = 0;
 ['version'] = false;
 ['help'] = false;
