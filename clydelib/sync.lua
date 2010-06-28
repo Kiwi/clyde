@@ -406,12 +406,10 @@ function sync_search(syncs, targets, shownumbers, install)
         if ( targets[1]:find("^^") or targets[1]:find("$$") ) then
             lprintf("LOG_DEBUG", "regex detected\n")
 
-            pattern = targets[1]
+            -- escape other regexp special chars so they are taken literally
+            pattern = targets[1]:gsub("([().%+*?[-])", "%%%1")
             targets[1] = targets[1]:gsub("^^", "")
             targets[1] = targets[1]:gsub("$$", "")
-
-            -- escape other regexp special chars so they are taken literally
-            targets[1] = targets[1]:gsub("([().%+*?$-])", "%%%1")
         end
         local searchurl = aururl..aurmethod.search.."arg="..url.escape(targets[1])
         local aurresults = aur.getgzip(searchurl)
