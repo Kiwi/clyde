@@ -401,16 +401,17 @@ function sync_search(syncs, targets, shownumbers, install)
             return (not found)
         end
 
-        local pattern = ""
-        if (config.regex) then
-            pattern = targets[1]
-        end
-
+        local pattern
         -- the following gets rid of some common regular expressions
-        if (config.regex and (targets[1]:find('^\^') ~= nil or targets[1]:find('\$$'))) then
+        if ( targets[1]:find("^^") or targets[1]:find("$$") ) then
             lprintf("LOG_DEBUG", "regex detected\n")
+
+            pattern = targets[1]
             targets[1] = targets[1]:gsub("^^", "")
             targets[1] = targets[1]:gsub("$$", "")
+
+            -- escape other regexp special chars so they are taken literally
+            targets[1] = targets[1]:gsub("([().%+*?$-])", "%%%1")
         end
         local searchurl = aururl..aurmethod.search.."arg="..url.escape(targets[1])
         local aurresults = aur.getgzip(searchurl)
@@ -423,13 +424,15 @@ function sync_search(syncs, targets, shownumbers, install)
         if (type(jsonresults.results) ~= "table") then
             jsonresults.results = {}
         end
-        for k, v in pairs(jsonresults.results) do
-            if (config.regex) then
-                if (v.Name:find(pattern) or v.Version:find(pattern) or v.Description:find(pattern) or v.NumVotes:find(pattern)) then
-                    aurpkgs[v.Name] = {['name'] = v.Name; ['version'] = v.Version; ['description'] = v.Description, ['votes'] = v.NumVotes}
-                end
-            else
-                aurpkgs[v.Name] = {['name'] = v.Name; ['version'] = v.Version; ['description'] = v.Description, ['votes'] = v.NumVotes}
+        for k, v in pairs( jsonresults.results ) do
+            if ( not pattern or v.Name:find(pattern)
+                             or v.Version:find(pattern)
+                             or v.Description:find(pattern)
+                             or v.NumVotes:find(pattern) ) then
+                aurpkgs[ v.Name ] = { name        = v.Name,
+                                      version     = v.Version,
+                                      description = v.Description,
+                                      votes       = v.NumVotes }
             end
         end
         prune(aurpkgs, targets)
