@@ -111,7 +111,6 @@ local function usage(op, myname)
         printf(g("  -s, --search <regex> search remote repositories for matching strings\n"))
         printf(g("  -u, --sysupgrade     upgrade installed packages (-uu allows downgrade)\n"))
         printf(g("  -w, --downloadonly   download packages but do not install/upgrade anything\n"))
-        printf(g("  -x, --regex          when searching aur, use lua regular expressions (pacman has regular expressions by default)\n"))
         printf(g("  -y, --refresh        download fresh package databases from the server\n"))
         printf(g("      --user <user>    user to run makepkg as when installing software from AUR\n"))
         printf(g("      --needed         don't reinstall up to date packages\n"))
@@ -305,7 +304,6 @@ local longopts = {
         {"repos",       "no_argument",      0,  'OP_REPOS'},
         {"getpkgbuild", "no_argument",      0,  'G'},
         {"user",        "required_argument",0,  'OP_BUILD'},
-        {"regex",       "no_argument",      0,  'x'},
     --[[
     --pacman feature functions
     --]]
@@ -475,7 +473,6 @@ local longopts = {
             tblinsert(config.flags, "T_F_DOWNLOADONLY")
             tblinsert(config.flags, "T_F_NOCONFLICTS")
         end;
-        ['x'] = function() config.regex = true end;
         ['y'] = function() config.op_s_sync = config.op_s_sync + 1 end;
         ['OP_NOCONFIRM'] = function() config.noconfirm = true end;
         ['OP_CONFIG'] = function(opt) config.configfile = opt end;
@@ -530,7 +527,7 @@ local longopts = {
         ['OP_ASEXPLICIT'] = function() tblinsert(config.flags, "T_F_ALLEXPLICIT") end;
 --        ['OP_ARCH'] = function() end;
     }
-    local shortopts = "RUQSTr:b:vkhscVfmnoldepqituwxyg"
+    local shortopts = "RUQSTr:b:vkhscVfmnoldepqituwyg"
     local clydeshortopts = "Ga"
     shortopts = shortopts..clydeshortopts
     local opttable = {}
@@ -735,12 +732,6 @@ local function _parseconfig(file, givensection, givendb)
         if (not config.op_s_search_aur_only) then
             config.op_s_search_repos_only = true
             lprintf("LOG_DEBUG", "config: reposonly\n")
-        end
-    end;
-    ['RegularExpressions'] = function()
-        if (not config.regex) then
-            config.regex = true
-            lprintf("LOG_DEBUG", "config: regex\n")
         end
     end;
     ['BuildUser'] = function(str)
