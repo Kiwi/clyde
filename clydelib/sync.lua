@@ -426,9 +426,7 @@ function sync_search(syncs, targets, shownumbers, install)
         end
         for k, v in pairs( jsonresults.results ) do
             if ( not pattern or v.Name:find(pattern)
-                             or v.Version:find(pattern)
-                             or v.Description:find(pattern)
-                             or v.NumVotes:find(pattern) ) then
+                             or v.Description:find(pattern) ) then
                 aurpkgs[ v.Name ] = { name        = v.Name,
                                       version     = v.Version,
                                       description = v.Description,
