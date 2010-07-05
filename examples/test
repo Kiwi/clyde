@@ -1,0 +1,205 @@
+#!/usr/bin/lua
+
+local alpm = require "lualpm"
+
+local dbpath = "/var/lib/pacman"
+local cachedir = "/var/cache/pacman/pkg"
+local root = "/"
+print("initilize:", alpm.initialize())
+print("option_set_root:", alpm.option_set_root(root))
+print("option_get_root:", alpm.option_get_root())
+print("option_set_dbpath:", alpm.option_set_dbpath(dbpath))
+print("option_get_dbpath:", alpm.option_get_dbpath())
+print("option_add_cachedir:", alpm.option_add_cachedir(cachedir))
+alpm.option_add_cachedir("/var/cache/pacman/")
+local cachhedirs = {}
+
+cachedirs = alpm.option_get_cachedirs()
+print(unpack(cachedirs))
+print("option_set_cachedirs:", alpm.option_set_cachedirs(cachedirs))
+print("option_set_logfile:", alpm.option_set_logfile("ohhi"))
+print("option_get_logfile:", alpm.option_get_logfile())
+print("option_get_lockfile:", alpm.option_get_lockfile())
+print("option_remove_noupgrade('lua'):", alpm.option_remove_noupgrade('lua'))
+print("option_add_noupgrade('lua')", alpm.option_add_noupgrade('lua'))
+print("option_remove_noupgrade('lua'):", alpm.option_remove_noupgrade('lua'))
+
+
+print("option_remove_noextract('lua'):", alpm.option_remove_noextract('lua'))
+print("option_add_noextract('lua'):", alpm.option_add_noextract('lua'))
+print("option_remove_noextract('lua'):", alpm.option_remove_noextract('lua'))
+
+
+print("option_remove_ignorepkg('lua'):", alpm.option_remove_noextract('lua'))
+print("option_add_ignorepkg('lua'):", alpm.option_add_noextract('lua'))
+print("option_remove_ignorepkg('lua'):", alpm.option_remove_noextract('lua'))
+
+
+print("option_remove_ignoregrp('kde'):", alpm.option_remove_noextract('kde'))
+print("option_add_ignoregrp('kde'):", alpm.option_add_noextract('kde'))
+print("option_remove_ignoregrp('kde'):", alpm.option_remove_noextract('kde'))
+print("option_set_usedelta(true):", alpm.option_set_usedelta(true))
+print("option_set_usedelta(false):", alpm.option_set_usedelta(false))
+local community = alpm.db_register_sync('community')
+if community then print("db_register_sync('community'): success") end
+--print("db_register_local:", alpm.db_register_local())
+local db_local = alpm.db_register_local()
+if db_local then print("db_register_local: success") end
+print("db_get_name:", db_local:db_get_name())
+print("option_get_localdb:", alpm.option_get_localdb())
+print("option_set_usesyslog:", alpm.option_set_usesyslog(false))
+print("option_get_usesyslog:", alpm.option_get_usesyslog())
+print("db_update(true):", db_local:db_update(true))
+print("db_get_pkg('lua'):", db_local:db_get_pkg('lua'))
+print("db_get_pkg('blahblah'):", db_local:db_get_pkg('blahblah'))
+--local pkg = db_local:db_get_pkg('zip')
+local extra = alpm.db_register_sync('extra')
+local pkg = extra:db_get_pkg('zip')
+if pkg then print("db_get_pkg('zip'): success") end
+--print(pkg:pkg_load(filename, true/false))
+--print(pkg:pkg_free())
+print("pkg_checkmd5sum:", pkg:pkg_checkmd5sum())
+print("pkg_get_filename:", pkg:pkg_get_filename())
+print("pkg_get_name:", pkg:pkg_get_name())
+print("pkg_get_version:", pkg:pkg_get_version())
+print("pkg_get_desc:", pkg:pkg_get_desc())
+print("pkg_get_url:", pkg:pkg_get_url())
+print("pkg_get_builddate:", pkg:pkg_get_builddate())
+print("pkg_get_installdate:", pkg:pkg_get_installdate())
+print("pkg_get_packager:", pkg:pkg_get_packager())
+print("pkg_get_md5sum:", pkg:pkg_get_md5sum())
+print("pkg_get_arch:", pkg:pkg_get_arch())
+print("pkg_get_size:", pkg:pkg_get_size())
+print("pkg_get_isize:", pkg:pkg_get_isize())
+clog = pkg:pkg_changelog_open()
+print("clog = pkg:pkg_changelog_open()")
+
+--print("pkg_changelog_open:",  pkg:pkg_changelog_open())
+--local clog = pkg:pkg_changelog_open()
+--print("pkg_changelog_read")
+local read, num = pkg:pkg_changelog_read(4096, clog)
+print(read, num)
+--print(clog)
+
+print("pkg_changelog_close:", pkg:pkg_changelog_close(clog))
+print("pkg_changelog_close:", pkg:pkg_changelog_close(clog))
+
+local groupcache = db_local:db_get_grpcache()
+--print(groupcache:grp_get_name())
+--print(groupcache)
+for k,v in ipairs(groupcache) do
+--    print(k,v:grp_get_name())
+end
+
+local search = db_local:db_search({"core"})
+--print(search)
+for k,v in ipairs(search) do
+--    print(k, v:pkg_get_name())
+end
+
+local extra = alpm.db_register_sync("extra")
+local luapkg = extra:db_get_pkg("lua")
+local requiredby = luapkg:pkg_compute_requiredby()
+print(unpack(requiredby))
+for k,v in ipairs(requiredby) do
+--    print(k, v)
+end
+
+local licenses = luapkg:pkg_get_licenses()
+print(unpack(licenses))
+for k, v in ipairs(licenses) do
+--    print(k, v)
+end
+
+local xorg = extra:db_get_pkg("xorg-server")
+local xorggroups = xorg:pkg_get_groups()
+print(unpack(xorggroups))
+for k,v in ipairs(xorggroups) do
+--    print(k, v)
+end
+
+local luadepends = luapkg:pkg_get_depends()
+print(unpack(luadepends))
+for k,v in pairs(luadepends) do
+--    print(k, v:pkg_get_name())
+end
+local vimpkg = extra:db_get_pkg("vim")
+local vimoptdepends = vimpkg:pkg_get_optdepends()
+print(unpack(vimoptdepends))
+for k,v in pairs(vimoptdepends) do
+--    print(k, v)
+end
+
+local mousepkg = extra:db_get_pkg("xf86-input-mouse")
+local mouseconflicts = mousepkg:pkg_get_conflicts()
+print(unpack(mouseconflicts))
+
+local xulrunnerpkg = extra:db_get_pkg("xulrunner")
+local xulrunnerprovides = xulrunnerpkg:pkg_get_provides()
+print(unpack(xulrunnerprovides))
+
+local xulrunnerreplaces = xulrunnerpkg:pkg_get_replaces()
+print(unpack(xulrunnerreplaces))
+
+local vimpkg = db_local:db_get_pkg("vim")
+local vimfiles = vimpkg:pkg_get_files()
+--print(unpack(luadocfiles))
+for k,v in ipairs(vimfiles) do
+--    print(k, v)
+end
+
+local vimbackup = vimpkg:pkg_get_backup()
+for k,v in ipairs(vimbackup) do
+--    print (k, v)
+end
+
+--this one is removed from git, don't know if it works/how
+local vimremoves = vimpkg:pkg_get_removes()
+for k,v in ipairs(vimremoves) do
+--    print(k, v)
+end
+
+local basegroup = db_local:db_readgrp("base")
+print(basegroup:grp_get_name())
+basepkgs = basegroup:grp_get_pkgs()
+for k, v in ipairs(basepkgs) do
+--    print(k, v:pkg_get_name())
+end
+
+alpm.option_add_noextract("lua")
+alpm.option_add_noextract("luasocket")
+print(unpack(alpm.option_get_noextracts()))
+
+alpm.option_add_ignorepkg("lua")
+alpm.option_add_ignorepkg("luasocket")
+print(unpack(alpm.option_get_ignorepkgs()))
+
+alpm.option_add_ignoregrp("base")
+print(unpack(alpm.option_get_ignoregrps()))
+
+local syncdbs = alpm.option_get_syncdbs()
+for k, v in ipairs(syncdbs) do
+    print(k, v:db_get_name())
+end
+
+alpm.option_add_noupgrade("lua")
+print(unpack(alpm.option_get_noupgrades()))
+
+
+alpm.trans_addtarget("lua")
+local transpkgs = alpm.trans_get_pkgs()
+for k,v in ipairs(transpkgs) do
+    print(k, v)
+end
+local haskellpkg = extra:db_get_pkg("ghc")
+local haskellfiles = haskellpkg:pkg_get_files()
+for k,v in ipairs(haskellfiles) do
+    print(k, v)
+end
+
+
+print("version:", alpm.version())
+print("release:", alpm.release())
+
+
+--for k,v in pairs(alpm) do print (k, v) end
