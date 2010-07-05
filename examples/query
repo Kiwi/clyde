@@ -1,0 +1,119 @@
+#!/usr/bin/env lua
+local  C = {
+    ['black'] =        '\27[30m',
+    ['blackbold'] =    '\27[30;1m',
+    ['red'] =          '\27[31m',
+    ['redbold'] =     '\27[31;1m',
+    ['green'] =        '\27[32m',
+    ['greenbold'] =    '\27[32;1m',
+    ['yellow'] =       '\27[33m',
+    ['yellowbold'] =   '\27[33;1m',
+    ['blue'] =         '\27[34m',
+    ['bluebold'] =     '\27[34;1m',
+    ['magenta'] =      '\27[35m',
+    ['magentabold'] =  '\27[35;1m',
+    ['cyan'] =         '\27[36m',
+    ['cyanbold']  =    '\27[36;1m',
+    ['white'] =        '\27[37m',
+    ['whitebold'] =    '\27[37;1m',
+    ['reset'] =        '\27[0m',
+}
+
+--for k, v in pairs(C) do C[k] = '\27[37m' end
+local alpm = require "lualpm"
+
+local dbpath = "/var/lib/pacman"
+local cachedir = "/var/cache/pacman/pkg"
+local root = "/"
+
+alpm.initialize()
+alpm.option_set_root(root)
+alpm.option_set_dbpath(dbpath)
+alpm.option_add_cachedir(cachedir)
+--local pkgcache = {}
+local db_local = alpm.db_register_local()
+local db_extra = alpm.db_register_sync("extra")
+local db_core = alpm.db_register_sync("core")
+local db_comm = alpm.db_register_sync("community")
+
+--local extracache = db_extra:db_get_pkgcache()
+--local corecache = db_core:db_get_pkgcache()
+--local commcache = db_comm:db_get_pkgcache()
+
+local pkgcache = db_local:db_get_pkgcache()
+
+--local caches = { extracache, corecache, commcache }
+local repos = { db_core, db_extra, db_comm }
+--local packages = {}
+
+--for k, db in ipairs(repos) do
+local function hurr()
+    for l, db in ipairs(repos) do
+        local pkgcache = db:db_get_pkgcache()
+        for n, pkg in ipairs(pkgcache) do
+            local name = pkg:pkg_get_name()
+            packages[name] = {}
+            packages[name].repo = db:db_get_name()
+            packages[name].version = pkg:pkg_get_version()
+            if db_local:db_get_pkg(name) then
+           io.write(packages[name].repo .. "/" .. name .. " " .. packages[name].version, "\n")
+       end
+        end
+    end
+end
+
+local function Q()
+    local colors = {
+        ['extra'] = C.greenbold,
+        ['core'] = C.redbold,
+        ['community'] = C.magentabold,
+    }
+    local packages = {}
+    for k, repo in ipairs(repos) do
+        local pkgcache = repo:db_get_pkgcache()
+        for l, pkg in ipairs(pkgcache)  do
+            local name = pkg:pkg_get_name()
+            packages[name] = repo:db_get_name()
+            --print(pkg:pkg_get_name())
+        end
+    end
+    for k, pkg in ipairs(pkgcache) do
+        local name = pkg:pkg_get_name()
+        if packages[name] then
+            local color = colors[packages[name]] or C.magentabold
+            io.write(color, packages[name], "/", C.whitebold , name , " " , C.greenbold , pkg:pkg_get_version() , C.reset , "\n")
+            --io.write(color .. packages[name] .. "/" .. C.whitebold .. name .. " " .. C.greenbold .. pkg:pkg_get_version() .. C.reset .. "\n")
+        else
+            io.write(C.yellowbold ,"local/" , C.whitebold , name , " " , C.greenbold , pkg:pkg_get_version() , C.reset , "\n")
+            --io.write(C.yellowbold .."local/" .. C.whitebold .. name .. " " .. C.greenbold.. pkg:pkg_get_version() .. C.reset .. "\n")
+        end
+    end
+end
+Q()
+--[[
+for k, pkg in ipairs(pkgcache) do
+    for l, cache in ipairs(caches) do
+        for j, pkg1 in ipairs(cache) do
+--            table.insert(packages, pkg1:pkg_get_name())
+            local repodb = pkg1:pkg_get_db()
+            local repo = repodb:db_get_name()
+    --        print(pkg:pkg_get_name() .. " " .. pkg:pkg_get_version())
+        end
+    end
+end
+--]]
+-- 01:20 < DigitalKiwi> djszapi: I suppose more specifically I'm wondering if I run db_get_name on a database I got from pkg_get_db on a package that was got from db_get_pkg just what name I'll have...
+
+
+
+
+--[[
+for l, m in ipairs(caches) do
+    for k, v in ipairs(m) do
+        local repo = db_local:db_get_name()
+        print (repo)
+    io.write(v:pkg_get_name().." " ..v:pkg_get_version(), "\n")
+end
+end
+--]]
+alpm.release()
