@@ -658,7 +658,7 @@ local function config_init(uid)
                 "";
                 "#The default and safe behavior is to ask whether you want to edit the files in an AUR package";
                 "#Uncomment the following line to supress these questions and install the package without reviewing the file";
-                "ConfirmInstall";
+                "#NoConfirmInstall";
                 "#You must set this to a normal user to install packages from AUR safely while running without sudo";
                 "BuildUser = "..util.getbuilduser();
             }
@@ -734,6 +734,10 @@ local function _parseconfig(file, givensection, givendb)
     ['ConfirmInstall'] = function()
         lprintf("LOG_DEBUG", "confirm: enabled\n")
         config.confirm = true
+    end;
+    ['NoConfirmInstall'] = function()
+        lprintf("LOG_DEBUG", "confirm: disabled\n")
+        config.confirm = false
     end;
     ['Editor'] = function(str)
         if (not config.editor) then
