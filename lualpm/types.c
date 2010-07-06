@@ -35,6 +35,20 @@ alpm_list_t *lstring_table_to_alpm_list(lua_State *L, int narg)
     return(newlist);
 }
 
+alpm_list_t *ldatabase_table_to_alpm_list(lua_State *L, int narg)
+{
+    alpm_list_t *newlist = NULL;
+    size_t i, len = lua_objlen(L, narg);
+    for (i = 1; i <= len; i++) {
+        lua_rawgeti(L, narg, i);
+        const int index = -1;
+        pmdb_t *data = *(pmdb_t**)lua_touserdata(L, index);
+        newlist = alpm_list_add(newlist, (void *)data);
+        lua_pop(L, 1);
+    }
+    return(newlist);
+}
+
 int
 push_typed_object(lua_State *L, types value_type, void *value)
 {

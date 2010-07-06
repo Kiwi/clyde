@@ -35,6 +35,11 @@ const char * PKGREASON_TOSTR[] = { "P_R_EXPLICIT", "P_R_DEPEND" };
 
 /* DATA TYPE FUNCTIONS */
 
+/* Pushes */
+
+int push_string(lua_State *L, char const *s);
+int push_typed_object(lua_State *L, types value_type, void *value);
+
 pmdb_t **push_pmdb_box(lua_State *L);
 pmpkg_t **push_pmpkg_box(lua_State *L);
 pmdelta_t **push_pmdelta_box(lua_State *L);
@@ -55,6 +60,8 @@ changelog * push_changelog_box(lua_State *L);
 #define push_pmdepmissing(L, v)   push_pmdepmissing_box(L)[0] = (v)
 #define push_pmconflict(L, v)     push_pmconflict_box(L)[0] = (v)
 #define push_pmfileconflict(L, v) push_pmfileconflict_box(L)[0] = (v)
+
+/* Checks */
 
 void * check_box(lua_State *L, int narg, char const *typename);
 #define check_pmdb(L, narg) check_box((L), (narg), "pmdb_t")
@@ -100,10 +107,9 @@ Constants(transflag)
 #undef Sym
 EndConstants
 
-int push_string(lua_State *L, char const *s);
 int raise_last_pm_error(lua_State *L);
 alpm_list_t *lstring_table_to_alpm_list(lua_State *L, int narg);
-int push_typed_object(lua_State *L, types value_type, void *value);
+alpm_list_t *ldatabase_table_to_alpm_list(lua_State *L, int narg);
 int alpm_list_to_any_table(lua_State *L, alpm_list_t *list,
                            enum types value_type);
 
