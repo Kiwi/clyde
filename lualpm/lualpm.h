@@ -2,10 +2,17 @@
 #define _LUALPM_H
 
 #include <lua.h>
-
+#include <lualib.h>
+#include <lauxlib.h>
 #include "types.h"
 
 /* CALLBACKS ****************************************************************/
+
+/* We use addresses of structs describing a callback as the key to a
+ * callback in the Lua registry. */
+typedef struct {
+    const char *name;
+} callback_key_t;
 
 extern lua_State *GlobalState;
 

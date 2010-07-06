@@ -1,17 +1,12 @@
+#include <stdio.h>
 #include <lua.h>
-#include "lualpm.h";
+#include "lualpm.h"
 
 /* A global is required for alpm C -> Lua gateways to get their Lua
  * goodness from.  Unfortunately alpm callbacks have no userdata or
  * other pointer which the client could use to send their own
  * parameters in. */
 lua_State *GlobalState;
-
-/* We use addresses of structs describing a callback as the key to a
- * callback in the Lua registry. */
-typedef struct {
-    const char *name;
-} callback_key_t;
 
 void
 register_callback(lua_State *L, callback_key_t *key, int narg)

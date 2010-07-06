@@ -1,4 +1,7 @@
-#include "lualpm.h"
+#include <string.h>
+#include <lualib.h>
+#include <lauxlib.h>
+#include "types.h"
 
 /* TODO: Can we replace this with luaL_pushstring? */
 int
