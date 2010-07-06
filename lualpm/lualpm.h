@@ -96,5 +96,16 @@ int lalpm_option_set_usedelta(lua_State *L);
 int lalpm_option_get_localdb(lua_State *L);
 int lalpm_option_get_syncdbs(lua_State *L);
 
+/* TRANSACTIONS */
+
+int lalpm_trans_init(lua_State *L);
+int lalpm_trans_prepare(lua_State *L);
+int lalpm_trans_commit(lua_State *L);
+int lalpm_trans_interrupt(lua_State *L);
+int lalpm_trans_release(lua_State *L);
+int lalpm_trans_get_flags(lua_State *L);
+int lalpm_trans_get_add(lua_State *L);
+int lalpm_trans_get_remove(lua_State *L);
+
 #endif
 
