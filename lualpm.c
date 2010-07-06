@@ -50,24 +50,6 @@ static int lalpm_sync_newversion(lua_State *L)
     return 1;
 }
 
-static changelog *push_changelog_box(lua_State *L)
-{
-    changelog *box = lua_newuserdata(L, sizeof(changelog));
-
-    if (luaL_newmetatable(L, "alpm_changelog")) {
-        static luaL_Reg const methods[] = {
-            { NULL,                     NULL }
-        };
-        lua_newtable(L);
-        luaL_register(L, NULL, methods);
-        lua_setfield(L, -2, "__index");
-        /*TODO DESTRUCTOR IF NEEDED*/
-    }
-    lua_setmetatable(L, -2);
-
-    return box;
-}
-
 /* int alpm_initialize(void); */
 static int lalpm_initialize(lua_State *L)
 {
