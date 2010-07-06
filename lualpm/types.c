@@ -13,6 +13,22 @@ push_string(lua_State *L, char const *s)
 }
 
 int
+push_loglevel(lua_State *L, pmloglevel_t level)
+{
+    switch(level) {
+#define f(x) case PM_LOG_ ## x: return push_string(L, "LOG_" #x)
+        f(ERROR);
+        f(WARNING);
+        f(DEBUG);
+        f(FUNCTION);
+#undef f
+        default:
+            assert(0 && "[BUG] unexpected pmloglevel_t");
+    }
+    return 0;
+}
+
+int
 raise_last_pm_error(lua_State *L)
 {
     if (pm_errno)

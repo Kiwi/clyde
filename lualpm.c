@@ -76,23 +76,6 @@ static int lalpm_version(lua_State *L)
     return 1;
 }
 
-static int
-push_loglevel(lua_State *L, pmloglevel_t level)
-{
-    switch(level) {
-#define f(x) case PM_LOG_ ## x: return push_string(L, "LOG_" #x)
-        f(ERROR);
-        f(WARNING);
-        f(DEBUG);
-        f(FUNCTION);
-#undef f
-        default:
-            assert(0 && "[BUG] unexpected pmloglevel_t");
-    }
-    return 0;
-}
-
-
 /* alpm_cb_log alpm_option_get_logcb(); */
 /* void alpm_option_set_logcb(alpm_cb_log cb); */
 static callback_key_t log_cb_key[1] = {{ "log callback" }};

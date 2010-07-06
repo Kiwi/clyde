@@ -39,6 +39,7 @@ const char * PKGREASON_TOSTR[] = { "P_R_EXPLICIT", "P_R_DEPEND" };
 
 int push_string(lua_State *L, char const *s);
 int push_typed_object(lua_State *L, types value_type, void *value);
+int push_loglevel(lua_State *L, pmloglevel_t level);
 
 pmdb_t **push_pmdb_box(lua_State *L);
 pmpkg_t **push_pmpkg_box(lua_State *L);
