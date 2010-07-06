@@ -732,10 +732,8 @@ local function _parseconfig(file, givensection, givendb)
         end
     end;
     ['ConfirmInstall'] = function()
-        lprintf("LOG_DEBUG", "config.confirm=%s\n", tostring(config.confirm))
-        if (not config.confirm) then
-            config.confirm = true
-        end
+        lprintf("LOG_DEBUG", "confirm: enabled\n")
+        config.confirm = true
     end;
     ['Editor'] = function(str)
         if (not config.editor) then
