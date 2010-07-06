@@ -731,10 +731,6 @@ local function _parseconfig(file, givensection, givendb)
             lprintf("LOG_DEBUG", "config: nocolor\n")
         end
     end;
-    ['ConfirmInstall'] = function()
-        lprintf("LOG_DEBUG", "confirm: enabled\n")
-        config.confirm = true
-    end;
     ['NoConfirmInstall'] = function()
         lprintf("LOG_DEBUG", "confirm: disabled\n")
         config.confirm = false
