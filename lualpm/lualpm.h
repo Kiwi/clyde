@@ -97,6 +97,7 @@ int lalpm_option_get_localdb(lua_State *L);
 int lalpm_option_get_syncdbs(lua_State *L);
 
 /* TRANSACTIONS */
+/* trans.c */
 
 int lalpm_trans_init(lua_State *L);
 int lalpm_trans_prepare(lua_State *L);
@@ -107,5 +108,13 @@ int lalpm_trans_get_flags(lua_State *L);
 int lalpm_trans_get_add(lua_State *L);
 int lalpm_trans_get_remove(lua_State *L);
 
-#endif
+/* TRANSACTION SYNCING PACKAGES */
+/* sync.c */
 
+int lalpm_sync_sysupgrade(lua_State *L);
+int lalpm_sync_target(lua_State *L);
+int lalpm_sync_dbtarget(lua_State *L);
+int lalpm_add_target(lua_State *L);
+int lalpm_remove_target(lua_State *L);
+
+#endif
