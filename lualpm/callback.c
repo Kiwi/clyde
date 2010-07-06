@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 #include <lua.h>
 #include "lualpm.h"
 

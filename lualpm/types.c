@@ -1,7 +1,33 @@
 #include <string.h>
+#include <assert.h>
 #include <lualib.h>
 #include <lauxlib.h>
 #include "types.h"
+
+const char * PKGREASON_TOSTR[] = { "P_R_EXPLICIT", "P_R_DEPEND" };
+
+#define Constants(name) constant_t const name ##_constants[] = {
+#define EndConstants { NULL, 0 } };
+
+Constants(transflag)
+#define Sym(x) { "T_F_" #x, PM_TRANS_FLAG_ ## x }
+    Sym(NODEPS),
+    Sym(FORCE),
+    Sym(NOSAVE),
+    Sym(CASCADE),
+    Sym(RECURSE),
+    Sym(DBONLY),
+    Sym(ALLDEPS),
+    Sym(DOWNLOADONLY),
+    Sym(NOSCRIPTLET),
+    Sym(NOCONFLICTS),
+    Sym(NEEDED),
+    Sym(ALLEXPLICIT),
+    Sym(UNNEEDED),
+    Sym(RECURSEALL),
+    Sym(NOLOCK),
+#undef Sym
+EndConstants
 
 /* TODO: Can we replace this with luaL_pushstring? */
 int

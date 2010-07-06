@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <alpm.h>
 #include <alpm_list.h>
 #include <lua.h>

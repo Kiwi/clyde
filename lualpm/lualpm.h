@@ -117,4 +117,6 @@ int lalpm_sync_dbtarget(lua_State *L);
 int lalpm_add_target(lua_State *L);
 int lalpm_remove_target(lua_State *L);
 
+int lalpm_pkg_load(lua_State *L);
+
 #endif

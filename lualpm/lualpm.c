@@ -17,6 +17,8 @@
 #include <alpm.h>
 #include <alpm_list.h>
 
+#include "lualpm.h"
+#include "types.h"
 
 /* A proxy to alpm_logaction() to be called from the Lua side of the
  * fence.  Unlike libalpm's alpm_logaction(), this function does not

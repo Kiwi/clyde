@@ -9,7 +9,7 @@
 
 /* int alpm_pkg_load(const char *filename, int full, pmpkg_t **pkg); */
 /* lua prototype is pkg, ret = alpm.pkg_load(filename, true/false) */
-static int lalpm_pkg_load(lua_State *L)
+int lalpm_pkg_load(lua_State *L)
 {
     pmpkg_t *pkg = NULL;
     const char *filename = luaL_checkstring(L, 1);

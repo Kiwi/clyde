@@ -1,5 +1,10 @@
 #include <alpm.h>
 #include <alpm_list.h>
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
+#include "types.h"
+#include "lualpm.h"
 
 int lalpm_option_set_logcb(lua_State *L)
 {

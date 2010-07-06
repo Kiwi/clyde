@@ -30,8 +30,8 @@ typedef struct changelog {
 } changelog;
 
 /* The pkgreason_t enum is either 0 or 1 ... map these to strings */
-const char * PKGREASON_TOSTR[] = { "P_R_EXPLICIT", "P_R_DEPEND" };
 #define PKGREASON_COUNT 2
+extern const char * PKGREASON_TOSTR[ PKGREASON_COUNT ];
 
 /* DATA TYPE FUNCTIONS */
 
@@ -84,29 +84,6 @@ int check_constant( lua_State *L, int narg, constant_t const constants[],
                     char const *extramsg );
 pmtransflag_t check_transflag( lua_State *L, int narg );
 pmtransflag_t check_transflags_table( lua_State *L, int narg );
-
-#define Constants(name) constant_t const name ##_constants[] = {
-#define EndConstants { NULL, 0 } };
-
-Constants(transflag)
-#define Sym(x) { "T_F_" #x, PM_TRANS_FLAG_ ## x }
-    Sym(NODEPS),
-    Sym(FORCE),
-    Sym(NOSAVE),
-    Sym(CASCADE),
-    Sym(RECURSE),
-    Sym(DBONLY),
-    Sym(ALLDEPS),
-    Sym(DOWNLOADONLY),
-    Sym(NOSCRIPTLET),
-    Sym(NOCONFLICTS),
-    Sym(NEEDED),
-    Sym(ALLEXPLICIT),
-    Sym(UNNEEDED),
-    Sym(RECURSEALL),
-    Sym(NOLOCK),
-#undef Sym
-EndConstants
 
 int raise_last_pm_error(lua_State *L);
 alpm_list_t *lstring_table_to_alpm_list(lua_State *L, int narg);
