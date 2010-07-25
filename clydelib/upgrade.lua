@@ -114,7 +114,17 @@ local function clyde_upgrade(targets)
                 end
             end
             --]]
-        elseif (alpm.pm_errno() == "P_E_FILE_CONFLICTS") then
+        end
+
+        trans_release()
+        data = nil
+        return 1
+    end
+
+    transret, data = alpm.trans_commit({})
+    if (transret == -1) then
+        eprintf("LOG_ERROR", g("failed to commit transaction (%s)\n"), alpm.strerrorlast())
+        if (alpm.pm_errno() == "P_E_FILE_CONFLICTS") then
             for i, conflict in ipairs(data) do
                 if (conflict:fileconflict_get_type() == "FILECONFLICT_TARGET") then
                     printf(g("%s exists in both '%s' and '%s'\n"), conflict:fileconflict_get_file(),
@@ -127,14 +137,6 @@ local function clyde_upgrade(targets)
             end
             printf(g("\nerrors occurred, no packages were upgraded.\n"))
         end
-
-        trans_release()
-        data = nil
-        return 1
-    end
-
-    if (alpm.trans_commit({}) == -1) then
-        eprintf("LOG_ERROR", g("failed to commit transaction (%s)\n"), alpm.strerrorlast())
         trans_release()
         return 1
     end
