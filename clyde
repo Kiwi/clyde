@@ -1068,4 +1068,4 @@ function main()
     return ret
 end
 
-return main()
+os.exit(main())
