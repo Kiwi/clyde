@@ -1471,8 +1471,8 @@ local function sync_trans(targets)
     if (next(aurpkgs)) then
         if (next(packages)) then
             printf(C.greb("\n==>")..C.bright(" Installing the following packages from repos\n"))
-            --  FIXME: display_alpm_targets doesn't take any parameters
-            display_alpm_targets(packages) 
+            util.display_targets(packages, true)
+            --  what about packages that are to be removed?
         end
 
         printf(C.greb("\n==>")..C.bright(" Installing the following packages from AUR\n"))
