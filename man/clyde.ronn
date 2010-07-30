@@ -302,10 +302,14 @@ Justin "juster" Davis <jrcd83.gmail>:
 
 OttoAllmendinger:
 
-  * fix for the pacman 3.4 Architecture config field not accepting 'auto'
-  * fix for clyde returning no error code on error. (#30)
-  * fix for dependencies not displaying properly for AUR package
-    requiring additional alpm deps (#35)
+  * Fix for the pacman 3.4 Architecture config field not accepting 'auto'.
+  * Fix for clyde returning no error code on error (#30).
+  * Fix for dependencies not displaying properly for AUR package
+    requiring additional alpm deps (#35).
+
+Matthew "paradoq" Bauer:
+
+  * Added support for regexp matching/filtering in AUR searches.
 
 LICENSE
 -------
