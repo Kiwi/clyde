@@ -1483,7 +1483,6 @@ local function sync_trans(targets)
 
     -- If our need-ed package is a repo pkg and not in our target list
     -- it is new (from an aur dep) and we will add its object to `packages`
-
     local i = 1
     while ( i <= #needs ) do
         local pkgname = needs[i]
@@ -1498,12 +1497,16 @@ local function sync_trans(targets)
         end
     end
 
-    if ( next( aurpkgs )) then
+    local removals = alpm.trans_get_remove()
+    if ( next( aurpkgs )
+         and ( next( packages ) or next( removals ))) then
         printf( C.greb( "\n==>" )
             .. C.bright( " Installing the following packages from repos\n" ))
     end
 
-    display_alpm_targets()
+    -- These display nothing if both lists are empty
+    util.display_targets( packages, true  )
+    util.display_targets( removals, false )
 
     if ( next( aurpkgs )) then
         printf( C.greb( "\n==>" )
