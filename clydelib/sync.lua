@@ -1470,12 +1470,41 @@ local function sync_trans(targets)
                                return false
                            end
 
-    -- Search all ALPM sync databases for exact matching package
+    -- Searches the given database for a matching 'provides'
+    -- WARNING: This could blowup if two packages have a matching 'provides'
+    --          with different versions. The `needs` variable does not store
+    --          the versions so we can't check versions... needs rewriting?
+    local search_provides = function ( findme, dbobj )
+                                -- Provides can either be a package name
+                                -- or package name followed by =(version #)
+                                local regexp = string.format( "^%s=", findme )
+                                local pkgs   = dbobj:db_get_pkgcache()
+                                for i, pkg in ipairs( pkgs ) do 
+                                    local provides = pkg:pkg_get_provides()
+                                    for j, prov in ipairs( provides ) do
+                                        if ( prov == findme or
+                                             prov:find( regexp )) then
+                                            return pkg
+                                        end
+                                    end
+                                end
+                                return nil
+                            end
+
+    -- Search all ALPM sync databases for the given package
     local find_sync_pkg = function ( pkgname )
                               for i, db in ipairs( sync_dbs ) do
                                   local pkgobj = db:db_get_pkg( pkgname )
                                   if ( pkgobj ) then
                                       return pkgobj
+                                  end
+                              end
+
+                              -- Now we search if we match any provides
+                              for i, db in ipairs( sync_dbs ) do
+                                  local pkg = search_provides( pkgname, db )
+                                  if ( pkg ) then
+                                      return pkg
                                   end
                               end
                               return nil
@@ -1488,7 +1517,7 @@ local function sync_trans(targets)
         local pkgname = needs[i]
         local pkgobj  = find_sync_pkg( pkgname )
         if ( pkgobj
-             and not tblisin( targets, pkgname ) -- is this necessary?
+             and not tblisin( targets, pkgname ) -- is this line necessary?
              and not queued_already( pkgname )) then
             table.insert( packages, pkgobj )
             table.remove( needs, i )
