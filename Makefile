@@ -56,7 +56,10 @@ clydelib/signal.so: clydelib/lsignal.c
 clydelib/utilcore.so: clydelib/utilcore.c
 	$(CC) $(CFLAGS) $(SOFLAGS) -o clydelib/utilcore.so clydelib/utilcore.c
 
-clyde: clydelib/signal.so clydelib/utilcore.so
+man/clyde.8: man/clyde.ronn
+	ronn man/clyde.ronn
+
+clyde: clydelib/signal.so clydelib/utilcore.so man/clyde.8
 
 install: install_lualpm install_clyde
 
