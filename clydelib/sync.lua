@@ -1339,39 +1339,6 @@ local function sync_trans(targets)
                         return transcleanup()
                     end
 
-                    -- If we couldn't find the target package, search groups
-                    printf(g(C.blub("::")..C.bright(" %s package not found, searching for group...\n")), targ)
-                    for i, db in ipairs(sync_dbs) do
-                        local grp = db:db_readgrp(targ)
-                        if (grp) then
-                            found = true
-                            printf(g(C.blub("::")..C.bright(" group %s (including ignored packages):\n")), targ)
-                            local grppkgs = grp:grp_get_pkgs()
-                            local pkgs = tblremovedupes(grppkgs)
-                            local pkgnames = {}
-                            for i, pkgname in ipairs(pkgs) do
-                                tblinsert(pkgnames, pkgname:pkg_get_name())
-                            end
-                            list_display("   ", pkgnames)
-
-                            -- Allow the user to install only want they
-                            -- want from the package group.
-                            if (yesno(g(C.yelb("::")..C.bright(" Install whole content?")))) then
-                                for i, pkgname in ipairs(pkgnames) do
-                                    tblinsert(targets, pkgname)
-                                end
-                            else
-                                for i, pkgname in ipairs(pkgnames) do
-                                    if (yesno(g(C.yelb("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
-                                        tblinsert(targets, pkgname)
-                                    end
-                                end
-                            end
-                            pkgnames = nil
-                            pkgs = nil
-                        end
-                    end
-
                     -- If we couldn't find the package or group in ALPM's
                     -- repo databasess, then search the AUR...
                     if (not found) then
