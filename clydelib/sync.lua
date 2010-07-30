@@ -1279,6 +1279,27 @@ local function trans_aurupgrade(targets)
     end
 end
 
+-- Prepares any packages that need upgrading into the transaction...
+local function sync_trans_sysupgrade ( targets, aurpkgs )
+    printf(g(C.blub("::")..C.bright(" Starting full system upgrade...\n")))
+    alpm.logaction("starting full system upgrade\n")
+    local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
+
+    if (alpm.sync_sysupgrade(op_s_upgrade) == -1) then
+        eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
+        return false
+    end
+
+    if (config.op_s_upgrade_aur) then
+        local aurpkgs = {}
+        config.op_s_upgrade = 0
+        trans_aurupgrade(aurpkgs)
+        targets = aurpkgs
+    end
+
+    return true
+end
+
 local function sync_trans(targets)
     local retval = 0
     local found
@@ -1298,20 +1319,9 @@ local function sync_trans(targets)
     end
 
     if (config.op_s_upgrade > 0) then
-        printf(g(C.blub("::")..C.bright(" Starting full system upgrade...\n")))
-        alpm.logaction("starting full system upgrade\n")
-        local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
-
-        if (alpm.sync_sysupgrade(op_s_upgrade) == -1) then
-            eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
+        if not sync_trans_sysupgrade( targets ) then
             retval = 1
             return transcleanup()
-        end
-
-        if (config.op_s_upgrade_aur) then
-            config.op_s_upgrade = 0
-            trans_aurupgrade(aurpkgs)
-            targets = aurpkgs
         end
     else
         for i, targ in ipairs(targets) do
@@ -1328,6 +1338,8 @@ local function sync_trans(targets)
                         retval = 1
                         return transcleanup()
                     end
+
+                    -- If we couldn't find the target package, search groups
                     printf(g(C.blub("::")..C.bright(" %s package not found, searching for group...\n")), targ)
                     for i, db in ipairs(sync_dbs) do
                         local grp = db:db_readgrp(targ)
@@ -1341,6 +1353,9 @@ local function sync_trans(targets)
                                 tblinsert(pkgnames, pkgname:pkg_get_name())
                             end
                             list_display("   ", pkgnames)
+
+                            -- Allow the user to install only want they
+                            -- want from the package group.
                             if (yesno(g(C.yelb("::")..C.bright(" Install whole content?")))) then
                                 for i, pkgname in ipairs(pkgnames) do
                                     tblinsert(targets, pkgname)
@@ -1357,6 +1372,8 @@ local function sync_trans(targets)
                         end
                     end
 
+                    -- If we couldn't find the package or group in ALPM's
+                    -- repo databasess, then search the AUR...
                     if (not found) then
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
@@ -1376,8 +1393,9 @@ local function sync_trans(targets)
                         end
 
                     end
---                    local pkgs = db_local:db_get_pkgcache()
 
+                    -- We searched in repos and on the AUR but couldn't
+                    -- find the target package.
                     if (not found) then
                         eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
                         retval = 1
@@ -1560,7 +1578,7 @@ local function sync_trans(targets)
             end
         end
 
-        printf(g(C.redb("==> ")..C.bright("Errors occured, no packages were upgraded.\n")))
+        printf(g(C.redb("==> ")..C.bright("Errors occurred, no packages were upgraded.\n")))
         retval = 1
         return transcleanup()
     end
