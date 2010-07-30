@@ -5,6 +5,19 @@ local utilcore = require "clydelib.utilcore"
 local C = colorize
 local g = utilcore.gettext
 
+function dump(o)
+    if type(o) == 'table' then
+        local s = '{ '
+        for k,v in pairs(o) do
+                if type(k) ~= 'number' then k = '"'..k..'"' end
+                s = s .. '['..k..'] = ' .. dump(v) .. ','
+        end
+        return s .. '} '
+    else
+        return tostring(o)
+    end
+end
+
 function printf(...)
     io.write(string.format(...))
 end
