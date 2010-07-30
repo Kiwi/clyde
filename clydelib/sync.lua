@@ -25,7 +25,6 @@ local list_display = util.list_display
 local display_alpm_targets = util.display_alpm_targets
 local tbljoin = util.tbljoin
 local tblisin = util.tblisin
-local fastremove = util.fastremove
 local tblremovedupes = util.tblremovedupes
 local tbldiff = util.tbldiff
 local tblstrdup = util.tblstrdup
@@ -1108,26 +1107,9 @@ local function getalldeps(targs, needs, needsdeps, caninstall, provided)
     end
 end
 
-local function removeflags(flag)
-    local found = true
-    local indx
-    while found do
-        found, indx = tblisin(config.flags, flag)
-        if (found) then
-            fastremove(config.flags, indx)
-        end
-    end
-end
-
-local function removetblentry(tbl, entry)
-    local found = true
-    local indx
-    while found do
-        found, indx = tblisin(tbl, entry)
-        if (found) then
-            fastremove(tbl, entry)
-        end
-    end
+local function removeflags ( flag )
+    util.tblremoveentry( config.flags, flag )
+    return
 end
 
 local function pacmaninstallable(target)
@@ -1592,11 +1574,9 @@ local function sync_trans(targets)
 end
 
 local function clyde_sync(targets)
-    if (tblisin(config.flags, "T_F_DOWNLOADONLY") or config.op_s_printuris) then
-        local isin, int = tblisin(config.logmask, "LOG_WARNING")
-        if (isin) then
-            fastremove(config.logmask, int)
-        end
+    if ( tblisin(config.flags, "T_F_DOWNLOADONLY") or
+         config.op_s_printuris ) then
+        util.tblremoveentry( config.logmask, "LOG_WARNING" )
     end
 
     if (config.op_s_clean > 0) then
@@ -1696,3 +1676,4 @@ function main(targets)
 
     return result
 end
+

@@ -17,7 +17,6 @@ local list_display = util.list_display
 local display_targets = util.display_targets
 local tbljoin = util.tbljoin
 local tblisin = util.tblisin
-local fastremove = util.fastremove
 local tblremovedupes = util.tblremovedupes
 local tbldiff = util.tbldiff
 local tblstrdup = util.tblstrdup

@@ -136,10 +136,16 @@ function tblisin(tbl, search)
     return false
 end
 
-function fastremove(tbl, i)
-    local size = #tbl
-    tbl[i] = tbl[size]
-    tbl[size] = nil
+function tblremoveentry ( tbl, entry )
+    local i = 1
+    while i <= #tbl do
+        if tbl[i] == entry then
+            table.remove( tbl, i )
+        else
+            i = i + 1
+        end
+    end
+    return
 end
 
 function tblremovedupes(tbl)
