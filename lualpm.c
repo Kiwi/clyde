@@ -17,6 +17,8 @@
 #include <alpm.h>
 #include <alpm_list.h>
 
+#include "dlhelper.h"
+
 /* A global is required for alpm C -> Lua gateways to get their Lua
  * goodness from.  Unfortunately alpm callbacks have no userdata or
  * other pointer which the client could use to send their own
@@ -1485,6 +1487,14 @@ static int lalpm_option_set_dlcb(lua_State *L)
 
 /* alpm_cb_fetch alpm_option_get_fetchcb(); */
 /* void alpm_option_set_fetchcb(alpm_cb_fetch cb); */
+const char *xfercommand = NULL;
+static int lalpm_option_set_fetchcb(lua_State *L)
+{
+    xfercommand = luaL_checkstring(L, 1);
+    alpm_option_set_fetchcb(download_with_xfercommand);
+
+    return 0;
+}
 
 /* alpm_cb_totaldl alpm_option_get_totaldlcb(); */
 /* void alpm_option_set_totaldlcb(alpm_cb_totaldl cb); */
@@ -2515,7 +2525,7 @@ static luaL_Reg const pkg_funcs[] =
 //    { "option_get_dlcb",            lalpm_option_get_dlcb },
     { "option_set_dlcb",            lalpm_option_set_dlcb },
 //    { "option_get_fetchcb",         lalpm_option_get_fetchcb },
-//    { "option_set_fetchcb",         lalpm_option_set_fetchb },
+    { "option_set_fetchcb",         lalpm_option_set_fetchcb },
 //    { "option_get_totaldlcb",       lalpm_option_get_totaldlcb },
     { "option_set_totaldlcb",       lalpm_option_set_totaldlcb },
     { "option_get_root",            lalpm_option_get_root }, /* works */

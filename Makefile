@@ -26,14 +26,17 @@ all: clyde lualpm
 
 lualpm: lualpm.so
 
-lualpm.so: lualpm.c
-	$(CC) $(CFLAGS) $(LUACFLAGS) -lalpm -o lualpm.so lualpm.c
+lualpm.so: lualpm.c misc/dlhelper.o
+	$(CC) $(CFLAGS) $(LUACFLAGS) -I misc -lalpm -o $@ $^
+
+misc/dlhelper.o: misc/dlhelper.c misc/dlhelper.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 clydelib/signal.so: clydelib/lsignal.c
-	$(CC) $(CFLAGS) $(LUACFLAGS) -o clydelib/signal.so clydelib/lsignal.c
+	$(CC) $(CFLAGS) $(LUACFLAGS) -o $@ $^
 
 clydelib/utilcore.so: clydelib/utilcore.c
-	$(CC) $(CFLAGS) $(LUACFLAGS) -o clydelib/utilcore.so clydelib/utilcore.c
+	$(CC) $(CFLAGS) $(LUACFLAGS) -o $@ $^
 
 clyde: clydelib/signal.so clydelib/utilcore.so
 
@@ -55,7 +58,7 @@ install_clyde: clyde
 	$(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde
 
 clean:
-	-rm -f *.so clydelib/*.so
+	-rm -f *.so clydelib/*.so misc/dlhelper.o
 
 uninstall_lualpm:
 	rm -f $(DESTDIR)$(libdir)/lualpm.so
