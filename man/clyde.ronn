@@ -289,6 +289,29 @@ it lacking wait a while and come back and you may be pleasantly surprised.
 Thank you for your interest in Clyde, I hope it serves you well, leave
 feedback if you like and I will take it into consideration.
 
+CONTRIBUTORS
+------------
+
+Thanks to all the users of clyde who have submitted bug reports and
+code. The following persons have contributed code to clyde.
+
+Justin "juster" Davis <jrcd83@gmail.com>:
+
+  * Upgraded lualpm to work with pacman 3.4.
+  * Supervised patching on the github repository.
+  * Much cleanup and rewriting of code.
+
+Otto Allmendinger <otto.allmendinger@gmail.com>:
+
+  * Fix for the pacman 3.4 Architecture config field not accepting 'auto'.
+  * Fix for clyde returning no error code on error (#30).
+  * Fix for dependencies not displaying properly for AUR package
+    requiring additional ALPM dependencies (#35).
+
+Matthew "paradoq" Bauer:
+
+  * Added support for regexp matching/filtering in AUR searches.
+
 LICENSE
 -------
 
