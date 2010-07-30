@@ -1460,41 +1460,56 @@ local function sync_trans(targets)
     updateprovided(provided)
     getalldeps(possibleaur, needs, needsdeps, caninstall, provided)
 
-    local needsdupe = tblstrdup(needs)
+    -- Check if a package with given name is setup to install...
+    local queued_already = function ( pkgname )
+                               for i, pkg in ipairs( packages ) do
+                                   if ( pkg:pkg_get_name() == pkgname ) then
+                                       return true
+                                   end
+                               end
+                               return false
+                           end
 
-    for i, pkg in ipairs(needsdupe) do
-        if (pacmaninstallable(pkg)) then
-            for i, db in ipairs(sync_dbs) do
-                local loaded = db:db_get_pkg(pkg)
-                if (loaded and not tblisin(targets, loaded:pkg_get_name())) then
-                    local inpackages = false
-                    for i, package in ipairs(packages) do
-                        if (package:pkg_get_name() == loaded:pkg_get_name()) then
-                            inpackages = true
-                            break
-                        end
-                    end
-                    if (not inpackages) then
-                        tblinsert(packages, loaded)
-                        removetblentry(needs, pkg)
-                    end
-                end
-            end
+    -- Search all ALPM sync databases for exact matching package
+    local find_sync_pkg = function ( pkgname )
+                              for i, db in ipairs( sync_dbs ) do
+                                  local pkgobj = db:db_get_pkg( pkgname )
+                                  if ( pkgobj ) then
+                                      return pkgobj
+                                  end
+                              end
+                              return nil
+                          end
+
+    -- If our need-ed package is a repo pkg and not in our target list
+    -- it is new (from an aur dep) and we will add its object to `packages`
+
+    local i = 1
+    while ( i <= #needs ) do
+        local pkgname = needs[i]
+        local pkgobj  = find_sync_pkg( pkgname )
+        if ( pkgobj
+             and not tblisin( targets, pkgname ) -- is this necessary?
+             and not queued_already( pkgname )) then
+            table.insert( packages, pkgobj )
+            table.remove( needs, i )
+        else
+            i = i + 1
         end
     end
 
-    if (next(aurpkgs)) then
-        if (next(packages)) then
-            printf(C.greb("\n==>")..C.bright(" Installing the following packages from repos\n"))
-            util.display_targets(packages, true)
-            --  what about packages that are to be removed?
-        end
+    if ( next( aurpkgs )) then
+        printf( C.greb( "\n==>" )
+            .. C.bright( " Installing the following packages from repos\n" ))
+    end
 
-        printf(C.greb("\n==>")..C.bright(" Installing the following packages from AUR\n"))
+    display_alpm_targets()
+
+    if ( next( aurpkgs )) then
+        printf( C.greb( "\n==>" )
+            .. C.bright(" Installing the following packages from AUR\n" ))
         local str = string.format(g("Targets (%d):"), #needs)
         list_display(str, needs)
-    else
-        display_alpm_targets(packages)
     end
 
     printf("\n")
