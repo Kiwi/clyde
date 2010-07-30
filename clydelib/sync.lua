@@ -1560,7 +1560,7 @@ local function sync_trans(targets)
             end
         end
 
-        printf(g(C.redb("==>")..C.bright("Errors occured, no packages were upgraded.\n")))
+        printf(g(C.redb("==> ")..C.bright("Errors occured, no packages were upgraded.\n")))
         retval = 1
         return transcleanup()
     end
