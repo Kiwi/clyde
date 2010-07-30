@@ -1,41 +1,19 @@
-.\" generated with Ronn/v0.4.1
-.\" http://github.com/rtomayko/ronn/
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "CLYDE" "8" "April 2010" "" "Clyde Manual"
+.TH "CLYDE" "8" "July 2010" "" ""
 .
 .SH "NAME"
-\fBclyde\fR \-\- next\-generation libalpm/makepkg wrapper
+\fBclyde\fR \- next\-generation libalpm/makepkg wrapper
 .
-.SH "SYNOPSYS"
+.SH "SYNOPSIS"
 \fBclyde\fR \fIOPERATION\fR [\fIOPTIONS\fR] [\fIPACKAGES\fR]
 .
 .SH "DESCRIPTION"
-The next\-generation libalpm/makepkg wrapper with AUR support, multithreaded
-downloading, and colorized output.   Trust us, it's the best! Now in open beta!
+The next\-generation libalpm/makepkg wrapper with AUR support, multithreaded downloading, and colorized output\. Trust us, it\'s the best! Now in open beta!
 .
 .SH "OPERATIONS"
-\fB\-h\fR \fB\-\-help\fR
-.
-.br
-\fB\-V\fR \fB\-\-version\fR
-.
-.br
-\fB\-\-stats\fR
-.
-.br
-\fB\-Q\fR \fB\-\-query\fR   [\fIOPTIONS\fR] [\fIPACKAGES\fR]
-.
-.br
-\fB\-R\fR \fB\-\-remove\fR  [\fIOPTIONS\fR] \fIPACKAGES\fR
-.
-.br
-\fB\-S\fR \fB\-\-sync\fR    [\fIOPTIONS\fR] [\fIPACKAGES\fR]
-.
-.br
-\fB\-U\fR \fB\-\-upgrade\fR [\fIOPTIONS\fR] \fIFILES\fR
-.
-.br
-\fB\-G\fR \fB\-\-getpkgbuild\fR [\fIOPTIONS\fR] [\fIPACKAGES\fR]
+\fB\-h\fR \fB\-\-help\fR \fB\-V\fR \fB\-\-version\fR \fB\-\-stats\fR \fB\-Q\fR \fB\-\-query\fR [\fIOPTIONS\fR] [\fIPACKAGES\fR] \fB\-R\fR \fB\-\-remove\fR [\fIOPTIONS\fR] \fIPACKAGES\fR \fB\-S\fR \fB\-\-sync\fR [\fIOPTIONS\fR] [\fIPACKAGES\fR] \fB\-U\fR \fB\-\-upgrade\fR [\fIOPTIONS\fR] \fIFILES\fR \fB\-G\fR \fB\-\-getpkgbuild\fR [\fIOPTIONS\fR] [\fIPACKAGES\fR]
 .
 .SH "QUERY OPTIONS"
 .
@@ -73,7 +51,7 @@ list installed packages not found in sync db(s) [\fIfilter\fR]
 .
 .TP
 \fB\-o,\fR \fB\-\-owns\fR \fIFILE\fR
-  query the package that owns \fIFILE\fR
+query the package that owns \fIFILE\fR
 .
 .TP
 \fB\-p,\fR \fB\-\-file\fR \fIPACKAGE\fR
@@ -155,7 +133,7 @@ remove packages and all packages that depend on them
 .
 .TP
 \fB\-d,\fR \fB\-\-nodeps\fR
- skip dependency checks
+skip dependency checks
 .
 .TP
 \fB\-k,\fR \fB\-\-dbonly\fR
@@ -167,12 +145,11 @@ remove configuration files as well
 .
 .TP
 \fB\-s,\fR \fB\-\-recursive\fR
-remove dependencies also (that won't break packages)
-(\-ss includes explicitly installed dependencies too)
+remove dependencies also (that won\'t break packages) (\-ss includes explicitly installed dependencies too)
 .
 .TP
 \fB\-u,\fR \fB\-\-unneeded\fR
-remove unneeded packages (that won't break packages)
+remove unneeded packages (that won\'t break packages)
 .
 .TP
 \fB\-\-config\fR \fIPATH\fR
@@ -286,7 +263,7 @@ download fresh package databases from the server
 .
 .TP
 \fB\-\-needed\fR
-don't reinstall up to date packages
+don\'t reinstall up to date packages
 .
 .TP
 \fB\-\-ignore\fR \fIPKG\fR
@@ -483,96 +460,93 @@ disable colors
 .SH "FILES"
 .
 .TP
-\fB/etc/clyde.conf\fR
-clyde configuration file, see \fBpacman.conf\fR(5) for general syntax
+\fB/etc/clyde\.conf\fR
+clyde configuration file, see \fBpacman\.conf\fR(5) for general syntax
 .
 .SH "BUGS"
-WARNING: This program is currently in beta state. Therefore, use it at your
-own risk. The developers are not responsible if it breaks your system, fries
-your motherboard, or eats your babies.
+WARNING: This program is currently in beta state\. Therefore, use it at your own risk\. The developers are not responsible if it breaks your system, fries your motherboard, or eats your babies\.
 .
 .P
-That is all.
+That is all\.
 .
 .P
-PS: If any of the aformentioned catastrophies does happen, please forward us
-bug reports... If anything overly drastic happens, PICS OR GTFO!
-\-\-Ghost1227
+PS: If any of the aforementioned catastrophes does happen, please forward us bug reports\.\.\. If anything overly drastic happens, PICS OR GTFO! \-\-Ghost1227
 .
 .P
 A note from the lead developer (DigitalKiwi):
 .
 .P
-In all seriousness: It should be perfectly safe to use, it only lacks a few
-features that pacman has. Bugs can be posted to github under issues or at
-http://bugs.archuser.com/index.php?project=4 or DigitalKiwi on freenode
+In all seriousness: It should be perfectly safe to use, it only lacks a few features that pacman has\. Bugs can be posted to github under issues or at http://bugs\.archuser\.com/index\.php?project=4 or DigitalKiwi on freenode
 .
 .P
-It is still lacking some of the AUR support that it will have, so if you find
-it lacking wait a while and come back and you may be pleasantly surprised.
+It is still lacking some of the AUR support that it will have, so if you find it lacking wait a while and come back and you may be pleasantly surprised\.
 .
 .P
-Thank you for your interest in Clyde, I hope it serves you well, leave
-feedback if you like and I will take it into consideraion.
+Thank you for your interest in Clyde, I hope it serves you well, leave feedback if you like and I will take it into consideration\.
+.
+.SH "CONTRIBUTORS"
+Thanks to all the users of clyde who have submitted bug reports and code\. The following persons have contributed code to clyde\.
+.
+.P
+Justin "juster" Davis <jrcd83\.gmail>:
+.
+.IP "\(bu" 4
+Upgraded lualpm to work with pacman 3\.4\.
+.
+.IP "\(bu" 4
+Supervised patching on the github repository\.
+.
+.IP "" 0
+.
+.P
+OttoAllmendinger:
+.
+.IP "\(bu" 4
+fix for the pacman 3\.4 Architecture config field not accepting \'auto\'
+.
+.IP "\(bu" 4
+fix for clyde returning no error code on error\. (#30)
+.
+.IP "\(bu" 4
+fix for dependencies not displaying properly for AUR package requiring additional alpm deps (#35)
+.
+.IP "" 0
 .
 .SH "LICENSE"
 Clyde is released under a multi\-part license as follows:
 .
 .P
-Clyde makepkg/libalpm wrapper
-Copyright (C) 2009, Robert Djubek <envy1988.AT.gmail.com>
-All rights reserved.
+Clyde makepkg/libalpm wrapper Copyright (C) 2009, Robert Djubek <envy1988\.AT\.gmail\.com> All rights reserved\.
 .
 .P
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version\.
 .
 .P
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE\. See the GNU General Public License for more details\.
 .
 .P
-You should have received a copy of the GNU General Public License
-along with this program. If not, see \fIhttp://www.gnu.org/licenses/\fR
+You should have received a copy of the GNU General Public License along with this program\. If not, see \fIhttp://www\.gnu\.org/licenses/\fR
 .
 .P
 lualpm libalpm binding library
 .
 .P
-Copyright (C) 2009 Robert Djubek <envy1988.AT.gmail.com>
-All Rights Reserved.
+Copyright (C) 2009 Robert Djubek <envy1988\.AT\.gmail\.com> All Rights Reserved\.
 .
 .P
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 .
 .P
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software\.
 .
 .P
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT\. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE\.
 .
 .P
-Original concept for clyde and logo design are
-intellectual property of Daniel J Griffiths <ghost1227@archlinux.us>
+Original concept for clyde and logo design are intellectual property of Daniel J Griffiths <ghost1227@archlinux\.us>
 .
 .SH "SEE ALSO"
-\fBpacman\fR(8), \fBpacman.conf\fR(5),\fBlibalpm\fR(3)
+\fBpacman\fR(8), \fBpacman\.conf\fR(5),\fBlibalpm\fR(3)
 .
 .P
-See Kiwi's Clyde repository on Github: http://github.com/Kiwi/clyde
+See Kiwi\'s Clyde repository on Github: http://github\.com/Kiwi/clyde
