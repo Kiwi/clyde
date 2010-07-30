@@ -22,17 +22,21 @@ function download(host, file, user)
 
     local size = h['content-length']
 
-    http.request{
-        url = "http://" .. host .. file,
-        sink = ltn12.sink.chain(function(chunk)
-                if not chunk then return chunk end
-                received = received + #chunk
-                local progress = received / size * 100
-                local hashes = string.rep("#", progress / 2)
-                local endpipe = string.rep(" ", 50 - #hashes).."|"
-            return chunk end,
-            ltn12.sink.file(f)
-            ),
+    --[[ This looks like an unfinished progress bar...
+    local filter = function(chunk)
+                       if not chunk then return chunk end
+                       received = received + #chunk
+                       local progress = received / size * 100
+                       local hashes = string.rep("#", progress / 2)
+                       local endpipe = string.rep(" ", 50 - #hashes).."|"
+                       return chunk
+                   end
+    --]]
+
+    http.request {
+        url  = "http://" .. host .. file,
+        sink = ltn12.sink.file(f)
+--        sink = ltn12.sink.chain( filter, ltn12.sink.file(f))
     }
 
     io.write(string.format(C.greb("==>")..C.bright(" Downloading %s\n"),filename))
@@ -40,12 +44,12 @@ end
 
 aurthreads = {}    -- list of all live threads
 function get(host, file, user)
-      -- create coroutine
+    -- create coroutine
     local co = coroutine.create(function ()
-        download(host, file, user)
-      end)
-      -- insert it in the list
-      table.insert(aurthreads, co)
+                                    download(host, file, user)
+                                end)
+    -- insert it in the list
+    table.insert(aurthreads, co)
 end
 
 function dispatcher ()
