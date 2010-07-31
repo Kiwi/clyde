@@ -2,6 +2,7 @@ module(..., package.seeall)
 local alpm = require "lualpm"
 local lfs = require "lfs"
 local utilcore = require "clydelib.utilcore"
+local signal = require "clydelib.signal"
 local C = colorize
 local g = utilcore.gettext
 
@@ -484,6 +485,19 @@ function display_optdepends(pkg)
     end
 end
 
+function signal_handler(signal)
+    if signal==signal.SIGINT then
+        printf("\nInterrupt signal received\n\n")
+        if (alpm.trans_interrupt() == 0) then
+            return
+        end
+        util.trans_release()
+        cleanup(signal)
+    elseif signal==signal.SIGTERM then
+        cleanup(signal)
+    end
+end
+
 local function question(preset, fmt, ...)
     local stream
 
@@ -507,17 +521,26 @@ local function question(preset, fmt, ...)
         return preset
     end
 
-    local answer = io.stdin:read() or ""
+    -- local answer = io.stdin:read() or ""
 
-    if (#answer == 0) then
+    -- just to make sure I can access the global
+    --
+    -- print(_G.clydelib.util.signal_handler)
+    --
+
+    local answer = utilcore.getchar()
+    print()
+
+    if (answer == "\n") then
         return preset
     end
 
-    if ((not strcasecmp(answer, g("Y"))) or (not strcasecmp(answer, g("YES")))) then
+    if (not strcasecmp(answer, g("Y"))) then
         return true
-    elseif ((not strcasecmp(answer, g("N"))) or (not strcasecmp(answer, g("NO")))) then
+    elseif (not strcasecmp(answer, g("N"))) then
         return false
     end
+
     return false
 end
 

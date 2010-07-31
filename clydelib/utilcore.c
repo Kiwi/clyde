@@ -13,6 +13,7 @@
 #include <sys/time.h>
 #include <sys/utsname.h>
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -24,6 +25,7 @@
 #include <unistd.h> /* isatty, getuid */
 #include <limits.h>
 #include <wchar.h>
+#include <termios.h>
 //#define _XOPEN_SOURCE
 extern int errno;
 
@@ -199,6 +201,69 @@ static int clyde_arch(lua_State *L)
 }
 
 
+static const int STDIN = 0;
+
+static struct termios tio_orig;
+static int tio_need_reset;
+
+static lua_State *input_state_L = NULL;
+
+static int term_restore() {
+    if (tio_need_reset) {
+        tcsetattr(STDIN, TCSANOW, &tio_orig);
+    }
+
+    return 0;
+}
+
+static int term_disable_linebuffer() {
+    if (!tio_need_reset) {
+        tcgetattr(STDIN, &tio_orig);
+        tio_need_reset = 1;
+    }
+
+    struct termios tio;
+    tcgetattr(STDIN, &tio);
+    // disable canonical mode which also disables linebuffering
+    tio.c_lflag &= ~ICANON;
+    tcsetattr(STDIN, TCSANOW, &tio);
+    setbuf(stdin, NULL);
+
+    return 0;
+}
+
+void sig_abort_input(int s) {
+    term_restore();
+
+    /*
+     * FIXME: this doesn't work - somehow I can't get the signal handler via
+     * lua_getfield , "util.signal_handler" and "signal_handler" fail also.
+     * Maybe I sould set the signal handler via utilcore.set_signal_handler
+     */
+
+    lua_getfield(input_state_L, LUA_GLOBALSINDEX,
+            "clydelib.util.signal_handler");
+
+    /*
+     * instructions below will crash with "attempted to call nil value"
+     */
+
+    lua_pushnumber(input_state_L, s);
+    lua_call(input_state_L, 1, 0);
+}
+
+static int clyde_getchar(lua_State *L) {
+    term_disable_linebuffer();
+    input_state_L = L;
+    signal(SIGINT, sig_abort_input);
+    char string[2] = "\0\0";
+    string[0] = getchar();
+    lua_pushstring(L, string);
+    term_restore();
+    return 1;
+}
+
+
 static luaL_Reg const pkg_funcs[] = {
     { "bindtextdomain",             clyde_bindtextdomain },
     { "textdomain",                 clyde_textdomain },
@@ -212,6 +277,7 @@ static luaL_Reg const pkg_funcs[] = {
     { "mkdir",                      clyde_mkdir },
     { "umask",                      clyde_umask },
     { "arch",                       clyde_arch },
+    { "getchar" ,                   clyde_getchar },
     { NULL,                         NULL}
 };
 

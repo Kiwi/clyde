@@ -944,6 +944,7 @@ end
 
 function main()
     local ret = 0
+    --[[
     signal.signal("SIGINT", function()
         printf("\nInterrupt signal received\n\n")
         if (alpm.trans_interrupt() == 0) then
@@ -956,6 +957,11 @@ function main()
         cleanup(15)
     end)
     signal.signal("SIGPIPE", nil)
+    ]]--
+
+    signal.signal("SIGINT", util.signal_handler)
+    signal.signal("SIGTERM", util.signal_handler)
+
 
     local myuid = geteuid()
     localize()
