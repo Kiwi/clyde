@@ -1300,6 +1300,187 @@ local function sync_trans_sysupgrade ( targets, aurpkgs )
     return true
 end
 
+-- Copied from "Programming in Lua"
+local function each ( tbl )
+    local i   = 0
+    local max = table.getmaxn( tbl )
+    return function ()
+               i = i + 1
+               if i <= max then return tbl[i] end
+               return nil
+           end
+end
+
+-- Convert a depends string into a table
+-- TODO: make depend class in lualpm -JD
+local function depends_table ( depstr )
+    local pkg, cmp, ver = depstr:match( "^([%l-]+)([=<>]=?)([%d_.]+)$" )
+    assert( pkg and cmp and ver, "failed to parse depends string" )
+    return { package = pkg, cmp = cmp, version = ver }
+end
+
+local function provides_table ( provides )
+    local provtbl = {}
+    for providestr in each( provides ) do
+        local pkg, ver = providestr:match( "^([%l-]+)=([%d_.]+)$" )
+        if pkg and ver then
+            provtbl[ pkg ] = ver
+        else
+            provtbl[ providestr ] = 0
+        end
+    end
+    return provtbl
+end
+
+-- Convert an ALPM package object into a table of package info
+local function repo_pkg_info ( depname, dbobj, pkgobj )
+    local clist   = pkgobj:pkg_get_conflicts()
+    local deptbl  = depends_table( pkgobj:pkg_get_depends())
+    local provtbl = provides_table( pkgobj:pkg_get_provides())
+    local conflicts
+    for conflict in each( clist ) do
+        conflicts[ conflict ] = true
+    end
+
+    -- A package can have a different dep-satisfying name and true
+    -- package name...
+    return { [ depname ] = { name      = pkgobj:pkg_get_name(),
+                             desc      = pkgobj:pkg_get_desc(),
+                             deps      = deptbl,
+                             conflicts = conflicts,
+                             provides  = provtbl,
+                             source    = "alpm" }}
+end
+
+-- Search the database for a matching provides list.
+local function find_repo_provides_pkg ( name, db )
+    for pkg in each( db:db_get_pkgcache()) do
+        for provide in each( pkg:pkg_get_provides()) do
+            if provide == name then return pkg end
+        end
+    end
+end
+
+-- Find a repo package that matches the package name and return its info.
+local function find_repo_pkg ( name )
+    for db in each( alpm.option_get_syncdbs()) do
+        -- Also search for a matching provides entry
+        local pkg = db:db_get_pkg( name )
+          or find_repo_provides_pkg( name, db )
+        if pkg then return repo_pkg_info( name, db, pkg ) end
+    end
+end
+
+-- Find a group of packages and convert them all into pkginfo tables.
+local function find_repo_group ( name )
+    for db in each( alpm.option_get_syncdbs()) do
+        local group = db:db_readgrp( name )
+        if group then
+            local result = {}
+            for pkg in each ( group:grp_get_pkgs()) do
+                local pkginfo = repo_pkg_info( pkg )
+                local name, info = next( pkginfo )
+                result[ name ] = info
+            end
+            return result
+        end
+    end
+end
+
+-- Find a package on the AUR and return a pkginfo table (or nil)
+local function find_aur_pkg ( name )
+    aurinfo = aur.lookup_pkg ( name )
+    if not aurinfo then return nil end
+
+    -- Convert fields of PKGBUILD into pkginfo table
+    local depends = depends_table( aurinfo.pkgdesc )
+    return { [ aurinfo.pkgname ] = { desc      = aurinfo.pkgdesc,
+                                     deps      = depends,
+                                     conflicts = aurinfo.conflicts,
+                                     source    = "aur" }}
+end
+
+local function make_finder ( findfuncs )
+    local finders = findfuncs
+    return function ( findme )
+               for finder in each( finders ) do
+                   local pkg = finder( findme )
+                   if pkg then return pkg end
+               end
+           end
+end
+
+-- Make a function for searching for user-defined targets.
+local function make_target_finder ( auronly )
+    if auronly then
+        return make_finder({ find_aur_pkg })
+    else
+        -- We only search groups for user-defined targets...
+        return make_finder({ find_repo_pkg, find_repo_group, find_aur_pkg })
+    end
+end
+
+-- When searching for dependencies we must sometimes use repo packages
+-- even if the --aur flag is used.
+local function make_dep_finder ( aurfirst )
+    if aurfirst then
+        make_finder({ find_aur_pkg, find_repo_pkg })
+    else
+        make_finder({ find_repo_pkg, find_aur_pkg })
+    end
+end
+
+-- Return a closure that checks if a dependency is already installed.
+local function make_dep_checker ( )
+    local pkgcache_table
+    localdb = alpm.option_get_localdb()
+    for pkg in each( localdb:db_get_pkgcache ) do
+        local name = pkg:pkg_get_name()
+        pkgcache_table[ name ] = { version = pkg:pkg_get_version() }
+        for provide in each( pkg:pkg_get_provides ) do
+            pkgcache_table[ provide ] = name
+        end
+    end
+
+    -- Table lookups should be much faster than iterating the pkgcache.
+    return function ( deptbl )
+               local findme = deptbl.package
+               repeat
+                   -- Follow provides aliases to their source.
+                   findme = pkgcache_table[ findme ]
+               until ( not findme or type( findme ) == 'table' )
+
+               if not findme then return false end
+
+               -- We have a matching package installed...
+               if version == 0 then return true end
+
+               -- TODO: we really need a dependency class for this crap...
+               local cmp = alpm.pkg_vercmp( findme.version, deptbl.version )
+               if deptbl.cmp == '=' then
+                   return cmp == 0
+               elseif deptbl.cmp == '<=' then
+                   return cmp <= 0
+               elseif deptbl.cmp == '>=' then
+                   return cmp >= 0
+               elseif deptbl.cmp == '>' then
+                   return cmp > 0
+               elseif deptbl.cmp == '<'then
+                   return cmp < 0
+               else
+                   error( "Unrecognized dependency comparison: "
+                          .. deptbl.cmp )
+               end
+           end
+end
+
+local function calc_deps ( targets, found_deps )
+    local satisfied = make_dep_checker()
+    local finder    = make_dep_finder( config.op_s_upgrade_aur )
+
+    
+end
+
 local function sync_trans(targets)
     local retval = 0
     local found
