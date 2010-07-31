@@ -1,7 +1,7 @@
 # -*- Mode: shell-script; sh-basic-offset: 2 -*-
 # Contributor: Daniel J Griffiths <ghost1227@archlinux.us>
 # Contributor: Justin Davis <jrcd83@gmail.com>
-pkgname='clyde-fork-git'
+pkgname='clyde-git'
 pkgver='20100623'
 pkgrel='1'
 pkgdesc="Next-generation libalpm/makepkg wrapper."
@@ -12,14 +12,12 @@ makedepends=('git' 'make')
 depends=('lua-lzlib' 'lua-yajl-git' 'luasocket' 'luafilesystem'
          'pacman>=3.4' 'pacman<3.5')
 provides=('clyde' 'lualpm')
-conflicts=('clyde-git')
 
-_gitroot='git://github.com/juster/clyde.git'
-_gitbranch=${BRANCH:-'pacman3.4'}
+_gitroot='git://github.com/Kiwi/clyde.git'
+_gitbranch=${BRANCH:-'master'}
 
 build() {
   REPO_DIR="${srcdir}/clyde"
-  msg 'Creating package for pacman 3.4 fork of clyde...'
 
   if [ -d "$REPO_DIR" ] ; then
     warning 'Repository directory already exists!'

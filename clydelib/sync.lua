@@ -401,6 +401,16 @@ function sync_search(syncs, targets, shownumbers, install)
             return (not found)
         end
 
+        local pattern
+        -- the following gets rid of some common regular expressions
+        if ( targets[1]:find("^^") or targets[1]:find("$$") ) then
+            lprintf("LOG_DEBUG", "regex detected\n")
+
+            -- escape other regexp special chars so they are taken literally
+            pattern = targets[1]:gsub("([().%+*?[-])", "%%%1")
+            targets[1] = targets[1]:gsub("^^", "")
+            targets[1] = targets[1]:gsub("$$", "")
+        end
         local searchurl = aururl..aurmethod.search.."arg="..url.escape(targets[1])
         local aurresults = aur.getgzip(searchurl)
         if (not aurresults) then
@@ -412,9 +422,14 @@ function sync_search(syncs, targets, shownumbers, install)
         if (type(jsonresults.results) ~= "table") then
             jsonresults.results = {}
         end
-        for k, v in pairs(jsonresults.results) do
-            aurpkgs[v.Name] = {['name'] = v.Name; ['version'] = v.Version; ['description'] = v.Description, ['votes'] = v.NumVotes}
-
+        for k, v in pairs( jsonresults.results ) do
+            if ( not pattern or v.Name:find(pattern)
+                             or v.Description:find(pattern) ) then
+                aurpkgs[ v.Name ] = { name        = v.Name,
+                                      version     = v.Version,
+                                      description = v.Description,
+                                      votes       = v.NumVotes }
+            end
         end
         prune(aurpkgs, targets)
         local sortedpkgs = sortaur(aurpkgs)
