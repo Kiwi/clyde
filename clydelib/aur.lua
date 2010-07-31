@@ -8,6 +8,8 @@ local zlib = require "zlib"
 local yajl = require "yajl"
 local C = colorize
 
+local AURURL = "http://aur.archlinux.org"
+
 function download(host, file, user)
     local filename = file:match(".+/(.+)$")
     local foldername = file:match(".+/(.+)/.+$")
@@ -22,21 +24,17 @@ function download(host, file, user)
 
     local size = h['content-length']
 
-    --[[ This looks like an unfinished progress bar...
-    local filter = function(chunk)
-                       if not chunk then return chunk end
-                       received = received + #chunk
-                       local progress = received / size * 100
-                       local hashes = string.rep("#", progress / 2)
-                       local endpipe = string.rep(" ", 50 - #hashes).."|"
-                       return chunk
-                   end
-    --]]
-
-    http.request {
-        url  = "http://" .. host .. file,
-        sink = ltn12.sink.file(f)
---        sink = ltn12.sink.chain( filter, ltn12.sink.file(f))
+    http.request{
+        url = "http://" .. host .. file,
+        sink = ltn12.sink.chain(function(chunk)
+                if not chunk then return chunk end
+                received = received + #chunk
+                local progress = received / size * 100
+                local hashes = string.rep("#", progress / 2)
+                local endpipe = string.rep(" ", 50 - #hashes).."|"
+            return chunk end,
+            ltn12.sink.file(f)
+            ),
     }
 
     io.write(string.format(C.greb("==>")..C.bright(" Downloading %s\n"),filename))
@@ -44,12 +42,12 @@ end
 
 aurthreads = {}    -- list of all live threads
 function get(host, file, user)
-    -- create coroutine
+      -- create coroutine
     local co = coroutine.create(function ()
-                                    download(host, file, user)
-                                end)
-    -- insert it in the list
-    table.insert(aurthreads, co)
+        download(host, file, user)
+      end)
+      -- insert it in the list
+      table.insert(aurthreads, co)
 end
 
 function dispatcher ()
@@ -88,4 +86,56 @@ function getgzip(geturl)
     end
     local inflated = zlib.inflate(table.concat(sinktbl))
     return inflated:read("*a")
+end
+
+local function retrieve_pkgbuild ( name )
+    local pkgbuildurl = string.format(
+        "%s/packages/%s/%s/PKGBUILD", AURURL, name, name )
+    return aur.getgzip( pkgbuildurl )
+end
+
+local function unquote_bash ( quoted_text )
+    -- Convert bash arrays (surrounded by parens) into tables
+    local noparen, subcount = quoted_text:gsub( "^%((.+)%)$", "%1" )
+    if subcount > 0 then
+        local wordlist = {}
+        for word in noparen:gmatch( "(%S+)" ) do
+            table.insert( wordlist, unquote_bash( word ))
+        end
+        return wordlist
+    end
+
+    -- Remove double or single quotes from bash strings
+    local text = quoted_text
+    text = text:gsub( '^"(.+)"$', "%1" )
+    text = text:gsub( "^'(.+)'$", "%1" )
+    return text
+end
+
+local function pkgbuild_fields ( text )
+    local results = {}
+
+    -- First find all fields without quoting characters...
+    for name, value in text:gmatch( "(%l+)=(%S+)" ) do
+        results[ name ] = value
+    end
+
+    -- Now handle all quoted field values...
+    local quoters = { '""', "''", "()" }
+    local fmt     = '(%%l+)=(%%b%s)'
+
+    for i, quotes in ipairs( quoters ) do
+        local regexp = string.format( fmt, quotes )
+        for name, value in text:gmatch( regexp ) do
+            results[ name ] = unquote_bash( value )
+        end
+    end
+
+    return results
+end
+
+function lookup_pkg ( name )
+    local pkgbuildtext = retrieve_pkgbuild( name )
+    if not pkgbuildtext then return nil end
+    return pkgbuild_fields( pkgbuildtext )
 end
