@@ -1303,7 +1303,7 @@ end
 -- Copied from "Programming in Lua"
 local function each ( tbl )
     local i   = 0
-    local max = table.getmaxn( tbl )
+    local max = table.maxn( tbl )
     return function ()
                i = i + 1
                if i <= max then return tbl[i] end
@@ -1311,9 +1311,22 @@ local function each ( tbl )
            end
 end
 
+local function map ( f, tbl )
+    local result = {}
+    for key, val in pairs( tbl ) do
+        result[ key ] = f( val )
+    end
+    return result
+end
+
 -- Convert a depends string into a table
 -- TODO: make depend class in lualpm -JD
 local function depends_table ( depstr )
+    print( "DEBUG: depstr = " .. depstr )
+    if depstr:match( "^%w+$" ) then
+        return { package = depstr, cmp = '>', version = 0 }
+    end
+
     local pkg, cmp, ver = depstr:match( "^([%l-]+)([=<>]=?)([%d_.]+)$" )
     assert( pkg and cmp and ver, "failed to parse depends string" )
     return { package = pkg, cmp = cmp, version = ver }
@@ -1334,8 +1347,10 @@ end
 
 -- Convert an ALPM package object into a table of package info
 local function repo_pkg_info ( depname, dbobj, pkgobj )
+    local stirrer = function ( dep ) return dep:dep_compute_string() end
     local clist   = pkgobj:pkg_get_conflicts()
-    local deptbl  = depends_table( pkgobj:pkg_get_depends())
+    local deptbl  = map( depends_table,
+                         map( stirrer, pkgobj:pkg_get_depends()))
     local provtbl = provides_table( pkgobj:pkg_get_provides())
     local conflicts
     for conflict in each( clist ) do
@@ -1392,8 +1407,11 @@ local function find_aur_pkg ( name )
     aurinfo = aur.lookup_pkg ( name )
     if not aurinfo then return nil end
 
+    print( "aurinfo =" )
+    print( util.dump( aurinfo ))
+
     -- Convert fields of PKGBUILD into pkginfo table
-    local depends = depends_table( aurinfo.pkgdesc )
+    local depends = map( depends_table, aurinfo.depends )
     return { [ aurinfo.pkgname ] = { desc      = aurinfo.pkgdesc,
                                      deps      = depends,
                                      conflicts = aurinfo.conflicts,
@@ -1407,17 +1425,32 @@ local function make_finder ( findfuncs )
                    local pkg = finder( findme )
                    if pkg then return pkg end
                end
+               return nil
            end
 end
 
 -- Make a function for searching for user-defined targets.
 local function make_target_finder ( auronly )
+    local namefinder
     if auronly then
-        return make_finder({ find_aur_pkg })
+        namefinder = make_finder({ find_aur_pkg })
     else
         -- We only search groups for user-defined targets...
-        return make_finder({ find_repo_pkg, find_repo_group, find_aur_pkg })
+        namefinder = make_finder({ find_repo_pkg, find_repo_group,
+                                   find_aur_pkg })
     end
+    
+    return function ( names )
+               local founds = {}
+               for name in each( names ) do
+                   local pkg = namefinder( name )
+                   if pkg then
+                       local name, info = next( pkg )
+                       founds[ name ]   = info
+                   end
+               end
+               return founds
+           end
 end
 
 -- When searching for dependencies we must sometimes use repo packages
@@ -1432,12 +1465,12 @@ end
 
 -- Return a closure that checks if a dependency is already installed.
 local function make_dep_checker ( )
-    local pkgcache_table
+    local pkgcache_table = {}
     localdb = alpm.option_get_localdb()
-    for pkg in each( localdb:db_get_pkgcache ) do
+    for pkg in each( localdb:db_get_pkgcache() ) do
         local name = pkg:pkg_get_name()
         pkgcache_table[ name ] = { version = pkg:pkg_get_version() }
-        for provide in each( pkg:pkg_get_provides ) do
+        for provide in each( pkg:pkg_get_provides() ) do
             pkgcache_table[ provide ] = name
         end
     end
@@ -1474,14 +1507,29 @@ local function make_dep_checker ( )
            end
 end
 
-local function calc_deps ( targets, found_deps )
-    local satisfied = make_dep_checker()
-    local finder    = make_dep_finder( config.op_s_upgrade_aur )
+-- Return package info for targets as well as all their deps
+local function calc_deps ( targets )
+    local _calc
 
-    
+    _calc = function ( tlist, found_deps )
+                local useaur = config.op_s_upgrade_aur
+                local satisfied = make_dep_checker()
+                local depfinder = make_dep_finder( useaur )
+
+                local targetfinder = make_target_finder( useaur )
+                local targetinfos  = targetfinder( tlist )
+                return targetinfos
+            end
+
+    return _calc( targets )
 end
 
-local function sync_trans(targets)
+local function sync_trans ( targets )
+    local deps = calc_deps( targets )
+
+    print( util.dump( deps ))
+    do return 0 end
+
     local retval = 0
     local found
     local transret

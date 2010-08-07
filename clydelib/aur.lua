@@ -91,7 +91,7 @@ end
 local function retrieve_pkgbuild ( name )
     local pkgbuildurl = string.format(
         "%s/packages/%s/%s/PKGBUILD", AURURL, name, name )
-    return aur.getgzip( pkgbuildurl )
+    return getgzip( pkgbuildurl )
 end
 
 local function unquote_bash ( quoted_text )
@@ -112,11 +112,11 @@ local function unquote_bash ( quoted_text )
     return text
 end
 
-local function pkgbuild_fields ( text )
+function pkgbuild_fields ( text )
     local results = {}
 
     -- First find all fields without quoting characters...
-    for name, value in text:gmatch( "(%l+)=(%S+)" ) do
+    for name, value in text:gmatch( "(%l+)=(%w%S+)" ) do
         results[ name ] = value
     end
 
