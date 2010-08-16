@@ -1323,7 +1323,7 @@ end
 -- TODO: make depend class in lualpm -JD
 local function depends_table ( depstr )
     print( "DEBUG: depstr = " .. depstr )
-    if depstr:match( "^%w+$" ) then
+    if depstr:match( "^[%l-]+$" ) then
         return { package = depstr, cmp = '>', version = 0 }
     end
 
