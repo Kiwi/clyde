@@ -60,7 +60,7 @@ end
 
 ------------------------------------------------------------------------------
 
-AUR = { basepath = "/tmp/luaur/" }
+AUR = { basepath = "/tmp/luaur" }
 AUR.__index = AUR
 
 function AUR:new ( params )
@@ -74,7 +74,17 @@ function AUR:search ( query )
 end
 
 function AUR:get ( package )
-    
+    local pkg = AURPackage:new{ basepath = self.basepath,
+                                dlpath   = self.dlpath,
+                                extpath  = self.extpath,
+                                destpath = self.destpath,
+                                proxy    = self.proxy,
+                                name     = package }
+
+    local success, err = pcall( function () pkg:download() end )
+    if not success then return nil end
+
+    return pkg
 end
 
 ------------------------------------------------------------------------------
@@ -121,7 +131,7 @@ function AURPackage:download_size ( )
     return headers[ "content-length" ]
 end
 
-function AURPackage:download ( )
+function AURPackage:download ( callback )
     local pkgurl       = self:download_url()
     local pkgname      = self.pkgname
     local pkgpath      = self.dlpath .. "/" .. pkgname
