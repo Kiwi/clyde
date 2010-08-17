@@ -1311,6 +1311,15 @@ local function each ( tbl )
            end
 end
 
+local function filter ( f, tbl )
+    local result = {}
+    for elem in each( tbl ) do
+        if f( elem ) then table.insert( result, elem ) end
+    end
+
+    return each( result )
+end
+
 local function map ( f, tbl )
     local result = {}
     for key, val in pairs( tbl ) do
