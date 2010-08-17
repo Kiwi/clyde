@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <sys/utsname.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -27,8 +28,18 @@ static int luaur_setenv ( lua_State *L )
     return luaret;
 }
 
+/* Copied from clydelib */
+static int luaur_arch ( lua_State *L )
+{
+    struct utsname un;
+    uname( &un );
+    lua_pushstring( L, un.machine );
+    return 1;
+}
+
 static luaL_Reg const luaur_core_funcs[] = {
     { "setenv", luaur_setenv },
+    { "arch",   luaur_arch   },
     { NULL,     NULL         }
 };
 
