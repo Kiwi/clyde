@@ -1317,7 +1317,7 @@ local function filter ( f, tbl )
         if f( elem ) then table.insert( result, elem ) end
     end
 
-    return each( result )
+    return result
 end
 
 local function map ( f, tbl )
@@ -1370,10 +1370,8 @@ local function repo_pkg_info ( depname, dbobj, pkgobj )
     local deptbl  = map( depends_table,
                          map( stirrer, pkgobj:pkg_get_depends()))
     local provtbl = provides_table( pkgobj:pkg_get_provides())
-    local conflicts
-    for conflict in each( clist ) do
-        conflicts[ conflict ] = true
-    end
+    local conftbl = map( depends_table,
+                           pkgobj:pkg_get_conflicts() )
 
     -- A package can have a different dep-satisfying name and true
     -- package name...
@@ -1381,8 +1379,9 @@ local function repo_pkg_info ( depname, dbobj, pkgobj )
              desc      = pkgobj:pkg_get_desc(),
              deps      = deptbl,
              version   = pkgobj:pkg_get_version(),
-             conflicts = conflicts,
+             conflicts = conftbl,
              provides  = provtbl,
+             pkgobj    = pkgobj,
              source    = "alpm" }
 end
 
@@ -1429,16 +1428,14 @@ local function find_aur_pkg ( name )
     aurinfo = aur.lookup_pkg ( name )
     if not aurinfo then return nil end
 
-    print( "aurinfo =" )
-    print( util.dump( aurinfo ))
-
     -- Convert fields of PKGBUILD into pkginfo table
-    local depends = map( depends_table, aurinfo.depends )
+    local depends   = map( depends_table, aurinfo.depends )
+    local conflicts = map( depends_table, aurinfo.conflicts or {} )
     return { name      = aurinfo.pkgname,
              desc      = aurinfo.pkgdesc,
              deps      = depends,
              version   = aurinfo.pkgver,
-             conflicts = aurinfo.conflicts,
+             conflicts = conflicts,
              source    = "aur" }
 end
 
@@ -1553,7 +1550,7 @@ local function find_needed_syncs ( targets )
                           end
 
     local each_needed_dep = function ( deplist )
-                                return filter( dep_is_needed, deplist )
+                                return each( filter( dep_is_needed, deplist ))
                             end
 
     local _depcheck
@@ -1580,15 +1577,70 @@ local function find_needed_syncs ( targets )
     end
 
     local result = target_infos
-    for dep_info in each( reverse( dep_infos )) do
+    for dep_info in each( dep_infos ) do
         table.insert( result, dep_info )
     end
     
     return result
 end
 
+-- Check package info tables for explicit conflicts
+local function check_pkg_conflicts ( pkginfos )
+    local conflicts_with = {}
+
+    -- Collect all conflicts into a table...
+    for info in each( pkginfos ) do
+        for conftbl in each( info.conflicts ) do
+            -- Conflicts are in the same format as depends strings...
+            conftbl[ "cause" ] = info.name
+            conflicts_with[ conftbl.package ] = conftbl
+        end
+    end
+
+    local found_conflict = false
+    -- Check our collected conflicts...
+    for info in each( pkginfos ) do
+        local conflict = conflicts_with[ info.name ]
+        if conflict then
+            printf( C.blub("::") ..
+                    C.bright("package '%s' conflicts with '%s'\n"),
+                    conflict.cause, info.name )
+            found_conflict = true
+        end
+    end
+
+    return found_conflict
+end
+
+-- Add each alpm package to a transaction, to check for skipped
+-- packages mostly...
+local function trans_prep_alpm ( pkginfos )
+    for pkginfo in each( pkginfos ) do
+        local targ = pkginfo.name
+        if ( alpm.sync_target( targ ) == -1 ) then
+            if ( alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
+                 alpm.pm_errno() == "P_E_PKG_IGNORED" ) then
+                lprintf("LOG_WARNING", g("skipping target: %s\n"), targ)
+            elseif (alpm.pm_errno() ~= "P_E_PKG_NOT_FOUND") then
+                -- This shouldn't happen anymore...
+                eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
+                return false
+            end
+        end
+        -- eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
+    end
+
+    return true
+end
+
 local function sync_trans ( targets )
     local rem_pkgs, alpm_pkgs, aur_pkgs
+
+    -- This might be better implemented with exception handling...
+    local cleanup = function ( retval )
+                        alpm.trans_release()
+                        return retval
+                    end
 
     if (trans_init(config.flags) == -1) then
         return 1
@@ -1597,10 +1649,8 @@ local function sync_trans ( targets )
     -- Handle full system upgrade
     if (config.op_s_upgrade > 0) then
         if not sync_trans_sysupgrade( targets ) then
-            retval = 1
-            return transcleanup()
+            return cleanup( 1 )
         end
-        
     else
         local syncs = find_needed_syncs( targets )
         alpm_pkgs   = filter( function ( info )
@@ -1610,63 +1660,26 @@ local function sync_trans ( targets )
                                   return info.source == 'aur'
                               end, syncs )
 
-        -- Add each alpm package to a transaction, to check for
-        -- skipped packages mostly...
-        for pkginfo in each( alpm_pkgs ) do
-            if ( alpm.sync_target( pkginfo.name ) == -1 ) then
-                    found = false
-                    if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
-                        alpm.pm_errno() == "P_E_PKG_IGNORED") then
-                        lprintf("LOG_WARNING",
-                                g("skipping target: %s\n"), targ)
-                        break
-                    end
-                    if (alpm.pm_errno() ~= "P_E_PKG_NOT_FOUND") then
-                        eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
-                        retval = 1
-                        return transcleanup()
-                    end
+        if check_pkg_conflicts( syncs ) then
+            return cleanup( 1 )
+        end
 
-                    -- If we couldn't find the package or group in ALPM's
-                    -- repo databasess, then search the AUR...
-                    if (not found) then
-                        printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
-                        local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
-                        local inforesults = aur.getgzip(infourl)
-                        if (not inforesults) then
-                            return 1
-                        end
-                        local jsonresults = yajl.to_value(inforesults) or {}
-
-                        if (type(jsonresults.results) ~= "table") then
-                            jsonresults.results = {}
-                        end
-
-                        if (jsonresults.results.Name) then
-                            found = true
-                            tblinsert(aurpkgs, targ)
-                        end
-
-                    end
-
-                    -- We searched in repos and on the AUR but couldn't
-                    -- find the target package.
-                    if (not found) then
-                        eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
-                        retval = 1
-                        return transcleanup()
-                    end
-                end
-            until 1
+        if not trans_prep_alpm( alpm_pkgs ) then
+            return cleanup( 1 )
         end
     end
 
-    transret, data = alpm.trans_prepare(data)
+    if ( not next( alpm_pkgs ) and not next( aur_pkgs )) then
+        printf(g(" local database is up to date\n"));
+        return cleanup( 1 )
+    end
+
+    local transret, errors = alpm.trans_prepare({})
 
     if (transret == -1) then
         eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), alpm.strerrorlast())
         if (alpm.pm_errno() == "P_E_UNSATISFIED_DEPS") then
-            for i, miss in ipairs(data) do
+            for i, miss in ipairs(errors) do
                 local dep = miss:miss_get_dep()
                 local depstring = dep:dep_compute_string()
                 printf(g(C.blub("::")..C.bright(" %s: requires %s\n")), miss:miss_get_target(), depstring)
@@ -1680,14 +1693,7 @@ local function sync_trans ( targets )
                     conflict:conflict_get_reason())
             end
         end
-        retval = 1
-        return transcleanup()
-    end
-
-    local packages = alpm.trans_get_add()
-    if (not next(packages) and not found and not next(aurpkgs)) then
-        printf(g(" local database is up to date\n"));
-        return transcleanup()
+        return cleanup( 1 )
     end
 
     if (config.op_s_printuris) then
@@ -1703,113 +1709,38 @@ local function sync_trans ( targets )
         return transcleanup()
     end
 
-    local needs, provided, needsdeps, caninstall, possibleaur =
-        {}, {}, {}, {}, {}
-
-    for i, pkg in ipairs(targets) do
-        if (not pacmaninstallable(pkg)) then
-            tblinsert(possibleaur, pkg)
-        end
-    end
-
-    updateprovided(provided)
-    getalldeps(possibleaur, needs, needsdeps, caninstall, provided)
-
-    -- Check if a package with given name is setup to install...
-    local queued_already = function ( pkgname )
-                               for i, pkg in ipairs( packages ) do
-                                   if ( pkg:pkg_get_name() == pkgname ) then
-                                       return true
-                                   end
-                               end
-                               return false
-                           end
-
-    -- Searches the given database for a matching 'provides'
-    -- WARNING: This could blowup if two packages have a matching 'provides'
-    --          with different versions. The `needs` variable does not store
-    --          the versions so we can't check versions... needs rewriting?
-    local search_provides = function ( findme, dbobj )
-                                -- Provides can either be a package name
-                                -- or package name followed by =(version #)
-                                local regexp = string.format( "^%s=", findme )
-                                local pkgs   = dbobj:db_get_pkgcache()
-                                for i, pkg in ipairs( pkgs ) do 
-                                    local provides = pkg:pkg_get_provides()
-                                    for j, prov in ipairs( provides ) do
-                                        if ( prov == findme or
-                                             prov:find( regexp )) then
-                                            return pkg
-                                        end
-                                    end
-                                end
-                                return nil
-                            end
-
-    -- Search all ALPM sync databases for the given package
-    local find_sync_pkg = function ( pkgname )
-                              for i, db in ipairs( sync_dbs ) do
-                                  local pkgobj = db:db_get_pkg( pkgname )
-                                  if ( pkgobj ) then
-                                      return pkgobj
-                                  end
-                              end
-
-                              -- Now we search if we match any provides
-                              for i, db in ipairs( sync_dbs ) do
-                                  local pkg = search_provides( pkgname, db )
-                                  if ( pkg ) then
-                                      return pkg
-                                  end
-                              end
-                              return nil
-                          end
-
-    -- If our need-ed package is a repo pkg and not in our target list
-    -- it is new (from an aur dep) and we will add its object to `packages`
-    local i = 1
-    while ( i <= #needs ) do
-        local pkgname = needs[i]
-        local pkgobj  = find_sync_pkg( pkgname )
-        if ( pkgobj
-             and not tblisin( targets, pkgname ) -- is this line necessary?
-             and not queued_already( pkgname )) then
-            table.insert( packages, pkgobj )
-            table.remove( needs, i )
-        else
-            i = i + 1
-        end
-    end
-
     local removals = alpm.trans_get_remove()
-    if ( next( aurpkgs )
-         and ( next( packages ) or next( removals ))) then
+    if ( next( aur_pkgs ) and ( next( alpm_pkgs ) or next( removals ))) then
         printf( C.greb( "\n==>" )
             .. C.bright( " Installing the following packages from repos\n" ))
     end
 
+    local pkgobjs = map( function ( info ) return info.pkgobj end,
+                         alpm_pkgs )
+
     -- These display nothing if both lists are empty
-    util.display_targets( packages, true  )
+    util.display_targets( pkgobjs,  true  )
     util.display_targets( removals, false )
 
-    if ( next( aurpkgs )) then
+    if ( next( aur_pkgs )) then
         printf( C.greb( "\n==>" )
             .. C.bright(" Installing the following packages from AUR\n" ))
-        local str = string.format(g("Targets (%d):"), #needs)
-        list_display(str, needs)
+        local str = string.format(g("Targets (%d):"), #aur_pkgs)
+        list_display(str, map( function ( info ) return info.name end,
+                               aur_pkgs))
     end
 
     printf("\n")
 
-    local confirm
+    local confirm, action
     if (config.op_s_downloadonly) then
-        confirm = yesno(C.yelb("==>")..C.bright(" Proceed with download?"))
+        action = "download"
     else
-        confirm = yesno(C.yelb("==>")..C.bright(" Proceed with installation?"))
+        action = "installation"
     end
-    if (not confirm) then
-        return transcleanup()
-    end
+    confirm = yesno( C.yelb("==>") ..
+                     C.bright(" Proceed with " .. action .. "?") )
+    if ( not confirm ) then return cleanup( 0 ) end
 
     data = {}
     transret, data = alpm.trans_commit(data)
@@ -1835,16 +1766,16 @@ local function sync_trans ( targets )
         end
 
         printf(g(C.redb("==> ")..C.bright("Errors occurred, no packages were upgraded.\n")))
-        retval = 1
-        return transcleanup()
+        return cleanup( 1 )
     end
 
-    if (next(aurpkgs)) then
-        transcleanup()
-        return aur_install(aurpkgs)
-    else
-        return transcleanup()
-    end
+    cleanup( 0 )
+
+    -- if ( next(aur_pkgs) and not aur_install(aur_pkgs)) then
+    --     return 1
+    -- end
+
+    return 0
 end
 
 local function clyde_sync(targets)
