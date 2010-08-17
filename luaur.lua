@@ -104,10 +104,26 @@ Parameter 'basepath' must be specified unless all other paths are provided
     return obj
 end
 
+function AURPackage:download_url ( )
+    return AUR_BASEURI .. string.format( AUR_PKGFMT, self.name, self.name )
+end
+
+function AURPackage:download_size ( )
+    USERAGENT = AUR_USERAGENT
+    local pkgurl = self:download_url()
+    local good, status, headers
+        = http.request{ url = pkgurl, method = "HEAD", proxy = self.proxy }
+
+    if not good or status ~= 200 then
+        return nil
+    end
+
+    return headers[ "content-length" ]
+end
+
 function AURPackage:download ( )
+    local pkgurl       = self:download_url()
     local pkgname      = self.pkgname
-    local pkgurl       = AUR_BASEURI .. string.format( AUR_PKGFMT,
-                                                       self.name, self.name )
     local pkgpath      = self.dlpath .. "/" .. pkgname
 
     -- Make sure the destination directory exists...
