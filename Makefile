@@ -24,10 +24,15 @@ lualpm_objects = lualpm/callback.o lualpm/db.o lualpm/delta.o		\
 	lualpm/dep.o lualpm/group.o lualpm/option.o lualpm/package.o	\
 	lualpm/sync.o lualpm/trans.o lualpm/types.o lualpm/lualpm.o
 
-all: clyde lualpm
+all: clyde lualpm luaur
 
-.PHONY: all lualpm clyde install install_lualpm install_clyde \
+.PHONY: all luaur lualpm clyde install install_lualpm install_clyde \
         clean uninstall uninstall_lualpm uninstall_clyde
+
+luaur: luaur/core.so
+
+luaur/core.so: luaur/core.o
+	$(CC) $(CFLAGS) $(SOFLAGS) -o luaur/core.so luaur/core.c
 
 lualpm/callback.o: lualpm/lualpm.h
 
@@ -79,7 +84,7 @@ install_clyde: clyde
 	$(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde
 
 clean:
-	-rm -f *.so clydelib/*.so lualpm/*.o
+	-rm -f *.so clydelib/*.so lualpm/*.o luaur/*.so
 
 uninstall_lualpm:
 	rm -f $(DESTDIR)$(libdir)/lualpm.so
