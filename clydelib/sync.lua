@@ -1280,7 +1280,7 @@ local function trans_aurupgrade(targets)
 end
 
 -- Prepares any packages that need upgrading into the transaction...
-local function sync_trans_sysupgrade ( targets, aurpkgs )
+local function sync_trans_sysupgrade ( aurupgrades )
     printf(g(C.blub("::")..C.bright(" Starting full system upgrade...\n")))
     alpm.logaction("starting full system upgrade\n")
     local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
@@ -1294,7 +1294,7 @@ local function sync_trans_sysupgrade ( targets, aurpkgs )
         local aurpkgs = {}
         config.op_s_upgrade = 0
         trans_aurupgrade(aurpkgs)
-        targets = aurpkgs
+        aurupgrades = aurpkgs
     end
 
     return true
