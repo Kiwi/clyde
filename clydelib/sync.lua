@@ -1328,17 +1328,26 @@ local function map ( f, tbl )
     return result
 end
 
+local function reverse ( tbl )
+    local result = {}
+    local i = table.maxn( tbl )
+    while i > 0 do
+        table.insert( result, tbl[i] )
+        i = i - 1
+    end
+    return result
+end
+
 -- Convert a depends string into a table
 -- TODO: make depend class in lualpm -JD
 local function depends_table ( depstr )
-    print( "DEBUG: depstr = " .. depstr )
     if depstr:match( "^[%l-]+$" ) then
-        return { package = depstr, cmp = '>', version = 0 }
+        return { package = depstr, cmp = '>', version = 0, str = depstr }
     end
 
     local pkg, cmp, ver = depstr:match( "^([%l-]+)([=<>]=?)([%d_.]+)$" )
     assert( pkg and cmp and ver, "failed to parse depends string" )
-    return { package = pkg, cmp = cmp, version = ver }
+    return { package = pkg, cmp = cmp, version = ver, str = depstr }
 end
 
 local function provides_table ( provides )
@@ -1368,19 +1377,23 @@ local function repo_pkg_info ( depname, dbobj, pkgobj )
 
     -- A package can have a different dep-satisfying name and true
     -- package name...
-    return { [ depname ] = { name      = pkgobj:pkg_get_name(),
-                             desc      = pkgobj:pkg_get_desc(),
-                             deps      = deptbl,
-                             conflicts = conflicts,
-                             provides  = provtbl,
-                             source    = "alpm" }}
+    return { name      = pkgobj:pkg_get_name(),
+             desc      = pkgobj:pkg_get_desc(),
+             deps      = deptbl,
+             version   = pkgobj:pkg_get_version(),
+             conflicts = conflicts,
+             provides  = provtbl,
+             source    = "alpm" }
 end
 
 -- Search the database for a matching provides list.
 local function find_repo_provides_pkg ( name, db )
+    local regexp = '^' .. name .. '='
     for pkg in each( db:db_get_pkgcache()) do
         for provide in each( pkg:pkg_get_provides()) do
-            if provide == name then return pkg end
+            if provide:match( regexp ) then
+                return pkg
+            end
         end
     end
 end
@@ -1421,10 +1434,12 @@ local function find_aur_pkg ( name )
 
     -- Convert fields of PKGBUILD into pkginfo table
     local depends = map( depends_table, aurinfo.depends )
-    return { [ aurinfo.pkgname ] = { desc      = aurinfo.pkgdesc,
-                                     deps      = depends,
-                                     conflicts = aurinfo.conflicts,
-                                     source    = "aur" }}
+    return { name      = aurinfo.pkgname,
+             desc      = aurinfo.pkgdesc,
+             deps      = depends,
+             version   = aurinfo.pkgver,
+             conflicts = aurinfo.conflicts,
+             source    = "aur" }
 end
 
 local function make_finder ( findfuncs )
@@ -1452,11 +1467,8 @@ local function make_target_finder ( auronly )
     return function ( names )
                local founds = {}
                for name in each( names ) do
-                   local pkg = namefinder( name )
-                   if pkg then
-                       local name, info = next( pkg )
-                       founds[ name ]   = info
-                   end
+                   local info = namefinder( name )
+                   if info then table.insert( founds, info ) end
                end
                return founds
            end
@@ -1466,9 +1478,9 @@ end
 -- even if the --aur flag is used.
 local function make_dep_finder ( aurfirst )
     if aurfirst then
-        make_finder({ find_aur_pkg, find_repo_pkg })
+        return make_finder({ find_aur_pkg, find_repo_pkg })
     else
-        make_finder({ find_repo_pkg, find_aur_pkg })
+        return make_finder({ find_repo_pkg, find_aur_pkg })
     end
 end
 
@@ -1480,6 +1492,7 @@ local function make_dep_checker ( )
         local name = pkg:pkg_get_name()
         pkgcache_table[ name ] = { version = pkg:pkg_get_version() }
         for provide in each( pkg:pkg_get_provides() ) do
+            provide:gsub( "=.*$", "" )
             pkgcache_table[ provide ] = name
         end
     end
@@ -1517,58 +1530,95 @@ local function make_dep_checker ( )
 end
 
 -- Return package info for targets as well as all their deps
-local function calc_deps ( targets )
-    local _calc
+local function find_needed_syncs ( targets )
+    local useaur    = config.op_s_upgrade_aur
 
-    _calc = function ( tlist, found_deps )
-                local useaur = config.op_s_upgrade_aur
-                local satisfied = make_dep_checker()
-                local depfinder = make_dep_finder( useaur )
+    -- Start off by finding user-supplied targets...
+    local target_finder = make_target_finder( useaur )
+    local target_infos  = target_finder( targets )
 
-                local targetfinder = make_target_finder( useaur )
-                local targetinfos  = targetfinder( tlist )
-                return targetinfos
-            end
+    -- Iterate through all dependencies, check if we need them, too...
+    local satisfied = make_dep_checker()
+    local depfinder = make_dep_finder( useaur )
 
-    return _calc( targets )
+    local dep_infos     = {}
+    local already_found = {}
+
+    local dep_is_needed = function ( deptbl )
+                              if already_found[ deptbl.package ] 
+                                  or satisfied( deptbl ) then
+                                  return false
+                              end
+                              return true
+                          end
+
+    local each_needed_dep = function ( deplist )
+                                return filter( dep_is_needed, deplist )
+                            end
+
+    local _depcheck
+    _depcheck = function ( deplist )
+                    -- print( "DEBUG deplist" )
+                    -- print( util.dump( deplist))
+                    for dep in each_needed_dep( deplist ) do
+                        local name = dep.package
+                        -- print( "DEBUG satisfying " .. name )
+                        depinfo = depfinder( name )
+                        -- print( "DEBUG depinfo" )
+                        -- print( util.dump( depinfo ))
+                        assert( depinfo, "Could not satisfy dependency: "
+                                .. dep.str )
+                        already_found[ name ] = true
+                        table.insert( dep_infos, depinfo )
+                        -- print( "DEBUG checking deps for " .. depinfo.name )
+                        _depcheck( depinfo.deps )
+                    end
+                end
+
+    for pkg in each( target_infos ) do
+        _depcheck( pkg.deps )
+    end
+
+    local result = target_infos
+    for dep_info in each( reverse( dep_infos )) do
+        table.insert( result, dep_info )
+    end
+    
+    return result
 end
 
 local function sync_trans ( targets )
-    local deps = calc_deps( targets )
-
-    print( util.dump( deps ))
-    do return 0 end
-
-    local retval = 0
-    local found
-    local transret
-    local data = {}
-    local aurpkgs = {}
-    local sync_dbs = alpm.option_get_syncdbs()
-    local function transcleanup()
-        if (trans_release() == -1) then
-            retval = 1
-        end
-        return retval
-    end
+    local rem_pkgs, alpm_pkgs, aur_pkgs
 
     if (trans_init(config.flags) == -1) then
         return 1
     end
 
+    -- Handle full system upgrade
     if (config.op_s_upgrade > 0) then
         if not sync_trans_sysupgrade( targets ) then
             retval = 1
             return transcleanup()
         end
+        
     else
-        for i, targ in ipairs(targets) do
-            repeat
-                if (alpm.sync_target(targ) == -1) then
+        local syncs = find_needed_syncs( targets )
+        alpm_pkgs   = filter( function ( info )
+                                  return info.source == 'alpm'
+                              end, syncs )
+        aur_pkgs    = filter( function ( info )
+                                  return info.source == 'aur'
+                              end, syncs )
+
+        -- Add each alpm package to a transaction, to check for
+        -- skipped packages mostly...
+        for pkginfo in each( alpm_pkgs ) do
+            if ( alpm.sync_target( pkginfo.name ) == -1 ) then
                     found = false
                     if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
                         alpm.pm_errno() == "P_E_PKG_IGNORED") then
-                        lprintf("LOG_WARNING", g("skipping target: %s\n"), targ)
+                        lprintf("LOG_WARNING",
+                                g("skipping target: %s\n"), targ)
                         break
                     end
                     if (alpm.pm_errno() ~= "P_E_PKG_NOT_FOUND") then
@@ -1760,6 +1810,7 @@ local function sync_trans ( targets )
     if (not confirm) then
         return transcleanup()
     end
+
     data = {}
     transret, data = alpm.trans_commit(data)
     if (transret == -1) then
