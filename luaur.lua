@@ -7,10 +7,10 @@ Adapted from clydes builting AUR code.
 
 ]]--
 
-local lfs  = require "lfs"
-local zlib = require "zlib"
 local yajl = require "yajl"
 local http = require "socket.http"
+local core = require "luaur.core"
+local util = require "luaur.util"
 
 -- CONSTANTS -----------------------------------------------------------------
 
@@ -73,12 +73,6 @@ function AUR:search ( query )
     
 end
 
-local function lookup_pkg ( name )
-    local pkgbuildtext = retrieve_pkgbuild( name )
-    if not pkgbuildtext then return nil end
-    return pkgbuild_fields( pkgbuildtext )
-end
-
 function AUR:get ( package )
     
 end
@@ -110,32 +104,6 @@ Parameter 'basepath' must be specified unless all other paths are provided
     return obj
 end
 
-function AURPackage:rec_mkdir ( dirpath )
-    local abs = ( dirpath:match( "^/" ) ~= nil )
-
-    local comps = {}
-    for comp in dirpath:gmatch( "[^/]+" ) do
-        table.insert( comps, comp )
-    end
-
-    local max = table.maxn( comps )
-    assert( max > 0 )
-
-    local j = 1
-    while j <= max do
-        local checkpath = table.concat( comps, "/", 1, j )
-        if abs then checkpath = "/" .. checkpath end
-
-        if not lfs.attributes( checkpath ) then
-            assert( lfs.mkdir( checkpath ))
-        end
-
-        j = j + 1
-    end
-
-    return
-end
-
 function AURPackage:download ( )
     local pkgname      = self.pkgname
     local pkgurl       = AUR_BASEURI .. string.format( AUR_PKGFMT,
@@ -143,7 +111,7 @@ function AURPackage:download ( )
     local pkgpath      = self.dlpath .. "/" .. pkgname
 
     -- Make sure the destination directory exists...
-    self:rec_mkdir( self.dlpath )
+    rec_mkdir( self.dlpath )
 
     local pkgfile, err = io.open( pkgpath, "wb" )
     assert( pkgfile, err )
@@ -172,16 +140,6 @@ function AURPackage:get_srcpkg_path ( )
     return self.tgzpath
 end
 
-function AURPackage:chdir ( path )
-    local oldir, err = lfs.currentdir()
-    assert( oldir, err )
-
-    local success, err = lfs.chdir( path )
-    assert( success, err )
-
-    return oldir
-end
-
 function AURPackage:extract ( destdir )
     local pkgpath = self:get_srcpkg_path()
 
@@ -194,7 +152,7 @@ function AURPackage:extract ( destdir )
         destdir:gsub( "/+$", "" )
     end
 
-    self:rec_mkdir( destdir )
+    rec_mkdir( destdir )
     local cmd = string.format( "bsdtar -zxf %s -C %s", pkgpath, destdir )
     local ret = os.execute( cmd )
     if ret ~= 0 then
@@ -227,7 +185,7 @@ local function pkgbuild_fields ( text )
     local results = {}
 
     -- First find all fields without quoting characters...
-    for name, value in text:gmatch( "([%l%d]+)=(%w%S+)" ) do
+    for name, value in text:gmatch( "([%l%d]+)=(%w%S*)" ) do
         results[ name ] = value
     end
 
@@ -263,17 +221,67 @@ function AURPackage:get_pkgbuild ( )
     return self.pkgbuild_info
 end
 
-function AURPackage:build ( buildbase, pkgdest )
-    local extdir = self:extract( buildbase )
-    local oldir  = self:chdir( extdir )
+function AURPackage:_builtpkg_path ( pkgdest )
+    local pkgbuild = self:get_pkgbuild()
+    local arch     = pkgbuild.arch
+    if ( type( arch ) == "table" or arch ~= "any" ) then
+        arch = core.arch()
+    end
+    
+    local destfile = string.format( "%s/%s-%s-%d-%s.pkg.tar.xz",
+                                    pkgdest, self.name,
+                                    pkgbuild.pkgver,
+                                    pkgbuild.pkgrel,
+                                    arch )
+    return destfile
+end
 
+function AURPackage:build ( params )
+    if self.pkgpath then return self.pkgpath end
+
+    params = params or {}
+    local extdir = self:extract( params.buildbase )
+
+    local pkgdest = params.pkgdest
     if pkgdest == nil then
         pkgdest = self.destpath
     else
         pkgdest:gsub( "/+$", "" )
     end
+    pkgdest = absdir( pkgdest )
 
-    
+    local destfile = self:_builtpkg_path( pkgdest )
+    local testfile = io.open( destfile, "r" )
+    if testfile then
+        testfile:close()
 
-    self:chdir( oldir )
+        -- Use an already created pkgfile if given the 'usecached' param.
+        if params.usecached then
+            self.pkgpath = destfile
+            return destfile
+        end
+    end
+
+    rec_mkdir( pkgdest)
+    local oldir    = chdir( extdir )
+
+    local cmd = "makepkg"
+    if params.prefix then cmd = params.prefix .. " " .. cmd end
+    if params.args   then cmd = cmd .. " " .. params.args   end
+
+    -- TODO: restore this env variable afterwards
+    core.setenv( "PKGDEST", pkgdest )
+
+    local retval = os.execute( cmd )
+    if ( retval ~= 0 ) then
+        error( "makepkg returned error code " .. retval )
+    end
+
+    chdir( oldir )
+
+    -- Make sure the .pkg.tar.gz file was created...
+    assert( io.open( destfile, "r" ))
+
+    self.pkgpath = destfile
+    return destfile
 end
