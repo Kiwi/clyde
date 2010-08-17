@@ -1706,7 +1706,7 @@ local function sync_trans ( targets )
                 eprintf("LOG_ERROR", g("no URL for package: %s\n"), pkg:pkg_get_name())
             end
         end
-        return transcleanup()
+        return cleanup( 1 )
     end
 
     local removals = alpm.trans_get_remove()
