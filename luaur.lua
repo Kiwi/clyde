@@ -183,7 +183,6 @@ Parameter 'basepath' must be specified unless all other paths are provided
     local destpath = params.destpath or params.basepath .. "/cache"
 
     local obj    = params
-    obj.tgzpath  = ""
     obj.pkgname  = obj.name .. ".src.tar.gz"
     obj.dlpath   = dlpath
     obj.extpath  = extpath
