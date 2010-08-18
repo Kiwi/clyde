@@ -96,6 +96,10 @@ function AUR:search ( query )
         error( "Failed to search AUR using RPC" )
     end
 
+    --[[ Create a custom JSON SAX parser. On results with ~1k entries
+         yajl.to_value was bugging out. This is more efficient anyways.
+         We can insert values into our results directly... ]]--
+
     local results     = {}
     local newname_for = { Description = "desc",
                           NumVotes    = "votes",
