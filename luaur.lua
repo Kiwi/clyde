@@ -226,10 +226,30 @@ function AURPackage:download ( callback )
     local pkgfile, err = io.open( pkgpath, "wb" )
     assert( pkgfile, err )
 
+    local dlsink = ltn12.sink.file( pkgfile )
+
+    -- If a callback is provided, call it with the download progress...
+    if callback then
+        if type(callback) ~= "function" then
+            error( "Argument to download method must be a callback func" )
+        end
+
+        local current, total = 0, self:download_size()
+        local dlfilter = function ( dlchunk )
+                             if dlchunk == nil or #dlchunk == 0 then
+                                 return dlchunk
+                             end
+                             current = current + #dlchunk
+                             callback( current, total )
+                             return dlchunk
+                         end
+        dlsink = ltn12.sink.chain( dlfilter, dlsink )
+    end
+
     USERAGENT = AUR_USERAGENT
-    local good, status   = http.request{ url    = pkgurl,
-                                         proxy  = self.proxy,
-                                         sink   = ltn12.sink.file( pkgfile ) }
+    local good, status = http.request { url    = pkgurl,
+                                        proxy  = self.proxy,
+                                        sink   = dlsink }
 
     if not good or status ~= 200 then
         local err
