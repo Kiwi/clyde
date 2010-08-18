@@ -1,11 +1,11 @@
---[[
+--[[--------------------------------------------------------------------------
 
 LuAUR - Lua interface to the ArchLinux User Repository
 by Justin Davis <jrcd83@gmail.com>
 
 Adapted from clydes builting AUR code.
 
-]]--
+--]]--------------------------------------------------------------------------
 
 local yajl = require "yajl"
 local http = require "socket.http"
