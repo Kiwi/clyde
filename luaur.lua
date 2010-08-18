@@ -16,7 +16,8 @@ local util = require "luaur.util"
 
 local VERSION       = "0.01"
 local AUR_BASEURI   = "http://aur.archlinux.org"
-local AUR_PKGFMT    = "/packages/%s/%s.tar.gz"
+local AUR_PKGFMT    = AUR_BASEURI .. "/packages/%s/%s.tar.gz"
+local AUR_PBFMT     = AUR_BASEURI .. "/packages/%s/%s/PKGBUILD"
 local AUR_USERAGENT = "LuAUR/v" .. VERSION
 
 ------------------------------------------------------------------------------
@@ -193,7 +194,7 @@ Parameter 'basepath' must be specified unless all other paths are provided
 end
 
 function AURPackage:download_url ( )
-    return AUR_BASEURI .. string.format( AUR_PKGFMT, self.name, self.name )
+    return string.format( AUR_PKGFMT, self.name, self.name )
 end
 
 function AURPackage:download_size ( )
@@ -327,21 +328,38 @@ local function pkgbuild_fields ( text )
     return results
 end
 
+function AURPackage:_download_pkgbuild ( )
+    local name        = self.name
+    local pkgbuildurl = string.format( AUR_PBFMT, name, name )
+
+    local pkgbuildtxt, code = http.request( pkgbuildurl )
+    if not pkgbuildtxt or code ~= 200 then
+        error( "Failed to download PKGBUILD for " .. name )
+    end
+    return pkgbuildtxt
+end
+
+function AURPackage:_extracted_pkgbuild ( )
+    local pbpath       = self.pkgdir .. "/PKGBUILD"
+    local pbfile, err  = io.open( pbpath, "r" )
+    assert( pbfile, err )
+    local pbtext       = pbfile:read( "*a" )
+    pbfile:close()
+    return pbtext
+end
+
 -- Downloads, extracts tarball (if needed) and then parses the PKGBUILD...
 function AURPackage:get_pkgbuild ( )
-    local extdir = self:extract()
-
     if self.pkgbuild_info then return self.pkgbuild_info end
 
-    local pbpath      = extdir .. "/PKGBUILD"
-    local pbfile, err = io.open( pbpath, "r" )
-    assert( pbfile, err )
+    local pbtext
+    if self.pkgdir then
+        pbtext = self:_extracted_pkgbuild()
+    else
+        pbtext = self:_download_pkgbuild()
+    end
 
-    local pbtext       = pbfile:read( "*a" )
     self.pkgbuild_info = pkgbuild_fields( pbtext )
-
-    pbfile:close()
-
     return self.pkgbuild_info
 end
 
