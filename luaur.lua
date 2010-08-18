@@ -154,16 +154,15 @@ function AUR:search ( query )
 end
 
 function AUR:get ( package )
-    local pkg = AURPackage:new{ basepath = self.basepath,
-                                dlpath   = self.dlpath,
-                                extpath  = self.extpath,
-                                destpath = self.destpath,
-                                proxy    = self.proxy,
-                                name     = package }
+    local pkg = AURPackage:new { basepath = self.basepath,
+                                 dlpath   = self.dlpath,
+                                 extpath  = self.extpath,
+                                 destpath = self.destpath,
+                                 proxy    = self.proxy,
+                                 name     = package }
 
-    local success, err = pcall( function () pkg:download() end )
-    if not success then return nil end
-
+    -- We want to test if the package really exists...
+    if not pkg:download_size() then return nil end
     return pkg
 end
 
