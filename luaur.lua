@@ -208,6 +208,8 @@ function AURPackage:download_size ( )
 end
 
 function AURPackage:download ( callback )
+    if self.tgzpath then return self.tgzpath end
+
     local pkgurl       = self:download_url()
     local pkgname      = self.pkgname
     local pkgpath      = self.dlpath .. "/" .. pkgname
@@ -234,16 +236,11 @@ function AURPackage:download ( callback )
     end
 
     self.tgzpath = pkgpath
-    return
-end
-
-function AURPackage:get_srcpkg_path ( )
-    if self.tgzpath == "" then self:download() end
-    return self.tgzpath
+    return pkgpath
 end
 
 function AURPackage:extract ( destdir )
-    local pkgpath = self:get_srcpkg_path()
+    local pkgpath = self:download()
 
     -- Do not extract files redundantly...
     if self.pkgdir then return self.pkgdir end
