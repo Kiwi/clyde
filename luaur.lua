@@ -18,46 +18,6 @@ local AUR_BASEURI   = "http://aur.archlinux.org"
 local AUR_PKGFMT    = "/packages/%s/%s.tar.gz"
 local AUR_USERAGENT = "LuAUR/v0.01"
 
--- UTILITY FUNCTIONS ---------------------------------------------------------
-
--- Copied from "Programming in Lua"
-local function each ( tbl )
-    local i   = 0
-    local max = table.maxn( tbl )
-    return function ()
-               i = i + 1
-               if i <= max then return tbl[i] end
-               return nil
-           end
-end
-
-local function filter ( f, tbl )
-    local result = {}
-    for elem in each( tbl ) do
-        if f( elem ) then table.insert( result, elem ) end
-    end
-
-    return result
-end
-
-local function map ( f, tbl )
-    local result = {}
-    for key, val in pairs( tbl ) do
-        result[ key ] = f( val )
-    end
-    return result
-end
-
-local function reverse ( tbl )
-    local result = {}
-    local i = table.maxn( tbl )
-    while i > 0 do
-        table.insert( result, tbl[i] )
-        i = i - 1
-    end
-    return result
-end
-
 ------------------------------------------------------------------------------
 
 AUR = { basepath = "/tmp/luaur" }
