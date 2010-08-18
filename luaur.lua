@@ -198,6 +198,8 @@ function AURPackage:download_url ( )
 end
 
 function AURPackage:download_size ( )
+    if self.dlsize then return self.dlsize end
+    
     USERAGENT = AUR_USERAGENT
     local pkgurl = self:download_url()
     local good, status, headers
@@ -207,7 +209,8 @@ function AURPackage:download_size ( )
         return nil
     end
 
-    return headers[ "content-length" ]
+    self.dlsize = tonumber( headers[ "content-length" ] )
+    return self.dlsize
 end
 
 function AURPackage:download ( callback )
