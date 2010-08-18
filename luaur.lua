@@ -172,6 +172,7 @@ AURPackage = { }
 AURPackage.__index = AURPackage
 
 function AURPackage:new ( params ) --name, basepath, proxy )n
+    params = params or { }
     assert( params.name, "Parameter 'name' must be specified" )
     assert( ( params.dlpath and params.extpath and params.destpath )
             or params.basepath, [[
