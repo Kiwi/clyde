@@ -41,6 +41,47 @@ local function aur_rpc_url ( method, arg )
     return AUR_BASEURI .. "/rpc.php?type=" .. method .. "&arg=" .. arg
 end
 
+local NEWKEYNAME_FOR = { Description = "desc",
+                         NumVotes    = "votes",
+                         CategoryID  = "category",
+                         LocationID  = "location",
+                         OutOfDate   = "outdated" }
+local function aur_rpc_keyname ( key )
+    return NEWKEYNAME_FOR[ key ] or key:lower()
+end
+
+function AUR:info ( name )
+    local url     = aur_rpc_url( "info", name )
+    local jsontxt = http.request( url )
+        or error( "Failed to call info RPC" )
+
+    local keyname, in_results, results = "", false, {}
+    local parser = yajl.parser {
+        events = { open_object = function ( events )
+                                     if keyname == "results" then
+                                         in_results = true
+                                     end
+                                 end,
+                   object_key  = function ( events, name )
+                                     keyname = aur_rpc_keyname( name )
+                                 end,
+                   value       = function ( events, value, type )
+                                     if keyname == "type" and
+                                         value == "error" then
+                                         error( "AUR info RPC failed" )
+                                     end
+                                     if not in_results then return end
+                                     if keyname == "outdated" then
+                                         value = ( value == "1" )
+                                     end
+                                     results[ keyname ] = value
+                                 end
+          }}
+
+    if not pcall( function () parser( jsontxt ) end ) then return nil end
+    return results
+end
+
 function AUR:search ( query )
     -- Allow search queries to contain regexp anchors... only!
     local regexp
@@ -62,11 +103,6 @@ function AUR:search ( query )
          We can insert values into our results directly... ]]--
 
     local results     = {}
-    local newname_for = { Description = "desc",
-                          NumVotes    = "votes",
-                          CategoryID  = "category",
-                          LocationID  = "location",
-                          OutOfDate   = "outdated" }
 
     local in_results, in_pkg, pkgkey, pkginfo = false, false, "", {}
     local parser = yajl.parser {
@@ -88,15 +124,17 @@ function AUR:search ( query )
                                  end,
                    object_key  = function ( evts, name )
                                      if not in_pkg then return end
-                                     pkgkey = newname_for[ name ]
-                                         or name:lower()
+                                     pkgkey = aur_rpc_keyname( name )
                                  end,
                    -- I think AUR does only string datatypes... heh
                    value       = function ( evts, value, type )
                                      if not in_pkg then return end
                                      if pkgkey == "name" then
                                          results[ value ] = pkginfo
+                                     elseif pkgkey == "outdated" then
+                                         value = ( value == "1" )
                                      end
+
                                      pkginfo[ pkgkey ] = value
                                  end
            } }
