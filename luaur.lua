@@ -14,9 +14,10 @@ local util = require "luaur.util"
 
 -- CONSTANTS -----------------------------------------------------------------
 
+local VERSION       = "0.01"
 local AUR_BASEURI   = "http://aur.archlinux.org"
 local AUR_PKGFMT    = "/packages/%s/%s.tar.gz"
-local AUR_USERAGENT = "LuAUR/v0.01"
+local AUR_USERAGENT = "LuAUR/v" .. VERSION
 
 ------------------------------------------------------------------------------
 
@@ -370,3 +371,4 @@ function AURPackage:build ( params )
     self.pkgpath = destfile
     return destfile
 end
+
