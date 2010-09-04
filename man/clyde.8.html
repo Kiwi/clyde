@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' value='text/html;charset=utf8'>
+  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <title>clyde(8) - next-generation libalpm/makepkg wrapper</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#OPERATIONS">OPERATIONS</a>
+    <a href="#QUERY-OPTIONS">QUERY OPTIONS</a>
+    <a href="#REMOVE-OPTIONS">REMOVE OPTIONS</a>
+    <a href="#SYNC-OPTIONS">SYNC OPTIONS</a>
+    <a href="#UPGRADE-OPTIONS">UPGRADE OPTIONS</a>
+    <a href="#GETPKGBUILD-OPTIONS">GETPKGBUILD OPTIONS</a>
+    <a href="#FILES">FILES</a>
+    <a href="#BUGS">BUGS</a>
+    <a href="#CONTRIBUTORS">CONTRIBUTORS</a>
+    <a href="#LICENSE">LICENSE</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+    </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>clyde(8)</li>
+    <li class='tc'></li>
+    <li class='tr'>clyde(8)</li>
+  </ol>
+
+  <h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>clyde</code> - <span class="man-whatis">next-generation libalpm/makepkg wrapper</span>
+</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p><code>clyde</code> <em>OPERATION</em> [<em>OPTIONS</em>] [<em>PACKAGES</em>]</p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p>The next-generation libalpm/makepkg wrapper with AUR support, multithreaded
+downloading, and colorized output.   Trust us, it's the best! Now in open beta!</p>
+
+<h2 id="OPERATIONS">OPERATIONS</h2>
+
+<p><code>-h</code> <code>--help</code>
+<code>-V</code> <code>--version</code>
+<code>--stats</code>
+<code>-Q</code> <code>--query</code>   [<em>OPTIONS</em>] [<em>PACKAGES</em>]
+<code>-R</code> <code>--remove</code>  [<em>OPTIONS</em>] <em>PACKAGES</em>
+<code>-S</code> <code>--sync</code>    [<em>OPTIONS</em>] [<em>PACKAGES</em>]
+<code>-U</code> <code>--upgrade</code> [<em>OPTIONS</em>] <em>FILES</em>
+<code>-G</code> <code>--getpkgbuild</code> [<em>OPTIONS</em>] [<em>PACKAGES</em>]</p>
+
+<h2 id="QUERY-OPTIONS">QUERY OPTIONS</h2>
+
+<dl>
+<dt><code>-c,</code> <code>--changelog</code></dt><dd>view the changelog of a package</dd>
+<dt><code>-d,</code> <code>--deps</code></dt><dd>list packages installed as dependencies [<em>filter</em>]</dd>
+<dt><code>-e,</code> <code>--explicit</code></dt><dd>list packages explicitly installed [<em>filter</em>]</dd>
+<dt><code>-g,</code> <code>--groups</code></dt><dd>view all members of a package group</dd>
+<dt><code>-i,</code> <code>--info</code></dt><dd>view package information (-ii for backup files)</dd>
+<dt><code>-k,</code> <code>--check</code></dt><dd>check that the files owned by the package(s) are present</dd>
+<dt><code>-l,</code> <code>--list</code></dt><dd>list the contents of the queried package</dd>
+<dt><code>-m,</code> <code>--foreign</code></dt><dd>list installed packages not found in sync db(s) [<em>filter</em>]</dd>
+<dt><code>-o,</code> <code>--owns</code> <em>FILE</em></dt><dd>  query the package that owns <em>FILE</em></dd>
+<dt><code>-p,</code> <code>--file</code> <em>PACKAGE</em></dt><dd>query a package file instead of the database</dd>
+<dt><code>-s,</code> <code>--search</code> <em>REGEX</em></dt><dd>search locally-installed packages for matching strings</dd>
+<dt><code>-t,</code> <code>--unrequired</code></dt><dd>list packages not required by any package [<em>filter</em>]</dd>
+<dt><code>-u,</code> <code>--upgrades</code></dt><dd>list outdated packages [<em>filter</em>]</dd>
+<dt><code>-q,</code> <code>--quiet</code></dt><dd>show less information for query and search</dd>
+<dt><code>--config</code> <em>PATH</em></dt><dd>set an alternate configuration file</dd>
+<dt><code>--logfile</code> <em>PATH</em></dt><dd>set an alternate log file</dd>
+<dt><code>--noconfirm</code></dt><dd>do not ask for any confirmation</dd>
+<dt><code>--noprogressbar</code></dt><dd>do not show a progress bar when downloading files</dd>
+<dt><code>--noscriptlet</code></dt><dd>do not execute the install scriptlet if one exists</dd>
+<dt><code>-v,</code> <code>--verbose</code></dt><dd>be verbose</dd>
+<dt class="flush"><code>--debug</code></dt><dd>display debug messages</dd>
+<dt><code>-r,</code> <code>--root</code> <em>PATH</em></dt><dd>set an alternate installation root</dd>
+<dt><code>-b,</code> <code>--dbpath</code> <em>PATH</em></dt><dd>set an alternate database location</dd>
+<dt><code>--cachedir</code> <em>DIR</em></dt><dd>set an alternate package cache location</dd>
+<dt><code>--editor</code> <em>PRG</em></dt><dd>edit the PKGBUILD with the configured editor</dd>
+<dt class="flush"><code>--color</code></dt><dd>enable colors</dd>
+<dt><code>--nocolor</code></dt><dd>disable colors</dd>
+</dl>
+
+
+<h2 id="REMOVE-OPTIONS">REMOVE OPTIONS</h2>
+
+<dl>
+<dt><code>-c,</code> <code>--cascade</code></dt><dd>remove packages and all packages that depend on them</dd>
+<dt><code>-d,</code> <code>--nodeps</code></dt><dd> skip dependency checks</dd>
+<dt><code>-k,</code> <code>--dbonly</code></dt><dd>only remove database entry, do not remove files</dd>
+<dt><code>-n,</code> <code>--nosave</code></dt><dd>remove configuration files as well</dd>
+<dt><code>-s,</code> <code>--recursive</code></dt><dd>remove dependencies also (that won't break packages)
+(-ss includes explicitly installed dependencies too)</dd>
+<dt><code>-u,</code> <code>--unneeded</code></dt><dd>remove unneeded packages (that won't break packages)</dd>
+<dt><code>--config</code> <em>PATH</em></dt><dd>set an alternate configuration file</dd>
+<dt><code>--logfile</code> <em>PATH</em></dt><dd>set an alternate log file</dd>
+<dt><code>--noconfirm</code></dt><dd>do not ask for any confirmation</dd>
+<dt><code>--noprogressbar</code></dt><dd>do not show a progress bar when downloading files</dd>
+<dt><code>--noscriptlet</code></dt><dd>do not execute the install scriptlet if one exists</dd>
+<dt><code>-v</code>, <code>--verbose</code></dt><dd>be verbose</dd>
+<dt class="flush"><code>--debug</code></dt><dd>display debug messages</dd>
+<dt><code>-r,</code> <code>--root</code> <em>PATH</em></dt><dd>set an alternate installation root</dd>
+<dt><code>-b,</code> <code>--dbpath</code> <em>PATH</em></dt><dd>set an alternate database location</dd>
+<dt><code>--cachedir</code> <em>DIR</em></dt><dd>set an alternate package cache location</dd>
+<dt><code>--editor</code> <em>PRG</em></dt><dd>edit the PKGBUILD with the configured editor</dd>
+<dt class="flush"><code>--color</code></dt><dd>enable colors</dd>
+<dt><code>--nocolor</code></dt><dd>disable colors</dd>
+</dl>
+
+
+<h2 id="SYNC-OPTIONS">SYNC OPTIONS</h2>
+
+<dl>
+<dt><code>-a,</code> <code>--aur</code></dt><dd>only search or install packages from AUR</dd>
+<dt><code>--asdeps</code></dt><dd>install packages as non-explicitly installed</dd>
+<dt><code>--asexplicit</code></dt><dd>install packages as explicitly installed</dd>
+<dt><code>-c,</code> <code>--clean</code></dt><dd>remove old packages from cache directory (-cc for all)</dd>
+<dt><code>-d,</code> <code>--nodeps</code></dt><dd>skip dependency checks</dd>
+<dt><code>-f,</code> <code>--force</code></dt><dd>force install, overwrite conflicting files</dd>
+<dt><code>-g,</code> <code>--groups</code></dt><dd>view all members of a package group</dd>
+<dt><code>-i,</code> <code>--info</code></dt><dd>view package information</dd>
+<dt><code>-l,</code> <code>--list</code> <em>REPO</em></dt><dd>view a list of packages in a <em>REPO</em></dd>
+<dt><code>-p,</code> <code>--print-uris</code></dt><dd>print out URIs for given packages and their dependencies</dd>
+<dt><code>-s,</code> <code>--search</code> <em>REGEX</em></dt><dd>search remote repositories for matching strings</dd>
+<dt><code>-u,</code> <code>--sysupgrade</code></dt><dd>upgrade installed packages (-uu allows downgrade)</dd>
+<dt><code>-w,</code> <code>--downloadonly</code></dt><dd>download packages but do not install/upgrade anything</dd>
+<dt><code>-y,</code> <code>--refresh</code></dt><dd>download fresh package databases from the server</dd>
+<dt><code>--needed</code></dt><dd>don't reinstall up to date packages</dd>
+<dt><code>--ignore</code> <em>PKG</em></dt><dd>ignore a package upgrade (can be used more than once)</dd>
+<dt><code>--ignoregroup</code> <em>GRP</em></dt><dd>ignore a group upgrade (can be used more than once)</dd>
+<dt><code>-q,</code> <code>--quiet</code></dt><dd>show less information for query and search</dd>
+<dt><code>--config</code> <em>PATH</em></dt><dd>set an alternate configuration file</dd>
+<dt><code>--logfile</code> <em>PATH</em></dt><dd>set an alternate log file</dd>
+<dt><code>--noconfirm</code></dt><dd>do not ask for any confirmation</dd>
+<dt><code>--noprogressbar</code></dt><dd>do not show a progress bar when downloading files</dd>
+<dt><code>--noscriptlet</code></dt><dd>do not execute the install scriptlet if one exists</dd>
+<dt><code>-v,</code> <code>--verbose</code></dt><dd>be verbose</dd>
+<dt class="flush"><code>--debug</code></dt><dd>display debug messages</dd>
+<dt><code>-r,</code> <code>--root</code> <em>PATH</em></dt><dd>set an alternate installation root</dd>
+<dt><code>-b,</code> <code>--dbpath</code> <em>PATH</em></dt><dd>set an alternate database location</dd>
+<dt><code>--cachedir</code> <em>DIR</em></dt><dd>set an alternate package cache location</dd>
+<dt><code>--editor</code> <em>PRG</em></dt><dd>edit the PKGBUILD with the configured editor</dd>
+<dt class="flush"><code>--color</code></dt><dd>enable colors</dd>
+<dt><code>--nocolor</code></dt><dd>disable colors</dd>
+</dl>
+
+
+<h2 id="UPGRADE-OPTIONS">UPGRADE OPTIONS</h2>
+
+<dl>
+<dt><code>--asdeps</code></dt><dd>install packages as non-explicitly installed</dd>
+<dt><code>--asexplicit</code></dt><dd>install packages as explicitly installed</dd>
+<dt><code>-d,</code> <code>--nodeps</code></dt><dd>skip dependency checks</dd>
+<dt><code>-f,</code> <code>--force</code></dt><dd>force install, overwrite conflicting files</dd>
+<dt><code>--config</code> <em>PATH</em></dt><dd>set an alternate configuration file</dd>
+<dt><code>--logfile</code> <em>PATH</em></dt><dd>set an alternate log file</dd>
+<dt><code>--noconfirm</code></dt><dd>do not ask for any confirmation</dd>
+<dt><code>--noprogressbar</code></dt><dd>do not show a progress bar when downloading files</dd>
+<dt><code>--noscriptlet</code></dt><dd>do not execute the install scriptlet if one exists</dd>
+<dt><code>-v,</code> <code>--verbose</code></dt><dd>be verbose</dd>
+<dt class="flush"><code>--debug</code></dt><dd>display debug messages</dd>
+<dt><code>-r</code>, <code>--root</code> <em>PATH</em></dt><dd>set an alternate installation root</dd>
+<dt><code>-b,</code> <code>--dbpath</code> <em>PATH</em></dt><dd>set an alternate database location</dd>
+<dt><code>--cachedir</code> <em>DIR</em></dt><dd>set an alternate package cache location</dd>
+<dt><code>--editor</code> <em>PRG</em></dt><dd>edit the PKGBUILD with the configured editor</dd>
+<dt class="flush"><code>--color</code></dt><dd>enable colors</dd>
+<dt><code>--nocolor</code></dt><dd>disable colors</dd>
+</dl>
+
+
+<h2 id="GETPKGBUILD-OPTIONS">GETPKGBUILD OPTIONS</h2>
+
+<dl>
+<dt><code>-d,</code> <code>--deps</code></dt><dd>download files for dependencies from AUR as well</dd>
+<dt><code>--config</code> <em>PATH</em></dt><dd>set an alternate configuration file</dd>
+<dt><code>--logfile</code> <em>PATH</em></dt><dd>set an alternate log file</dd>
+<dt><code>--noconfirm</code></dt><dd>do not ask for any confirmation</dd>
+<dt><code>--noprogressbar</code></dt><dd>do not show a progress bar when downloading files</dd>
+<dt><code>--noscriptlet</code></dt><dd>do not execute the install scriptlet if one exists</dd>
+<dt><code>-v,</code> <code>--verbose</code></dt><dd>be verbose</dd>
+<dt class="flush"><code>--debug</code></dt><dd>display debug messages</dd>
+<dt><code>-r</code>, <code>--root</code> <em>PATH</em></dt><dd>set an alternate installation root</dd>
+<dt><code>-b,</code> <code>--dbpath</code> <em>PATH</em></dt><dd>set an alternate database location</dd>
+<dt><code>--cachedir</code> <em>DIR</em></dt><dd>set an alternate package cache location</dd>
+<dt><code>--editor</code> <em>PRG</em></dt><dd>edit the PKGBUILD with the configured editor</dd>
+<dt class="flush"><code>--color</code></dt><dd>enable colors</dd>
+<dt><code>--nocolor</code></dt><dd>disable colors</dd>
+</dl>
+
+
+<h2 id="FILES">FILES</h2>
+
+<dl>
+<dt><code>/etc/clyde.conf</code></dt><dd>clyde configuration file, see <code>pacman.conf</code>(5) for general syntax</dd>
+</dl>
+
+
+<h2 id="BUGS">BUGS</h2>
+
+<p>WARNING: This program is currently in beta state. Therefore, use it at your
+own risk. The developers are not responsible if it breaks your system, fries
+your motherboard, or eats your babies.</p>
+
+<p>That is all.</p>
+
+<p>PS: If any of the aforementioned catastrophes does happen, please forward us
+bug reports... If anything overly drastic happens, PICS OR GTFO!
+--Ghost1227</p>
+
+<p>A note from the lead developer (DigitalKiwi):</p>
+
+<p>In all seriousness: It should be perfectly safe to use, it only lacks a few
+features that pacman has. Bugs can be posted to github under issues or at
+http://bugs.archuser.com/index.php?project=4 or DigitalKiwi on freenode</p>
+
+<p>It is still lacking some of the AUR support that it will have, so if you find
+it lacking wait a while and come back and you may be pleasantly surprised.</p>
+
+<p>Thank you for your interest in Clyde, I hope it serves you well, leave
+feedback if you like and I will take it into consideration.</p>
+
+<h2 id="CONTRIBUTORS">CONTRIBUTORS</h2>
+
+<p>Thanks to all the users of clyde who have submitted bug reports and
+code. The following persons have contributed code to clyde.</p>
+
+<p>Justin "juster" Davis <a href="&#109;&#x61;&#x69;&#x6c;&#116;&#111;&#58;&#x6a;&#114;&#99;&#100;&#56;&#x33;&#x40;&#103;&#109;&#97;&#x69;&#x6c;&#46;&#x63;&#111;&#x6d;" data-bare-link="true">&#106;&#114;&#99;&#100;&#56;&#x33;&#x40;&#x67;&#x6d;&#x61;&#105;&#x6c;&#x2e;&#99;&#x6f;&#109;</a>:</p>
+
+<ul>
+<li>Upgraded lualpm to work with pacman 3.4.</li>
+<li>Supervised patching on the github repository.</li>
+<li>Much cleanup and rewriting of code.</li>
+</ul>
+
+
+<p>Otto Allmendinger <a href="&#109;&#x61;&#x69;&#108;&#116;&#111;&#58;&#x6f;&#116;&#x74;&#111;&#x2e;&#x61;&#x6c;&#108;&#x6d;&#x65;&#x6e;&#x64;&#105;&#110;&#x67;&#x65;&#114;&#64;&#x67;&#x6d;&#x61;&#x69;&#108;&#x2e;&#x63;&#111;&#109;" data-bare-link="true">&#x6f;&#116;&#116;&#x6f;&#x2e;&#x61;&#x6c;&#108;&#109;&#101;&#x6e;&#100;&#x69;&#110;&#x67;&#x65;&#114;&#64;&#103;&#x6d;&#97;&#105;&#108;&#x2e;&#x63;&#x6f;&#x6d;</a>:</p>
+
+<ul>
+<li>Fix for the pacman 3.4 Architecture config field not accepting 'auto'.</li>
+<li>Fix for clyde returning no error code on error (#30).</li>
+<li>Fix for dependencies not displaying properly for AUR package
+requiring additional ALPM dependencies (#35).</li>
+</ul>
+
+
+<p>Matthew "paradoq" Bauer:</p>
+
+<ul>
+<li>Added support for regexp matching/filtering in AUR searches.</li>
+</ul>
+
+
+<h2 id="LICENSE">LICENSE</h2>
+
+<p>Clyde is released under a multi-part license as follows:</p>
+
+<p>Clyde makepkg/libalpm wrapper
+Copyright (C) 2009, Robert Djubek &lt;envy1988.AT.gmail.com>
+All rights reserved.</p>
+
+<p>This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.</p>
+
+<p>This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.</p>
+
+<p>You should have received a copy of the GNU General Public License
+along with this program. If not, see <a href="http://www.gnu.org/licenses/" data-bare-link="true">http://www.gnu.org/licenses/</a></p>
+
+<p>lualpm libalpm binding library</p>
+
+<p>Copyright (C) 2009 Robert Djubek &lt;envy1988.AT.gmail.com>
+All Rights Reserved.</p>
+
+<p>Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:</p>
+
+<p>The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.</p>
+
+<p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.</p>
+
+<p>Original concept for clyde and logo design are
+intellectual property of Daniel J Griffiths &lt;ghost1227@archlinux.us></p>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><code>pacman</code>(8), <code>pacman.conf</code>(5),<code>libalpm</code>(3)</p>
+
+<p>See Kiwi's Clyde repository on Github: http://github.com/Kiwi/clyde</p>
+
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'></li>
+    <li class='tc'>July 2010</li>
+    <li class='tr'>clyde(8)</li>
+  </ol>
+
+  </div>
+</body>
+</html>
