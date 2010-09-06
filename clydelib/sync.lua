@@ -45,6 +45,8 @@ local dump_pkg_changelog = packages.dump_pkg_changelog
 local dump_pkg_files = packages.dump_pkg_files
 local dump_pkg_sync = packages.dump_pkg_sync
 
+require "luaur"
+
 local tblsort = table.sort
 local tblconcat = table.concat
 require "socket"
@@ -1234,72 +1236,6 @@ local function aur_install(targets)
     end
 end
 
-local function trans_aurupgrade(targets)
-    local pkgcache = db_local:db_get_pkgcache()
-    local foreign = {}
-    local possibleaurpkgs = {}
-    local aurpkgs = {}
-    local len
-    for i, pkg in ipairs (pkgcache) do
-        local name = pkg:pkg_get_name()
-        if (not pacmaninstallable(name)) then
-            tblinsert(foreign, {name = name; version = pkg:pkg_get_version()})
-            possibleaurpkgs[name] = true
-        end
-    end
-
-    printf(C.blub("::")..C.bright(" Synchronizing AUR database...\n"))
-    local count = 0
-    for i, pkg in ipairs(foreign) do
-        local message = string.format(" aur%s%3.0f/%3.0f", (" "):rep(20), i, #foreign)
-        printf("\r%s", message)
-        len = #message
-        repeat
-        count = count + 1
-        local infourl = aururl..aurmethod.info.."arg="..url.escape(pkg.name)
-        local inforesults = aur.getgzip(infourl)
-        callback.fill_progress(math.floor(count*100/#foreign), math.ceil(count*100/#foreign), util.getcols() - len)
-        if (not inforesults) then
-            break
-        end
-
-        local jsonresults = yajl.to_value(inforesults) or {}
-
-        if (type(jsonresults.results == "table")) then
-            if jsonresults.results.Name then
-                if possibleaurpkgs[jsonresults.results.Name] then
-                    aurpkgs[pkg.name] = jsonresults.results.Version
-                    if (alpm.pkg_vercmp(jsonresults.results.Version, pkg.version) == 1) then
-                        tblinsert(targets, pkg.name)
-                    end
-                end
-            end
-        end
-        until 1
-    end
-end
-
--- Prepares any packages that need upgrading into the transaction...
-local function sync_trans_sysupgrade ( aurupgrades )
-    printf(g(C.blub("::")..C.bright(" Starting full system upgrade...\n")))
-    alpm.logaction("starting full system upgrade\n")
-    local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
-
-    if (alpm.sync_sysupgrade(op_s_upgrade) == -1) then
-        eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
-        return false
-    end
-
-    if (config.op_s_upgrade_aur) then
-        local aurpkgs = {}
-        config.op_s_upgrade = 0
-        trans_aurupgrade(aurpkgs)
-        aurupgrades = aurpkgs
-    end
-
-    return true
-end
-
 -- Copied from "Programming in Lua"
 local function each ( tbl )
     local i   = 0
@@ -1341,12 +1277,12 @@ end
 -- Convert a depends string into a table
 -- TODO: make depend class in lualpm -JD
 local function depends_table ( depstr )
-    if depstr:match( "^[%l-]+$" ) then
+    if depstr:match( "^[%l%d_-]+$" ) then
         return { package = depstr, cmp = '>', version = 0, str = depstr }
     end
 
-    local pkg, cmp, ver = depstr:match( "^([%l-]+)([=<>]=?)([%d_.]+)$" )
-    assert( pkg and cmp and ver, "failed to parse depends string" )
+    local pkg, cmp, ver = depstr:match( "^([%l%d_-]+)([=<>]=?)([%l%d._-]+)$" )
+    assert( pkg and cmp and ver, "failed to parse depends string: " .. depstr )
     return { package = pkg, cmp = cmp, version = ver, str = depstr }
 end
 
@@ -1364,25 +1300,43 @@ local function provides_table ( provides )
 end
 
 -- Convert an ALPM package object into a table of package info
-local function repo_pkg_info ( depname, dbobj, pkgobj )
+local function repo_pkg_info ( pkgobj )
     local stirrer = function ( dep ) return dep:dep_compute_string() end
-    local clist   = pkgobj:pkg_get_conflicts()
     local deptbl  = map( depends_table,
                          map( stirrer, pkgobj:pkg_get_depends()))
-    local provtbl = provides_table( pkgobj:pkg_get_provides())
+    local provtbl = provides_table( pkgobj:pkg_get_provides() )
     local conftbl = map( depends_table,
-                           pkgobj:pkg_get_conflicts() )
+                         pkgobj:pkg_get_conflicts() )
+
+    local verstr = pkgobj:pkg_get_version()
+    local version, release = string.match( verstr, "^(.+)-([%d_]+)$" )
+    assert( version and release, "Failed to parse version string: "
+            .. verstr )
 
     -- A package can have a different dep-satisfying name and true
     -- package name...
     return { name      = pkgobj:pkg_get_name(),
              desc      = pkgobj:pkg_get_desc(),
+             release   = release,
+             version   = version,
+             verstr    = verstr,
              deps      = deptbl,
-             version   = pkgobj:pkg_get_version(),
              conflicts = conftbl,
              provides  = provtbl,
              pkgobj    = pkgobj,
              source    = "alpm" }
+end
+
+-- Convert fields of a LUAURPackage object into a pkginfo table
+local function aur_pkg_info ( aurobj )
+    return { name      = aurobj.pkgname,
+             desc      = aurobj.pkgdesc,
+             release   = aurobj.pkgrel,
+             version   = aurobj.pkgver,
+             deps      = aurobj.depends,
+             conflicts = aurobj.conflicts or {},
+             pkgobj    = aurobj,
+             source    = "aur" }
 end
 
 -- Search the database for a matching provides list.
@@ -1403,7 +1357,7 @@ local function find_repo_pkg ( name )
         -- Also search for a matching provides entry
         local pkg = db:db_get_pkg( name )
           or find_repo_provides_pkg( name, db )
-        if pkg then return repo_pkg_info( name, db, pkg ) end
+        if pkg then return repo_pkg_info( pkg ) end
     end
 end
 
@@ -1425,18 +1379,79 @@ end
 
 -- Find a package on the AUR and return a pkginfo table (or nil)
 local function find_aur_pkg ( name )
-    aurinfo = aur.lookup_pkg ( name )
-    if not aurinfo then return nil end
+    aurobj = AUR:get( name )
+    if not aurobj then return nil end
+    return aur_pkg_info( aurobj )
+end
 
-    -- Convert fields of PKGBUILD into pkginfo table
-    local depends   = map( depends_table, aurinfo.depends )
-    local conflicts = map( depends_table, aurinfo.conflicts or {} )
-    return { name      = aurinfo.pkgname,
-             desc      = aurinfo.pkgdesc,
-             deps      = depends,
-             version   = aurinfo.pkgver,
-             conflicts = conflicts,
-             source    = "aur" }
+local function find_installed_foreign ()
+    local results = {}
+
+    local isnt_foreign = {}
+    for db in each( alpm.option_get_syncdbs()) do
+        for pkg in each( db:db_get_pkgcache()) do
+            isnt_foreign[ pkg:pkg_get_name() ] = true
+        end
+    end
+
+    local db = alpm.option_get_localdb()
+    for pkg in each( db:db_get_pkgcache()) do
+        local name = pkg:pkg_get_name()
+        if not isnt_foreign[ name ] then
+            results[ name ] = pkg:pkg_get_version()
+        end
+    end
+
+    return results
+end
+
+local function find_aur_to_upgrade ()
+    local upgrademe = {}
+    local foreign   = find_installed_foreign()
+
+    printf(C.blub("::")..C.bright(" Synchronizing AUR database...\n"))
+
+    for name, ver in pairs( foreign ) do
+        aurpkg = AUR:get( name )
+        
+        if aurpkg then
+            print( "DEBUG: found aurpkg " .. name, aurpkg.pkgver )
+            if alpm.pkg_vercmp( ver, aurpkg.pkgver ) < 0 then
+                table.insert( upgrademe, aurpkg )
+            end
+        end
+    end
+
+    table.sort( upgrademe,
+                function ( left, right )
+                    return left.pkgname < right.pkgname
+                end )
+    return upgrademe
+
+end
+
+-- Finds packages that need upgrading from ALPM and AUR...
+local function sync_trans_sysupgrade ( )
+    printf(g(C.blub("::")..C.bright(" Starting full system upgrade...\n")))
+    alpm.logaction("starting full system upgrade\n")
+    local op_s_upgrade = config.op_s_upgrade >= 2 and 1 or 0
+
+    if ( alpm.sync_sysupgrade( op_s_upgrade ) == -1 ) then
+        eprintf("LOG_ERROR", "%s\n", alpm.strerrorlast())
+        return nil
+    end
+
+    local alpm_pkgs, aur_pkgs
+    
+    alpm_pkgs = map( repo_pkg_info, alpm.trans_get_add())
+    aur_pkgs  = {}
+
+    if ( config.op_s_upgrade_aur ) then
+        aur_pkgs = find_aur_to_upgrade()
+        aur_pkgs = map( aur_pkg_info, aur_pkgs )
+    end
+
+    return alpm_pkgs, aur_pkgs
 end
 
 local function make_finder ( findfuncs )
@@ -1555,19 +1570,13 @@ local function find_needed_syncs ( targets )
 
     local _depcheck
     _depcheck = function ( deplist )
-                    -- print( "DEBUG deplist" )
-                    -- print( util.dump( deplist))
                     for dep in each_needed_dep( deplist ) do
                         local name = dep.package
-                        -- print( "DEBUG satisfying " .. name )
                         depinfo = depfinder( name )
-                        -- print( "DEBUG depinfo" )
-                        -- print( util.dump( depinfo ))
                         assert( depinfo, "Could not satisfy dependency: "
-                                .. dep.str )
+                                         .. dep.str )
                         already_found[ name ] = true
                         table.insert( dep_infos, depinfo )
-                        -- print( "DEBUG checking deps for " .. depinfo.name )
                         _depcheck( depinfo.deps )
                     end
                 end
@@ -1576,20 +1585,25 @@ local function find_needed_syncs ( targets )
         _depcheck( pkg.deps )
     end
 
+    -- Merge needed dependencies with found targets
     local result = target_infos
     for dep_info in each( dep_infos ) do
         table.insert( result, dep_info )
     end
+
+    table.sort( result, function ( left, right )
+                            return left.name < right.name
+                        end )
     
     return result
 end
 
 -- Check package info tables for explicit conflicts
-local function check_pkg_conflicts ( pkginfos )
+local function check_pkg_conflicts ( ... )
     local conflicts_with = {}
 
     -- Collect all conflicts into a table...
-    for info in each( pkginfos ) do
+    for info in each( arg ) do
         for conftbl in each( info.conflicts ) do
             -- Conflicts are in the same format as depends strings...
             conftbl[ "cause" ] = info.name
@@ -1597,9 +1611,9 @@ local function check_pkg_conflicts ( pkginfos )
         end
     end
 
-    local found_conflict = false
     -- Check our collected conflicts...
-    for info in each( pkginfos ) do
+    local found_conflict = false
+    for info in each( arg ) do
         local conflict = conflicts_with[ info.name ]
         if conflict then
             printf( C.blub("::") ..
@@ -1642,29 +1656,33 @@ local function sync_trans ( targets )
                         return retval
                     end
 
-    if (trans_init(config.flags) == -1) then
+    if trans_init(config.flags) == -1 then
         return 1
     end
 
+    local syncs
+
     -- Handle full system upgrade
-    if (config.op_s_upgrade > 0) then
-        if not sync_trans_sysupgrade( targets ) then
+    if ( config.op_s_upgrade > 0 ) then
+        alpm_pkgs, aur_pkgs = sync_trans_sysupgrade()
+        
+        if check_pkg_conflicts( unpack( alpm_pkgs ), unpack( aur_pkgs )) then
             return cleanup( 1 )
         end
     else
-        local syncs = find_needed_syncs( targets )
-        alpm_pkgs   = filter( function ( info )
-                                  return info.source == 'alpm'
-                              end, syncs )
-        aur_pkgs    = filter( function ( info )
-                                  return info.source == 'aur'
-                              end, syncs )
+        syncs     = find_needed_syncs( targets )
+        alpm_pkgs = filter( function ( info )
+                                return info.source == 'alpm'
+                            end, syncs )
+        aur_pkgs  = filter( function ( info )
+                                return info.source == 'aur'
+                            end, syncs )
 
-        if check_pkg_conflicts( syncs ) then
+        if not trans_prep_alpm( alpm_pkgs ) then
             return cleanup( 1 )
         end
 
-        if not trans_prep_alpm( alpm_pkgs ) then
+        if check_pkg_conflicts( unpack( syncs )) then
             return cleanup( 1 )
         end
     end
@@ -1696,54 +1714,58 @@ local function sync_trans ( targets )
         return cleanup( 1 )
     end
 
-    if (config.op_s_printuris) then
-        for i, pkg in ipairs(packages) do
-            local db = pkg:pkg_get_db()
-            local dburl = db:db_get_url()
-            if (dburl) then
-                printf("%s/%s\n", dburl, pkg:pkg_get_filename())
-            else
-                eprintf("LOG_ERROR", g("no URL for package: %s\n"), pkg:pkg_get_name())
-            end
-        end
-        return cleanup( 1 )
-    end
+    -- if (config.op_s_printuris) then
+    --     for i, pkg in ipairs(packages) do
+    --         local db = pkg:pkg_get_db()
+    --         local dburl = db:db_get_url()
+    --         if (dburl) then
+    --             printf("%s/%s\n", dburl, pkg:pkg_get_filename())
+    --         else
+    --             eprintf("LOG_ERROR", g("no URL for package: %s\n"), pkg:pkg_get_name())
+    --         end
+    --     end
+    --     return cleanup( 1 )
+    -- end
 
-    local removals = alpm.trans_get_remove()
-    if ( next( aur_pkgs ) and ( next( alpm_pkgs ) or next( removals ))) then
+    if ( next( aur_pkgs ) and next( alpm_pkgs )) then
         printf( C.greb( "\n==>" )
             .. C.bright( " Installing the following packages from repos\n" ))
     end
 
-    local pkgobjs = map( function ( info ) return info.pkgobj end,
-                         alpm_pkgs )
+    local alpm_objs = map( function ( info ) return info.pkgobj end,
+                           alpm_pkgs )
 
     -- These display nothing if both lists are empty
-    util.display_targets( pkgobjs,  true  )
-    util.display_targets( removals, false )
+    util.display_targets( alpm_objs, true  )
+    util.display_targets( alpm.trans_get_remove(), false )
 
     if ( next( aur_pkgs )) then
+        local function aur_pkgname ( pkginfo )
+            return string.format( "%s-%s-%s",
+                                  pkginfo.name,
+                                  pkginfo.version,
+                                  pkginfo.release )
+        end
+
         printf( C.greb( "\n==>" )
-            .. C.bright(" Installing the following packages from AUR\n" ))
+                .. C.bright(" Installing the following packages from AUR\n" ))
         local str = string.format(g("Targets (%d):"), #aur_pkgs)
-        list_display(str, map( function ( info ) return info.name end,
-                               aur_pkgs))
+        list_display( str, map( aur_pkgname, aur_pkgs ))
     end
 
     printf("\n")
 
     local confirm, action
-    if (config.op_s_downloadonly) then
-        action = "download"
-    else
-        action = "installation"
-    end
+    action  = config.op_s_downloadonly and "download" or "installation"
     confirm = yesno( C.yelb("==>") ..
                      C.bright(" Proceed with " .. action .. "?") )
     if ( not confirm ) then return cleanup( 0 ) end
 
+    do return cleanup( 0 ) end
+    -- Ignore the rest ...
+
     data = {}
-    transret, data = alpm.trans_commit(data)
+    transret, data = alpm.trans_commit( data )
     if (transret == -1) then
         eprintf("LOG_ERROR", g("failed to commit transaction (%s)\n"), alpm.strerrorlast())
         if (alpm.pm_errno() == "P_E_FILE_CONFLICTS") then
@@ -1769,13 +1791,11 @@ local function sync_trans ( targets )
         return cleanup( 1 )
     end
 
-    cleanup( 0 )
+    return cleanup( 0 )
 
     -- if ( next(aur_pkgs) and not aur_install(aur_pkgs)) then
     --     return 1
     -- end
-
-    return 0
 end
 
 local function clyde_sync(targets)
@@ -1874,6 +1894,10 @@ local function clyde_sync(targets)
 end
 
 function main(targets)
+    -- Create a new AUR object and store in a global variable
+
+    AUR = LUAUR:new { basepath = tmppath }
+
     local result = clyde_sync(targets)
     if (not result) then
         result = 1
