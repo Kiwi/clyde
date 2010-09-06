@@ -1,0 +1,12 @@
+pkgname=depconflict
+pkgver=1.0
+pkgrel=1
+pkgdesc="Dep Conflict!"
+arch=(any)
+license=('GPL')
+conflicts=('foo')
+
+build() {
+  mkdir -p "$pkgdir/usr/foo"
+  echo "DEP CONFLICT!" > "$pkgdir/usr/foo/depconflict"
+}

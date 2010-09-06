@@ -1,0 +1,14 @@
+# Contributor: Justin Davis <jrcd83@gmail.com>
+pkgname=foo
+pkgver=1.0
+pkgrel=1
+pkgdesc="Foo!"
+arch=(any)
+license=('GPL')
+
+build() {
+  mkdir -p "$pkgdir/usr/foo"
+  echo "FOO!" > "$pkgdir/usr/foo/foo"
+}
+
+# vim:set ts=2 sw=2 et:

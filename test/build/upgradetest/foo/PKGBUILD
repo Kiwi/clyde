@@ -1,0 +1,11 @@
+pkgname=foo
+pkgver=2.0
+pkgrel=1
+pkgdesc="Foo Version Two!"
+arch=(any)
+license=('GPL')
+
+build() {
+  mkdir -p "$pkgdir/usr/foo"
+  echo "FOO TWO!" > "$pkgdir/usr/foo/foo"
+}

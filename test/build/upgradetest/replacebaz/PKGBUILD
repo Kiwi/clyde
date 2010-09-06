@@ -1,0 +1,16 @@
+# Contributor: Justin Davis <jrcd83@gmail.com>
+pkgname=replacebaz
+pkgver=1.0
+pkgrel=1
+pkgdesc="Replaces Baz"
+arch=(any)
+license=('GPL')
+depends=(bar)
+replaces=(baz)
+
+build() {
+  mkdir -p "$pkgdir/usr/foo/bar"
+  echo "WE REPLACED BAZ" > "$pkgdir/usr/foo/bar/baz"
+}
+
+# vim:set ts=2 sw=2 et:

@@ -5,3 +5,8 @@
 *~
 *.bak
 .*
+*.tar.xz
+*.tar.gz
+test/share
+test/root
+test/test.conf

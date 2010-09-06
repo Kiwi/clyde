@@ -1,0 +1,11 @@
+pkgname=corruptme
+pkgver=1.0
+pkgrel=1
+pkgdesc="I'm so easily corrupted!"
+arch=(any)
+license=('GPL')
+
+build() {
+  # Shouldn't matter, this shouldn't get installed
+  echo "W T F" > "$pkgdir/THIS_SHOULDNT_BE_HERE"
+}

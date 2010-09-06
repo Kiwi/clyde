@@ -1,0 +1,14 @@
+# Contributor: Justin Davis <jrcd83@gmail.com>
+pkgname=fileconflict
+pkgver=1.0
+pkgrel=1
+pkgdesc="File Conflict!"
+arch=(any)
+license=('GPL')
+
+build() {
+  mkdir -p "$pkgdir/usr/foo/bar"
+  echo "FILE CONFLICT!" > "$pkgdir/usr/foo/bar/baz"
+}
+
+# vim:set ts=2 sw=2 et:
