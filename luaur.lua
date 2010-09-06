@@ -46,10 +46,9 @@ LUAUR.__index = LUAUR
 
 function LUAUR:new ( params )
     local obj = params or { }
-    setmetatable( obj, LUAUR )
+    setmetatable( obj, self )
     return obj
 end
-
 
 local VALID_METHOD = { search = true, info = true, msearch = true }
 
@@ -70,7 +69,8 @@ local function aur_rpc_keyname ( key )
     return NEWKEYNAME_FOR[ key ] or key:lower()
 end
 
-function LUAUR:info ( name )
+-- CLASS METHOD
+function LUAUR.info ( name )
     local url     = aur_rpc_url( "info", name )
     local jsontxt = http.request( url )
         or error( "Failed to call info RPC" )
@@ -102,7 +102,8 @@ function LUAUR:info ( name )
     return results
 end
 
-function LUAUR:search ( query )
+-- CLASS METHOD
+function LUAUR.search ( query )
     -- Allow search queries to contain regexp anchors... only!
     local regexp
     if query:match( "^^" ) or query:match( "$$" ) then
@@ -172,6 +173,7 @@ function LUAUR:search ( query )
     return results
 end
 
+-- OBJECT METHOD
 function LUAUR:get ( package )
     local pkg = LUAURPackage:new { basepath = self.basepath,
                                    dlpath   = self.dlpath,
@@ -200,9 +202,10 @@ for i, field in ipairs( PKGBUILD_FIELDS ) do
     IS_PKGBUILD_FIELD[ field ] = true
 end
 
-LUAURPackage = { }
+LUAURPackage         = { }
+LUAURPackage.__index = LUAURPackage
 
-local function pkgbuild_index ( obj, field_name )
+local function _lazy_index ( obj, field_name )
     local field_value = rawget( obj, field_name )
     if field_value ~= nil then
         return field_value
@@ -216,7 +219,7 @@ local function pkgbuild_index ( obj, field_name )
     return LUAURPackage[ field_name ]
 end
 
-LUAURPackage.__index = pkgbuild_index
+LUAURPackage.__index = _lazy_index
 
 function LUAURPackage:new ( params )
     params = params or { }
@@ -493,7 +496,7 @@ function LUAURPackage:build ( params )
     end
 
     rec_mkdir( pkgdest)
-    local oldir    = chdir( extdir )
+    local oldir = chdir( extdir )
 
     local cmd = "makepkg"
     if params.prefix then cmd = params.prefix .. " " .. cmd end
