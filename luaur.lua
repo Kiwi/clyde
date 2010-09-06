@@ -22,12 +22,12 @@ local AUR_USERAGENT = "LuAUR/v" .. VERSION
 
 ------------------------------------------------------------------------------
 
-LUAUR = { basepath = "/tmp/luaur" }
+LUAUR         = { basepath = "/tmp/luaur" }
 LUAUR.__index = LUAUR
 
 function LUAUR:new ( params )
     local obj = params or { }
-    setmetatable( obj, self )
+    setmetatable( obj, LUAUR )
     return obj
 end
 
@@ -168,10 +168,38 @@ end
 
 ------------------------------------------------------------------------------
 
-LUAURPackage = { }
-LUAURPackage.__index = LUAURPackage
+local PKGBUILD_FIELDS = { "pkgname", "pkgver", "pkgrel", "pkgdesc",
+                          "url", "license", "install", "changelog", "source",
+                          "noextract", "md5sums",
+                          "sha1sums", "sha256sums", "sha384sums", "sha512sums",
+                          "groups", "arch", "backup", "depends", "makedepends",
+                          "optdepends", "conflicts", "provides", "replaces",
+                          "options" }
 
-function LUAURPackage:new ( params ) --name, basepath, proxy )n
+local IS_PKGBUILD_FIELD = {}
+for i, field in ipairs( PKGBUILD_FIELDS ) do
+    IS_PKGBUILD_FIELD[ field ] = true
+end
+
+LUAURPackage = { }
+
+local function pkgbuild_index ( obj, field_name )
+    local field_value = rawget( obj, field_name )
+    if field_value ~= nil then
+        return field_value
+    end
+
+    if IS_PKGBUILD_FIELD[ field_name ] then
+        local pkgbuild = obj:get_pkgbuild()
+        return pkgbuild[ field_name ]
+    end
+
+    return LUAURPackage[ field_name ]
+end
+
+LUAURPackage.__index = pkgbuild_index
+
+function LUAURPackage:new ( params )
     params = params or { }
     assert( params.name, "Parameter 'name' must be specified" )
     assert( ( params.dlpath and params.extpath and params.destpath )
@@ -184,7 +212,7 @@ Parameter 'basepath' must be specified unless all other paths are provided
     local destpath = params.destpath or params.basepath .. "/cache"
 
     local obj    = params
-    obj.pkgname  = obj.name .. ".src.tar.gz"
+    obj.pkgfile  = obj.name .. ".src.tar.gz"
     obj.dlpath   = dlpath
     obj.extpath  = extpath
     obj.destpath = destpath
@@ -216,9 +244,8 @@ end
 function LUAURPackage:download ( callback )
     if self.tgzpath then return self.tgzpath end
 
-    local pkgurl       = self:download_url()
-    local pkgname      = self.pkgname
-    local pkgpath      = self.dlpath .. "/" .. pkgname
+    local pkgurl  = self:download_url()
+    local pkgpath = self.dlpath .. "/" .. self.pkgfile
 
     -- Make sure the destination directory exists...
     rec_mkdir( self.dlpath )
