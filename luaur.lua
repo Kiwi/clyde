@@ -312,10 +312,10 @@ function LUAURPackage:download ( callback )
 end
 
 function LUAURPackage:extract ( destdir )
-    local pkgpath = self:download()
-
     -- Do not extract files redundantly...
     if self.pkgdir then return self.pkgdir end
+
+    local pkgpath = self:download()
 
     if destdir == nil then
         destdir = self.extpath
@@ -332,6 +332,13 @@ function LUAURPackage:extract ( destdir )
 
     self.pkgdir = destdir .. "/" .. self.name
     return self.pkgdir
+end
+
+function LUAURPackage:srcdir_path ( relpath )
+    assert( self.pkgdir, "You must call extract() before srcdir_path()" )
+
+    relpath = relpath.sub( "$/+", "" )
+    return self.pkgdir .. "/" .. relpath
 end
 
 local function unquote_bash ( quoted_text )
@@ -386,7 +393,7 @@ function LUAURPackage:_download_pkgbuild ( )
 end
 
 function LUAURPackage:_extracted_pkgbuild ( )
-    local pbpath       = self.pkgdir .. "/PKGBUILD"
+    local pbpath       = self:srcdir_path( "/PKGBUILD" )
     local pbfile, err  = io.open( pbpath, "r" )
     assert( pbfile, err )
     local pbtext       = pbfile:read( "*a" )
@@ -408,17 +415,7 @@ local function _smart_deptbl ( depstr )
     return { package = pkg, cmp = cmp, version = ver, str = depstr }
 end
 
--- Downloads, extracts tarball (if needed) and then parses the PKGBUILD...
-function LUAURPackage:get_pkgbuild ( )
-    if self.pkgbuild_info then return self.pkgbuild_info end
-
-    local pbtext
-    if self.pkgdir then
-        pbtext = self:_extracted_pkgbuild()
-    else
-        pbtext = self:_download_pkgbuild()
-    end
-
+function LUAURPackage:_parse_pkgbuild ( pbtext )
     local pbinfo = pkgbuild_fields( pbtext )
 
     if pbinfo.depends then
@@ -431,6 +428,27 @@ function LUAURPackage:get_pkgbuild ( )
 
     self.pkgbuild_info = pbinfo
     return self.pkgbuild_info
+end
+
+-- Downloads, extracts tarball (if needed) and then parses the PKGBUILD...
+function LUAURPackage:get_pkgbuild ( )
+    if self.pkgbuild_info then return self.pkgbuild_info end
+
+    -- Use the extracted PKGBUILD if we have it available...
+    local pbtext
+    if self.pkgdir then
+        pbtext = self:_extracted_pkgbuild()
+    else
+        pbtext = self:_download_pkgbuild()
+    end
+
+    return self:_parse_pkgbuild( pbtext )
+end
+
+-- Reparses a PKGBUILD from the extracted source package...
+function LUAURPackage:reload_pkgbuild ( )
+    local pbtext = self:_extracted_pkgbuild()
+    return self:_parse_pkgbuild( pbtext )
 end
 
 function LUAURPackage:_builtpkg_path ( pkgdest )
