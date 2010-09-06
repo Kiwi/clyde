@@ -22,10 +22,10 @@ local AUR_USERAGENT = "LuAUR/v" .. VERSION
 
 ------------------------------------------------------------------------------
 
-AUR = { basepath = "/tmp/luaur" }
-AUR.__index = AUR
+LUAUR = { basepath = "/tmp/luaur" }
+LUAUR.__index = LUAUR
 
-function AUR:new ( params )
+function LUAUR:new ( params )
     local obj = params or { }
     setmetatable( obj, self )
     return obj
@@ -51,7 +51,7 @@ local function aur_rpc_keyname ( key )
     return NEWKEYNAME_FOR[ key ] or key:lower()
 end
 
-function AUR:info ( name )
+function LUAUR:info ( name )
     local url     = aur_rpc_url( "info", name )
     local jsontxt = http.request( url )
         or error( "Failed to call info RPC" )
@@ -83,7 +83,7 @@ function AUR:info ( name )
     return results
 end
 
-function AUR:search ( query )
+function LUAUR:search ( query )
     -- Allow search queries to contain regexp anchors... only!
     local regexp
     if query:match( "^^" ) or query:match( "$$" ) then
@@ -153,13 +153,13 @@ function AUR:search ( query )
     return results
 end
 
-function AUR:get ( package )
-    local pkg = AURPackage:new { basepath = self.basepath,
-                                 dlpath   = self.dlpath,
-                                 extpath  = self.extpath,
-                                 destpath = self.destpath,
-                                 proxy    = self.proxy,
-                                 name     = package }
+function LUAUR:get ( package )
+    local pkg = LUAURPackage:new { basepath = self.basepath,
+                                   dlpath   = self.dlpath,
+                                   extpath  = self.extpath,
+                                   destpath = self.destpath,
+                                   proxy    = self.proxy,
+                                   name     = package }
 
     -- We want to test if the package really exists...
     if not pkg:download_size() then return nil end
@@ -168,10 +168,10 @@ end
 
 ------------------------------------------------------------------------------
 
-AURPackage = { }
-AURPackage.__index = AURPackage
+LUAURPackage = { }
+LUAURPackage.__index = LUAURPackage
 
-function AURPackage:new ( params ) --name, basepath, proxy )n
+function LUAURPackage:new ( params ) --name, basepath, proxy )n
     params = params or { }
     assert( params.name, "Parameter 'name' must be specified" )
     assert( ( params.dlpath and params.extpath and params.destpath )
@@ -193,11 +193,11 @@ Parameter 'basepath' must be specified unless all other paths are provided
     return obj
 end
 
-function AURPackage:download_url ( )
+function LUAURPackage:download_url ( )
     return string.format( AUR_PKGFMT, self.name, self.name )
 end
 
-function AURPackage:download_size ( )
+function LUAURPackage:download_size ( )
     if self.dlsize then return self.dlsize end
     
     USERAGENT = AUR_USERAGENT
@@ -213,7 +213,7 @@ function AURPackage:download_size ( )
     return self.dlsize
 end
 
-function AURPackage:download ( callback )
+function LUAURPackage:download ( callback )
     if self.tgzpath then return self.tgzpath end
 
     local pkgurl       = self:download_url()
@@ -265,7 +265,7 @@ function AURPackage:download ( callback )
     return pkgpath
 end
 
-function AURPackage:extract ( destdir )
+function LUAURPackage:extract ( destdir )
     local pkgpath = self:download()
 
     -- Do not extract files redundantly...
@@ -328,7 +328,7 @@ local function pkgbuild_fields ( text )
     return results
 end
 
-function AURPackage:_download_pkgbuild ( )
+function LUAURPackage:_download_pkgbuild ( )
     local name        = self.name
     local pkgbuildurl = string.format( AUR_PBFMT, name, name )
 
@@ -339,7 +339,7 @@ function AURPackage:_download_pkgbuild ( )
     return pkgbuildtxt
 end
 
-function AURPackage:_extracted_pkgbuild ( )
+function LUAURPackage:_extracted_pkgbuild ( )
     local pbpath       = self.pkgdir .. "/PKGBUILD"
     local pbfile, err  = io.open( pbpath, "r" )
     assert( pbfile, err )
@@ -349,7 +349,7 @@ function AURPackage:_extracted_pkgbuild ( )
 end
 
 -- Downloads, extracts tarball (if needed) and then parses the PKGBUILD...
-function AURPackage:get_pkgbuild ( )
+function LUAURPackage:get_pkgbuild ( )
     if self.pkgbuild_info then return self.pkgbuild_info end
 
     local pbtext
@@ -363,7 +363,7 @@ function AURPackage:get_pkgbuild ( )
     return self.pkgbuild_info
 end
 
-function AURPackage:_builtpkg_path ( pkgdest )
+function LUAURPackage:_builtpkg_path ( pkgdest )
     local pkgbuild = self:get_pkgbuild()
     local arch     = pkgbuild.arch
     if ( type( arch ) == "table" or arch ~= "any" ) then
@@ -378,7 +378,7 @@ function AURPackage:_builtpkg_path ( pkgdest )
     return destfile
 end
 
-function AURPackage:build ( params )
+function LUAURPackage:build ( params )
     if self.pkgpath then return self.pkgpath end
 
     params = params or {}
