@@ -22,6 +22,25 @@ local AUR_USERAGENT = "LuAUR/v" .. VERSION
 
 ------------------------------------------------------------------------------
 
+-- Copied from "Programming in Lua"
+local function each ( tbl )
+    local i   = 0
+    local max = table.maxn( tbl )
+    return function ()
+               i = i + 1
+               if i <= max then return tbl[i] end
+               return nil
+           end
+end
+
+local function map ( f, tbl )
+    local result = {}
+    for key, val in pairs( tbl ) do
+        result[ key ] = f( val )
+    end
+    return result
+end
+
 LUAUR         = { basepath = "/tmp/luaur" }
 LUAUR.__index = LUAUR
 
@@ -375,6 +394,20 @@ function LUAURPackage:_extracted_pkgbuild ( )
     return pbtext
 end
 
+local function _smart_deptbl ( depstr )
+    if depstr:match( "^[%l%d_-]+$" ) then
+        return { package = depstr, cmp = '>', version = 0, str = depstr }
+    end
+
+    local pkg, cmp, ver
+        = depstr:match( "^([%l%d_-]+)([=<>]=?)([%l%d._-]+)$" )
+
+    assert( pkg and cmp and ver,
+            "failed to parse depends string: " .. depstr )
+
+    return { package = pkg, cmp = cmp, version = ver, str = depstr }
+end
+
 -- Downloads, extracts tarball (if needed) and then parses the PKGBUILD...
 function LUAURPackage:get_pkgbuild ( )
     if self.pkgbuild_info then return self.pkgbuild_info end
@@ -386,7 +419,17 @@ function LUAURPackage:get_pkgbuild ( )
         pbtext = self:_download_pkgbuild()
     end
 
-    self.pkgbuild_info = pkgbuild_fields( pbtext )
+    local pbinfo = pkgbuild_fields( pbtext )
+
+    if pbinfo.depends then
+        pbinfo.depends = map( _smart_deptbl, pbinfo.depends )
+    else
+        pbinfo.depends = {}
+    end
+
+    if not pbinfo.conflicts then pbinfo.conflicts = {} end
+
+    self.pkgbuild_info = pbinfo
     return self.pkgbuild_info
 end
 
