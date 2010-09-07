@@ -152,7 +152,7 @@ end
 local function version()
     printf("\n")
     printf(C.yelb("    .--.     ")..C.yel("     .---.        ")..
-           "Clyde v0.03 - lualpm v0.01\n")
+           "Clyde v0.03.01 - lualpm v0.01\n")
     printf(C.yelb("   '-._ \\")..C.bright(" .-.  .-")..C.yel("|O O  | ")..C.cya("~~    ").."Copyright (C) 2010 Robert Djubek\n")
     printf(C.yelb("   .-'  /")..C.bright(" '-'  '-")..C.yel("|~~~  |")..C.red("  ~~~  ").."This program may be freely redistributed under\n")
     printf(C.yelb("    '--'   ")..C.yel("      |.-.-.|")..C.gre(" ~~    ").."the terms of the GNU General Public License.\n")
@@ -945,6 +945,9 @@ end
 
 function main()
     local ret = 0
+
+    utilcore.setprocname( "clyde" )
+
     --[[
     signal.signal("SIGINT", function()
         printf("\nInterrupt signal received\n\n")

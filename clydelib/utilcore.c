@@ -12,6 +12,7 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/prctl.h> /* for setprocname */
 
 
 #include <stdio.h>
@@ -26,6 +27,7 @@
 #include <limits.h>
 #include <wchar.h>
 #include <termios.h>
+
 //#define _XOPEN_SOURCE
 extern int errno;
 
@@ -200,6 +202,22 @@ static int clyde_arch(lua_State *L)
     return 1;
 }
 
+/* Sets the effective procedure name, to change the terminal's title. */
+static int clyde_setprocname ( lua_State *L )
+{
+    const char *procname;
+    int retval;
+    
+    procname = luaL_checkstring( L, 1 );
+    retval   = prctl( PR_SET_NAME, procname, 0, 0, 0 );
+
+    if ( retval == -1 ) {
+        lua_pushstring( L, strerror( errno ));
+        lua_error( L );
+    }
+    
+    return 0;
+}
 
 static const int STDIN = 0;
 
@@ -278,6 +296,7 @@ static luaL_Reg const pkg_funcs[] = {
     { "umask",                      clyde_umask },
     { "arch",                       clyde_arch },
     { "getchar" ,                   clyde_getchar },
+    { "setprocname",                clyde_setprocname },
     { NULL,                         NULL}
 };
 
