@@ -274,11 +274,20 @@ static int clyde_getchar(lua_State *L) {
     term_disable_linebuffer();
     input_state_L = L;
     signal(SIGINT, sig_abort_input);
-    char string[2] = "\0\0";
-    string[0] = getchar();
-    lua_pushstring(L, string);
+    int c = getchar();
+    printf("c=%d\n", c);
+    int result;
+    if (c==EOF) {
+        printf("no char\n");
+        result = 0;
+    } else {
+        char string[2] = "\0\0";
+        string[0] = c;
+        lua_pushstring(L, string);
+        result = 1;
+    }
     term_restore();
-    return 1;
+    return result;
 }
 
 

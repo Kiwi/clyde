@@ -521,15 +521,15 @@ local function question(preset, fmt, ...)
         return preset
     end
 
-    -- local answer = io.stdin:read() or ""
+    local answer = io.stdin:read() or ""
 
     -- just to make sure I can access the global
     --
     -- print(_G.clydelib.util.signal_handler)
     --
 
-    local answer = utilcore.getchar()
-    print()
+    -- local answer = utilcore.getchar()
+    -- print()
 
     if (answer == "\n") then
         return preset
