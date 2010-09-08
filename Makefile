@@ -30,7 +30,7 @@ lualpm.so: lualpm.c
 	$(CC) $(CFLAGS) $(LUACFLAGS) -lalpm -o lualpm.so lualpm.c
 
 clydelib/signal.so: clydelib/lsignal.c
-	$(CC) $(CFLAGS) $(LUACFLAGS) -o clydelib/signal.so clydelib/lsignal.c
+	$(CC) $(CFLAGS) $(LUACFLAGS) -o clydelib/signal.so clydelib/lsignal.c clydelib/lsignal_clydelib.c
 
 clydelib/utilcore.so: clydelib/utilcore.c
 	$(CC) $(CFLAGS) $(LUACFLAGS) -o clydelib/utilcore.so clydelib/utilcore.c
