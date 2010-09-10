@@ -36,7 +36,7 @@ clydelib/utilcore.so: clydelib/utilcore.c
 	$(CC) $(CFLAGS) $(LUACFLAGS) -o clydelib/utilcore.so clydelib/utilcore.c
 
 man/clyde.8: man/clyde.ronn
-	ronn man/clyde.ronn
+	-ronn man/clyde.ronn
 
 clyde: clydelib/signal.so clydelib/utilcore.so man/clyde.8
 
@@ -53,7 +53,7 @@ install_clyde: clyde
 	$(INSTALL_PROGRAM) clydelib/signal.so \
 	    $(DESTDIR)$(libdir)/clydelib/signal.so
 	$(INSTALL_DATA) clydelib/*.lua $(DESTDIR)$(sharedir)/clydelib/
-	$(INSTALL_DATA) man/clyde.8 $(DESTDIR)$(man8dir)/clyde$(manext)
+	$(INSTALL_DATA) man/clyde$(manext) $(DESTDIR)$(man8dir)/clyde$(manext)
 	$(INSTALL_DATA) extras/_clydezsh $(DESTDIR)$(zshcompdir)/_clyde
 	$(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde
 
