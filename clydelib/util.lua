@@ -486,19 +486,6 @@ function display_optdepends(pkg)
     end
 end
 
-function signal_handler(signal)
-    if signal==signal.SIGINT then
-        printf("\nInterrupt signal received\n\n")
-        if (alpm.trans_interrupt() == 0) then
-            return
-        end
-        util.trans_release()
-        cleanup(signal)
-    elseif signal==signal.SIGTERM then
-        cleanup(signal)
-    end
-end
-
 local function question(preset, fmt, ...)
     local stream
 
