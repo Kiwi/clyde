@@ -224,9 +224,11 @@ static const int STDIN = 0;
 static struct termios tio_orig;
 static int tio_need_reset;
 
-static lua_State *input_state_L = NULL;
+static int clyde_term_restore() {
+    /*
+     * this should be called on exit
+     */
 
-static int term_restore() {
     if (tio_need_reset) {
         tcsetattr(STDIN, TCSANOW, &tio_orig);
     }
@@ -234,11 +236,21 @@ static int term_restore() {
     return 0;
 }
 
-static int term_disable_linebuffer() {
+static int clyde_term_setup() {
+    /*
+     * store terminal settings so we can reset them on exit
+     */
+
     if (!tio_need_reset) {
         tcgetattr(STDIN, &tio_orig);
         tio_need_reset = 1;
     }
+
+    /*
+     * disable linebuffer 
+     * this allows a proper io:read(1) 
+     * so you only have to press one key at the prompt
+     */
 
     struct termios tio;
     tcgetattr(STDIN, &tio);
@@ -248,46 +260,6 @@ static int term_disable_linebuffer() {
     setbuf(stdin, NULL);
 
     return 0;
-}
-
-void sig_abort_input(int s) {
-    term_restore();
-
-    /*
-     * FIXME: this doesn't work - somehow I can't get the signal handler via
-     * lua_getfield , "util.signal_handler" and "signal_handler" fail also.
-     * Maybe I sould set the signal handler via utilcore.set_signal_handler
-     */
-
-    lua_getfield(input_state_L, LUA_GLOBALSINDEX,
-            "clydelib.util.signal_handler");
-
-    /*
-     * instructions below will crash with "attempted to call nil value"
-     */
-
-    lua_pushnumber(input_state_L, s);
-    lua_call(input_state_L, 1, 0);
-}
-
-static int clyde_getchar(lua_State *L) {
-    term_disable_linebuffer();
-    input_state_L = L;
-    signal(SIGINT, sig_abort_input);
-    int c = getchar();
-    printf("c=%d\n", c);
-    int result;
-    if (c==EOF) {
-        printf("no char\n");
-        result = 0;
-    } else {
-        char string[2] = "\0\0";
-        string[0] = c;
-        lua_pushstring(L, string);
-        result = 1;
-    }
-    term_restore();
-    return result;
 }
 
 
@@ -304,7 +276,8 @@ static luaL_Reg const pkg_funcs[] = {
     { "mkdir",                      clyde_mkdir },
     { "umask",                      clyde_umask },
     { "arch",                       clyde_arch },
-    { "getchar" ,                   clyde_getchar },
+    { "term_setup",                 clyde_term_setup },
+    { "term_restore",               clyde_term_restore },
     { "setprocname",                clyde_setprocname },
     { NULL,                         NULL}
 };
