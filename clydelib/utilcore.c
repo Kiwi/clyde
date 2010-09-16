@@ -248,8 +248,8 @@ static int clyde_term_setup() {
 
     /*
      * disable linebuffer 
-     * this allows a proper io:read(1) 
-     * so you only have to press one key at the prompt
+     * this allows a proper io.stdin:read(1) so you only have to press one key
+     * at the prompt
      */
 
     struct termios tio;

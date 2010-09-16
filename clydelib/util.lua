@@ -487,6 +487,7 @@ function display_optdepends(pkg)
 end
 
 local function question(preset, fmt, ...)
+    -- get single-character input
     local stream
 
     if (config.noconfirm) then
@@ -509,15 +510,8 @@ local function question(preset, fmt, ...)
         return preset
     end
 
-    local answer = io.stdin:read() or ""
-
-    -- just to make sure I can access the global
-    --
-    -- print(_G.clydelib.util.signal_handler)
-    --
-
-    -- local answer = utilcore.getchar()
-    -- print()
+    local answer = io.stdin:read(1)
+    print()
 
     if (answer == "\n") then
         return preset
