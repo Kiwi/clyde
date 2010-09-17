@@ -1599,7 +1599,11 @@ local function check_pkg_conflicts ( ... )
     local found_conflict = false
     for info in each( arg ) do
         local conflict = conflicts_with[ info.name ]
-        if conflict then
+        -- This is funky hehe...
+        if conflict and loadstring( string.format( "return %s %s %s",
+                                                   info.version,
+                                                   conflict.cmp,
+                                                   conflict.version )) then
             printf( C.blub("::") ..
                     C.bright("package '%s' conflicts with '%s'\n"),
                     conflict.cause, info.name )
