@@ -5,6 +5,8 @@ local lfs = require "lfs"
 local alpm = require "lualpm"
 local C = colorize
 local util = require "clydelib.util"
+local each = util.each
+local map  = util.map
 local utilcore = require "clydelib.utilcore"
 local packages = require "clydelib.packages"
 local transinit = require "clydelib.transinit"
@@ -1237,31 +1239,12 @@ local function aur_install(targets)
     end
 end
 
--- Copied from "Programming in Lua"
-local function each ( tbl )
-    local i   = 0
-    local max = table.maxn( tbl )
-    return function ()
-               i = i + 1
-               if i <= max then return tbl[i] end
-               return nil
-           end
-end
-
 local function filter ( f, tbl )
     local result = {}
     for elem in each( tbl ) do
         if f( elem ) then table.insert( result, elem ) end
     end
 
-    return result
-end
-
-local function map ( f, tbl )
-    local result = {}
-    for key, val in pairs( tbl ) do
-        result[ key ] = f( val )
-    end
     return result
 end
 
