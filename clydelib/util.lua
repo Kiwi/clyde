@@ -424,6 +424,25 @@ function list_display_linebreak(title, list, adjust)
     end
 end
 
+-- Copied from "Programming in Lua"
+function each ( tbl )
+    local i   = 0
+    local max = table.maxn( tbl )
+    return function ()
+               i = i + 1
+               if i <= max then return tbl[i] end
+               return nil
+           end
+end
+
+function map ( f, tbl )
+    local result = {}
+    for key, val in pairs( tbl ) do
+        result[ key ] = f( val )
+    end
+    return result
+end
+
 function display_targets(pkgs, install)
     local isize, dlsize, mbisize, mbdlsize = 0, 0, 0, 0
     local str

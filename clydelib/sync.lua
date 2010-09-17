@@ -45,6 +45,7 @@ local dump_pkg_changelog = packages.dump_pkg_changelog
 local dump_pkg_files = packages.dump_pkg_files
 local dump_pkg_sync = packages.dump_pkg_sync
 
+require "clydelib.dialog"
 require "luaur"
 
 local tblsort = table.sort
@@ -1714,46 +1715,11 @@ local function sync_trans ( targets )
         return cleanup( 1 )
     end
 
-    -- if (config.op_s_printuris) then
-    --     for i, pkg in ipairs(packages) do
-    --         local db = pkg:pkg_get_db()
-    --         local dburl = db:db_get_url()
-    --         if (dburl) then
-    --             printf("%s/%s\n", dburl, pkg:pkg_get_filename())
-    --         else
-    --             eprintf("LOG_ERROR", g("no URL for package: %s\n"), pkg:pkg_get_name())
-    --         end
-    --     end
-    --     return cleanup( 1 )
-    -- end
-
-    if ( next( aur_pkgs ) and next( alpm_pkgs )) then
-        printf( C.greb( "\n==>" )
-            .. C.bright( " Installing the following packages from repos\n" ))
-    end
-
-    local alpm_objs = map( function ( info ) return info.pkgobj end,
-                           alpm_pkgs )
-
-    -- These display nothing if both lists are empty
-    util.display_targets( alpm_objs, true  )
-    util.display_targets( alpm.trans_get_remove(), false )
-
-    if ( next( aur_pkgs )) then
-        local function aur_pkgname ( pkginfo )
-            return string.format( "%s-%s-%s",
-                                  pkginfo.name,
-                                  pkginfo.version,
-                                  pkginfo.release )
-        end
-
-        printf( C.greb( "\n==>" )
-                .. C.bright(" Installing the following packages from AUR\n" ))
-        local str = string.format(g("Targets (%d):"), #aur_pkgs)
-        list_display( str, map( aur_pkgname, aur_pkgs ))
-    end
-
-    printf("\n")
+    local rems = map( repo_pkg_info, alpm.trans_get_remove() )
+    dialog.show_install_summary { alpm     = alpm_pkgs,
+                                  aur      = aur_pkgs,
+                                  rem      = rems,
+                                  showsize = config.showsize }
 
     local confirm, action
     action  = config.op_s_downloadonly and "download" or "installation"
