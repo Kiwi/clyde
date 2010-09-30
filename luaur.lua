@@ -344,13 +344,13 @@ function LUAURPackage:srcdir_path ( relpath )
     return self.pkgdir .. "/" .. relpath
 end
 
-local function unquote_bash ( quoted_text )
+local function _unquote_bash ( quoted_text )
     -- Convert bash arrays (surrounded by parens) into tables
     local noparen, subcount = quoted_text:gsub( "^%((.+)%)$", "%1" )
     if subcount > 0 then
         local wordlist = {}
         for word in noparen:gmatch( "(%S+)" ) do
-            table.insert( wordlist, unquote_bash( word ))
+            table.insert( wordlist, _unquote_bash( word ))
         end
         return wordlist
     end
@@ -362,7 +362,7 @@ local function unquote_bash ( quoted_text )
     return text
 end
 
-local function pkgbuild_fields ( text )
+local function _pkgbuild_fields ( text )
     local results = {}
 
     -- First find all fields without quoting characters...
@@ -377,7 +377,7 @@ local function pkgbuild_fields ( text )
     for i, quotes in ipairs( quoters ) do
         local regexp = string.format( fmt, quotes )
         for name, value in text:gmatch( regexp ) do
-            results[ name ] = unquote_bash( value )
+            results[ name ] = _unquote_bash( value )
         end
     end
 
@@ -419,7 +419,7 @@ local function _smart_deptbl ( depstr )
 end
 
 function LUAURPackage:_parse_pkgbuild ( pbtext )
-    local pbinfo = pkgbuild_fields( pbtext )
+    local pbinfo = _pkgbuild_fields( pbtext )
 
     if pbinfo.depends then
         pbinfo.depends = map( _smart_deptbl, pbinfo.depends )
@@ -452,6 +452,69 @@ end
 function LUAURPackage:reload_pkgbuild ( )
     local pbtext = self:_extracted_pkgbuild()
     return self:_parse_pkgbuild( pbtext )
+end
+
+-- Take a lua datatype and convert it to a bash array or string.
+local function _quote_bash ( data )
+    -- Convert tables into bash arrays
+    if type( data ) == "table" then
+        return string.format( "(%s)",
+                              table.join( " ", map( _quote_bash, data )))
+    end
+
+    assert( type( data ) == "string",
+            "_quote_bash only accepts table or string data" )
+
+    if data:match( "'" ) then
+        return string.format( '"%s"',
+                              data:gsub( '([$"])', '\%1' ))
+    end
+
+    return string.format( "'%s'", data )
+end
+
+function LUAURPackage:rewrite_pkgbuild ( newfields )
+    assert( self.pkgbuild_info,
+            "You must load the PKGBUILD before calling rewrite_pkgbuild()" )
+
+    for k,v in pairs( newfields ) do
+        assert( IS_PKGBUILD_FIELD[ k ],
+                "New field '" .. k .. "' is not a valid PKGBUILD field" )
+        self.pkgbuild_info[ k ] = v
+    end
+
+    local pbfile, err  = io.open( self:srcdir_path( 'PKGBUILD' ), "r" )
+    assert( pbfile, err )
+    local pbtext = pbfile:read( "a*" )
+    pbfile:close()
+
+    local function _replace_field ( field_name, field_value )
+        local newvalue = newfields[ field_name ]
+        if not newvalue then
+            return field_name .. "=" .. field_value
+        end
+        return field_name .. "=" .. _quote_bash( newvalue )
+    end
+
+    -- First find all fields without quoting characters...
+    pbtext:gsub( "([%l%d]+)=(%w%S*)", _replace_field )
+
+    -- Now handle all quoted field values...
+    local quoters = { '""', "''", "()" }
+    local fmt     = '([%%l%%d]+)=(%%b%s)'
+
+    for quotes in each( quoters ) do
+        local regexp = string.format( fmt, quotes )
+        pbtext:gsub( regexp, _replace_field )
+    end
+
+    -- Now write our replaced text back to file...
+    pbfile, err  = io.open( self:srcdir_path( 'PKGBUILD' ), "w" )
+    assert( pbfile, err )
+    pbfile:write( pbtext )
+    pbfile:close()
+
+    return
 end
 
 function LUAURPackage:_builtpkg_path ( pkgdest )
