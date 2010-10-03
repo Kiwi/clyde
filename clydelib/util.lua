@@ -2,6 +2,7 @@ module(..., package.seeall)
 local alpm = require "lualpm"
 local lfs = require "lfs"
 local utilcore = require "clydelib.utilcore"
+local signal = require "clydelib.signal"
 local C = colorize
 local g = utilcore.gettext
 
@@ -89,6 +90,7 @@ function cleanup(ret)
     if (type(config.configfile) == "userdata") then
         config.configfile:close()
     end
+    utilcore.term_restore()
     os.exit(ret)
 end
 
@@ -485,6 +487,7 @@ function display_optdepends(pkg)
 end
 
 local function question(preset, fmt, ...)
+    -- get single-character input
     local stream
 
     if (config.noconfirm) then
@@ -507,17 +510,19 @@ local function question(preset, fmt, ...)
         return preset
     end
 
-    local answer = io.stdin:read() or ""
+    local answer = io.stdin:read(1)
+    print()
 
-    if (#answer == 0) then
+    if (answer == "\n") then
         return preset
     end
 
-    if ((not strcasecmp(answer, g("Y"))) or (not strcasecmp(answer, g("YES")))) then
+    if (not strcasecmp(answer, g("Y"))) then
         return true
-    elseif ((not strcasecmp(answer, g("N"))) or (not strcasecmp(answer, g("NO")))) then
+    elseif (not strcasecmp(answer, g("N"))) then
         return false
     end
+
     return false
 end
 

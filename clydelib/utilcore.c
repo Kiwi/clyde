@@ -14,6 +14,7 @@
 #include <sys/utsname.h>
 #include <sys/prctl.h> /* for setprocname */
 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -25,6 +26,7 @@
 #include <unistd.h> /* isatty, getuid */
 #include <limits.h>
 #include <wchar.h>
+#include <termios.h>
 
 //#define _XOPEN_SOURCE
 extern int errno;
@@ -217,6 +219,50 @@ static int clyde_setprocname ( lua_State *L )
     return 0;
 }
 
+static const int STDIN = 0;
+
+static struct termios tio_orig;
+static int tio_need_reset;
+
+static int clyde_term_restore() {
+    /*
+     * this should be called on exit
+     */
+
+    if (tio_need_reset) {
+        tcsetattr(STDIN, TCSANOW, &tio_orig);
+    }
+
+    return 0;
+}
+
+static int clyde_term_setup() {
+    /*
+     * store terminal settings so we can reset them on exit
+     */
+
+    if (!tio_need_reset) {
+        tcgetattr(STDIN, &tio_orig);
+        tio_need_reset = 1;
+    }
+
+    /*
+     * disable linebuffer 
+     * this allows a proper io.stdin:read(1) so you only have to press one key
+     * at the prompt
+     */
+
+    struct termios tio;
+    tcgetattr(STDIN, &tio);
+    // disable canonical mode which also disables linebuffering
+    tio.c_lflag &= ~ICANON;
+    tcsetattr(STDIN, TCSANOW, &tio);
+    setbuf(stdin, NULL);
+
+    return 0;
+}
+
+
 static luaL_Reg const pkg_funcs[] = {
     { "bindtextdomain",             clyde_bindtextdomain },
     { "textdomain",                 clyde_textdomain },
@@ -230,6 +276,8 @@ static luaL_Reg const pkg_funcs[] = {
     { "mkdir",                      clyde_mkdir },
     { "umask",                      clyde_umask },
     { "arch",                       clyde_arch },
+    { "term_setup",                 clyde_term_setup },
+    { "term_restore",               clyde_term_restore },
     { "setprocname",                clyde_setprocname },
     { NULL,                         NULL}
 };
