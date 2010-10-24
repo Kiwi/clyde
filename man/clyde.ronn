@@ -299,7 +299,7 @@ Justin "juster" Davis <jrcd83@gmail.com>:
 
   * Upgraded lualpm to work with pacman 3.4.
   * Supervised patching on the github repository.
-  * Much cleanup and rewriting of code.
+  * Code custodian in Kiwi's absence.
 
 Otto Allmendinger <otto.allmendinger@gmail.com>:
 
@@ -307,6 +307,7 @@ Otto Allmendinger <otto.allmendinger@gmail.com>:
   * Fix for clyde returning no error code on error (#30).
   * Fix for dependencies not displaying properly for AUR package
     requiring additional ALPM dependencies (#35).
+  * Fix for SIGINT (C-c) not being thrown immediately. (#71)
 
 Matthew "paradoq" Bauer:
 
