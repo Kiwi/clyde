@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "CLYDE" "8" "July 2010" "" ""
+.TH "CLYDE" "8" "October 2010" "" ""
 .
 .SH "NAME"
 \fBclyde\fR \- next\-generation libalpm/makepkg wrapper
@@ -497,7 +497,7 @@ Upgraded lualpm to work with pacman 3\.4\.
 Supervised patching on the github repository\.
 .
 .IP "\(bu" 4
-Much cleanup and rewriting of code\.
+Code custodian in Kiwi\'s absence\.
 .
 .IP "" 0
 .
@@ -512,6 +512,9 @@ Fix for clyde returning no error code on error (#30)\.
 .
 .IP "\(bu" 4
 Fix for dependencies not displaying properly for AUR package requiring additional ALPM dependencies (#35)\.
+.
+.IP "\(bu" 4
+Fix for SIGINT (C\-c) not being thrown immediately\. (#71)
 .
 .IP "" 0
 .
