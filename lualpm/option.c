@@ -5,6 +5,7 @@
 #include <lauxlib.h>
 #include "types.h"
 #include "lualpm.h"
+#include "dlhelper.h"
 
 int lalpm_option_set_logcb(lua_State *L)
 {
@@ -18,6 +19,17 @@ int lalpm_option_set_dlcb(lua_State *L)
 {
     register_callback(L, dl_cb_key, 1);
     alpm_option_set_dlcb(dl_cb_gateway_unprotected);
+
+    return 0;
+}
+
+
+/* alpm_cb_fetch alpm_option_get_fetchcb(); */
+const char *xfercommand = NULL;
+int lalpm_option_set_fetchcb(lua_State *L)
+{
+    xfercommand = luaL_checkstring(L, 1);
+    alpm_option_set_fetchcb(download_with_xfercommand);
 
     return 0;
 }

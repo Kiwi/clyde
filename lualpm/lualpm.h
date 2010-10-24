@@ -60,6 +60,7 @@ int lalpm_deptest(lua_State *L);
    perl -lnE 'say "$_;" if !m{^[/\s{}]} && $_' option.c */
 int lalpm_option_set_logcb(lua_State *L);
 int lalpm_option_set_dlcb(lua_State *L);
+int lalpm_option_set_fetchcb(lua_State *L);
 int lalpm_option_set_totaldlcb(lua_State *L);
 int lalpm_option_get_root(lua_State *L);
 int lalpm_option_set_root(lua_State *L);

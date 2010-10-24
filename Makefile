@@ -2,7 +2,7 @@ LDFLAGS = -s
 CFLAGS = -Wall -W -O2 -fPIC `pkg-config --cflags lua` \
 	-std=c99 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
 CC = gcc
-SOFLAGS = -shared -pedantic -llua -lalpm
+SOFLAGS = -shared -pedantic -llua
 
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -dm755
@@ -22,7 +22,8 @@ manext = .8
 
 lualpm_objects = lualpm/callback.o lualpm/db.o lualpm/delta.o		\
 	lualpm/dep.o lualpm/group.o lualpm/option.o lualpm/package.o	\
-	lualpm/sync.o lualpm/trans.o lualpm/types.o lualpm/lualpm.o
+	lualpm/sync.o lualpm/trans.o lualpm/types.o lualpm/lualpm.o     \
+    lualpm/dlhelper.o
 
 all: clyde lualpm
 
@@ -46,15 +47,18 @@ lualpm/trans.o: lualpm/types.h lualpm/lualpm.h
 lualpm/types.o: lualpm/types.h
 
 lualpm.so: $(lualpm_objects)
-	$(CC) -o lualpm.so $(SOFLAGS) $(lualpm_objects)
+	$(CC) $(CFLAGS) $(SOFLAGS) -lalpm -o $@ $^
 
 lualpm: lualpm.so
 
 clydelib/signal.so: clydelib/signal.c
-	$(CC) $(CFLAGS) $(SOFLAGS) -o clydelib/signal.so clydelib/signal.c
+	$(CC) $(CFLAGS) $(SOFLAGS) -o $@ $^
 
 clydelib/utilcore.so: clydelib/utilcore.c
-	$(CC) $(CFLAGS) $(SOFLAGS) -o clydelib/utilcore.so clydelib/utilcore.c
+	$(CC) $(CFLAGS) $(SOFLAGS) -o $@ $^
+
+lualpm/dlhelper.o: lualpm/dlhelper.c lualpm/dlhelper.h
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 man/clyde.8: man/clyde.ronn
 	-ronn man/clyde.ronn
@@ -79,7 +83,7 @@ install_clyde: clyde
 	$(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde
 
 clean:
-	-rm -f *.so clydelib/*.so lualpm/*.o
+	-rm -f *.so clydelib/*.so lualpm/*.o misc/dlhelper.o
 
 uninstall_lualpm:
 	rm -f $(DESTDIR)$(libdir)/lualpm.so
