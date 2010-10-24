@@ -85,7 +85,7 @@ end
 
 function cleanup(ret)
     if (alpm.release() == -1) then
-        lprintf("LOG_ERROR", alpm.strerrorlast())
+        lprintf("LOG_ERROR", alpm.strerrorlast() .. "\n")
     end
     if (type(config.configfile) == "userdata") then
         config.configfile:close()

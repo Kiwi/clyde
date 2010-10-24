@@ -951,9 +951,7 @@ function main()
 
     signal.signal("SIGINT", function()
         printf("\nInterrupt signal received\n\n")
-        if (alpm.trans_interrupt() == 0) then
-            return
-        end
+        alpm.trans_interrupt() -- try to be nice
         util.trans_release()
         cleanup(2)
     end)
