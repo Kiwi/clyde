@@ -7,6 +7,7 @@
 
 #include "types.h"
 #include "lualpm.h"
+#include "callback.h"
 
 /* We shall keep these here, static for now.  I would prefer them
    to be in a header file, but they are only used in this file. */
@@ -33,7 +34,7 @@ struct progress_cb_args {
     int            pkg_current;
 };
 
-static callback_key_t trans_cb_progress_key[1] = {{ "transaction progress" }};
+callback_key_t trans_cb_progress_key[1] = {{ "transaction progress" }};
 
 static void
 event_cb_gateway_unprotected(pmtransevt_t event, void *data1, void *data2);
@@ -78,7 +79,8 @@ int lalpm_trans_init(lua_State *L)
     lua_setfield(L, LUA_REGISTRYINDEX, "lualpm: events callback table");
     lua_pushvalue(L, 3);
     lua_setfield(L, LUA_REGISTRYINDEX, "lualpm: conversations callback table");
-    register_callback(L, trans_cb_progress_key, 4);
+    lua_pushvalue(L, 4);
+    cb_register( L, trans_cb_progress_key );
     const int result = alpm_trans_init(flags,
                                        event_cb_gateway_unprotected,
                                        conversation_cb_gateway_unprotected,
@@ -469,7 +471,7 @@ event_cb_gateway_unprotected(pmtransevt_t event, void *data1, void *data2)
     args->data2 = data2;
     err = lua_cpcall(L, event_cb_gateway_protected, args);
     if (err) {
-        handle_pcall_error_unprotected(L, err, "event callback");
+        cb_error_handler( "event", err );
     }
 }
 
@@ -544,7 +546,7 @@ conversation_cb_gateway_unprotected(pmtransconv_t type, void *data1, void *data2
     args->response = response;
     err = lua_cpcall(L, conversation_cb_gateway_protected, args);
     if (err) {
-        handle_pcall_error_unprotected(L, err, "conversation callback");
+        cb_error_handler( "conversation", err );
     }
 }
 
@@ -573,7 +575,7 @@ progress_cb_gateway_protected(lua_State *L)
     struct progress_cb_args *args = lua_touserdata(L, 1);
 
     /* We'll look for a callback to call in the registry. */
-    get_callback(L, trans_cb_progress_key);
+    cb_lookup(trans_cb_progress_key);
     push_pmtransprog(L, args->progress_type);
     push_string(L, args->pkg_name);
     lua_pushnumber(L, args->percent);
@@ -604,6 +606,6 @@ progress_cb_gateway_unprotected(pmtransprog_t t, const char *s, int a, int b, in
     args->pkg_current = c;
     err = lua_cpcall(L, progress_cb_gateway_protected, args);
     if (err) {
-        handle_pcall_error_unprotected(L, err, "progress callback");
+        cb_error_handler( "progress", err );
     }
 }

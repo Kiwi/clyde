@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <lua.h>
-#include "lualpm.h"
+#include "callback.h"
 
 /* A global is required for alpm C -> Lua gateways to get their Lua
  * goodness from.  Unfortunately alpm callbacks have no userdata or
@@ -10,100 +10,98 @@
 lua_State *GlobalState;
 
 void
-register_callback(lua_State *L, callback_key_t *key, int narg)
-{
-    lua_pushlightuserdata(L, key);
-    lua_pushvalue(L, narg);
-    lua_settable(L, LUA_REGISTRYINDEX);
-}
-
-void
-get_callback(lua_State *L, callback_key_t *key)
-{
-    lua_pushlightuserdata(L, key);
-    lua_gettable(L, LUA_REGISTRYINDEX);
-    if (lua_isnil(L, -1)) {
-        luaL_error(L, "no %s callback set!", key->name);
-    }
-}
-
-static void
-log_internal_error(const char *message, const char *context)
+cb_log_error ( const char *cbname, const char *message )
 {
     /* TODO: send the error message to the libalpm logger here? */
-    fprintf(stderr, "lualpm %s: %s\n", context, message);
+    fprintf(stderr, "lualpm (%s callback): %s\n", cbname, message);
 }
 
 void
-handle_pcall_error_unprotected(
-    lua_State  *L,
-    int         err,
-    const char *context)
+cb_register ( lua_State *L, callback_key_t *key )
+{
+    lua_pushlightuserdata( L, key );
+    lua_pushvalue( L, -2 );
+    lua_settable( L, LUA_REGISTRYINDEX );
+}
+
+int
+cb_lookup ( callback_key_t *key )
+{
+    lua_pushlightuserdata( GlobalState, key );
+    lua_gettable( GlobalState, LUA_REGISTRYINDEX );
+
+    if ( lua_isnil( GlobalState, -1 )) {
+        cb_log_error( key->name, "Value for callback is nil!" );
+        return 0;
+    }
+    else if ( lua_type( GlobalState, -1 ) != LUA_TFUNCTION ) {
+        cb_log_error( key->name, "Value for callback is not a function!" );
+        return 0;
+    }
+
+    return 1;
+}
+
+void
+cb_error_handler ( const char *cbname, int err )
 {
     switch (err) {
     case 0:                     /* success */
         break;
     case LUA_ERRMEM:
-        log_internal_error("lualpm: ran out of memory calling Lua", context);
+        cb_log_error( cbname, "ran out of memory running Lua" );
         break;
     case LUA_ERRERR:
     case LUA_ERRRUN:
-        /* If a pcall fails it will push an error message or error
-         * object on the stack.  The following usage of lua_type()
-         * and lua_tostring() is safe by inspection of the Lua source
-         * code -- this particular usage cannot throw Lua errors. */
-        if (lua_type(L, -1) == LUA_TSTRING) {
-            char const *msg = lua_tostring(L, -1);
-            log_internal_error(msg, context);
+        if (lua_type(GlobalState, -1) == LUA_TSTRING) {
+            const char *msg = lua_tostring(GlobalState, -1);
+            cb_log_error( cbname, msg );
         }
         else {
-            log_internal_error("lualpm: error calling Lua "
-                               "(received a non-string error object)",
-                               context);
+            cb_log_error( cbname,
+                          "error running Lua "
+                          "(received a non-string error object)" );
         }
         break;
     default:
-        log_internal_error("lualpm: unknown error while calling Lua",
-                           context);
+        cb_log_error( cbname, "unknown error while running Lua" );
     }
 }
 
 /****************************************************************************/
 
-/* alpm_cb_log alpm_option_get_logcb(); */
-/* void alpm_option_set_logcb(alpm_cb_log cb); */
-callback_key_t log_cb_key[1] = {{ "log callback" }};
+/* Use these macros to define a callback.
+   The macros create a key variable called "cb_key_$NAME"
+   A C function that can be passed as a function pointer
+   is created, named "cb_cfunc_$NAME".
+*/ 
 
-static int
-log_cb_gateway_protected(lua_State *L)
+#define BEGIN_CALLBACK( NAME, ... ) \
+    callback_key_t cb_key_ ## NAME = { #NAME " callback" }; \
+                                                            \
+    void cb_cfunc_ ## NAME ( __VA_ARGS__ )                  \
+    {                                                       \
+    lua_State *L = GlobalState;                             \
+    if ( ! cb_lookup( &cb_key_ ## NAME )) { return; }
+
+#define END_CALLBACK( NAME, ARGCOUNT )                      \
+    int lua_err = lua_pcall( L, ARGCOUNT, 0, 0 );           \
+    if ( lua_err != 0 ) {                                   \
+        cb_error_handler( #NAME, lua_err );                 \
+    }                                                       \
+    return;                                                 \
+    } /* end of cb_cfunc */
+
+BEGIN_CALLBACK( log, pmloglevel_t level, char *fmt, va_list vargs )
 {
-    struct log_cb_args *args = lua_touserdata(L, 1);
-    get_callback(L, log_cb_key);
-    push_loglevel(L, args->level);
-    push_string(L, args->msg);
-    lua_call(L, 2, 0);
-
-    return 0;
+    char * fmted = NULL;
+    int err      = vasprintf( &fmted, fmt, vargs );
+    assert( err != -1 && "[BUG] vasprintf ran out of memory" );
+    
+    push_loglevel( L, level );
+    push_string( L, fmted );
 }
-
-void
-log_cb_gateway_unprotected(pmloglevel_t level, char *fmt, va_list list)
-{
-    lua_State *L = GlobalState;
-    struct log_cb_args args[1];
-    int err;
-    assert(L && "[BUG] no global Lua state in log callback");
-    args->level = level;
-    char *s = NULL;
-    err = vasprintf(&s, fmt, list);
-    assert(err != -1 && "[BUG] out of memory");
-    args->msg = s;
-    err = lua_cpcall(L, log_cb_gateway_protected, args);
-    free(s);
-    if (err) {
-        handle_pcall_error_unprotected(L, err, "log callback");
-    }
-}
+END_CALLBACK( log, 2 )
 
 /****************************************************************************/
 
@@ -115,7 +113,7 @@ static int
 dl_cb_gateway_protected(lua_State *L)
 {
     struct dl_cb_args *args = lua_touserdata(L, 1);
-    get_callback(L, dl_cb_key);
+    cb_lookup(dl_cb_key);
     push_string(L, args->filename);
     lua_pushnumber(L, args->xfered);
     lua_pushnumber(L, args->total);
@@ -136,7 +134,7 @@ dl_cb_gateway_unprotected(const char *f, off_t x, off_t t)
     args->total = t;
     err = lua_cpcall(L, dl_cb_gateway_protected, args);
     if (err) {
-        handle_pcall_error_unprotected(L, err, "download callback");
+        cb_error_handler("download", err);
     }
 }
 
@@ -150,7 +148,7 @@ static int
 totaldl_cb_gateway_protected(lua_State *L)
 {
     struct totaldl_cb_args *args = lua_touserdata(L, 1);
-    get_callback(L, totaldl_cb_key);
+    cb_lookup(totaldl_cb_key);
     lua_pushnumber(L, args->total);
     lua_call(L, 1, 0);
 
@@ -167,7 +165,6 @@ totaldl_cb_gateway_unprotected(off_t t)
     args->total = t;
     err = lua_cpcall(L, totaldl_cb_gateway_protected, args);
     if (err) {
-        handle_pcall_error_unprotected(L, err, "total download callback");
+        cb_error_handler("total download", err);
     }
 }
-

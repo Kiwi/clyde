@@ -5,19 +5,20 @@
 #include <lauxlib.h>
 #include "types.h"
 #include "lualpm.h"
+#include "callback.h"
 #include "dlhelper.h"
 
 int lalpm_option_set_logcb(lua_State *L)
 {
-    register_callback(L, log_cb_key, 1);
-    alpm_option_set_logcb(log_cb_gateway_unprotected);
+    cb_register( L, &cb_key_log );
+    alpm_option_set_logcb( cb_cfunc_log );
 
     return 0;
 }
 
 int lalpm_option_set_dlcb(lua_State *L)
 {
-    register_callback(L, dl_cb_key, 1);
+    cb_register( L, dl_cb_key );
     alpm_option_set_dlcb(dl_cb_gateway_unprotected);
 
     return 0;
@@ -39,7 +40,7 @@ int lalpm_option_set_fetchcb(lua_State *L)
 
 int lalpm_option_set_totaldlcb(lua_State *L)
 {
-    register_callback(L, totaldl_cb_key, 1);
+    cb_register( L, totaldl_cb_key );
     alpm_option_set_totaldlcb(totaldl_cb_gateway_unprotected);
 
     return 0;
