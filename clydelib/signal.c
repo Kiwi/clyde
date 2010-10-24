@@ -430,3 +430,11 @@ int luaopen_signal (lua_State *L)
 
   return 1;
 }
+
+/* Embed signal into clydelib: clydelib.signal */
+int luaopen_clydelib_signal (lua_State *L) {
+    return luaopen_signal(L);
+}
+
+/* TODO: We should package lua-signal separately and update clyde's
+   PKGBUILD -JD */

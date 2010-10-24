@@ -50,9 +50,8 @@ lualpm.so: $(lualpm_objects)
 
 lualpm: lualpm.so
 
-clydelib/signal.so: clydelib/lsignal.c
-	$(CC) $(CFLAGS) $(SOFLAGS) -o clydelib/signal.so clydelib/lsignal.c \
-		clydelib/lsignal_clydelib.c
+clydelib/signal.so: clydelib/signal.c
+	$(CC) $(CFLAGS) $(SOFLAGS) -o clydelib/signal.so clydelib/signal.c
 
 clydelib/utilcore.so: clydelib/utilcore.c
 	$(CC) $(CFLAGS) $(SOFLAGS) -o clydelib/utilcore.so clydelib/utilcore.c
