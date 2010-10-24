@@ -1072,3 +1072,8 @@ function main()
 end
 
 os.exit(main())
+
+-- Local Variables:
+-- mode: lua
+-- lua-indent-level: 4
+-- End:
