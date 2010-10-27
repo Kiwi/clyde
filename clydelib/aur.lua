@@ -17,13 +17,13 @@ function download(host, file, user)
     local received = 0
     local r, c, h = http.request {
         method = "HEAD",
-        url = "http://" ..host..file
+        url = "https://" ..host..file
     }
 
   local size = h['content-length']
 
     http.request{
-        url = "http://" .. host .. file,
+        url = "https://" .. host .. file,
         sink = ltn12.sink.chain(function(chunk)
                 if not chunk then return chunk end
                 received = received + #chunk
