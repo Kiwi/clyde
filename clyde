@@ -40,7 +40,7 @@ local clydeconf = require "clydelib.config"
 
 local PACKAGE = "clyde"
 local LOCALEDIR = "/usr/share/locale"
-local VERSION   = '0.03.03'
+local VERSION   = '0.03.04'
 
 local function usage(op, myname)
     local str_opt = g("options")
