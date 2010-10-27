@@ -58,7 +58,7 @@ function download(host, file, user)
         create = create,
     }
 
-  local size = h['content-length']
+    local size = h['content-length']
 
     http.request{
         url = "https://" .. host .. file,
@@ -72,8 +72,9 @@ function download(host, file, user)
             return chunk end,
             ltn12.sink.file(f)
             ),
-}
-io.write(string.format(C.greb("==>")..C.bright(" Downloading %s\n"),filename))
+    }
+
+    io.write(string.format(C.greb("==>")..C.bright(" Downloading %s\n"),filename))
 end
 
 aurthreads = {}    -- list of all live threads

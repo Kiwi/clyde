@@ -2,7 +2,6 @@ module(..., package.seeall)
 local lfs = require "lfs"
 local alpm = require "lualpm"
 local util = require "clydelib.util"
-local transinit = require "clydelib.transinit"
 local utilcore = require "clydelib.utilcore"
 local packages = require "clydelib.packages"
 local C = colorize
@@ -22,7 +21,7 @@ local fastremove = util.fastremove
 local tblremovedupes = util.tblremovedupes
 local tbldiff = util.tbldiff
 local tblstrdup = util.tblstrdup
-local trans_init = transinit.trans_init
+local trans_init = util.trans_init
 local yesno = util.yesno
 local noyes = util.noyes
 local trans_release = util.trans_release
@@ -114,7 +113,17 @@ local function clyde_upgrade(targets)
                 end
             end
             --]]
-        elseif (alpm.pm_errno() == "P_E_FILE_CONFLICTS") then
+        end
+
+        trans_release()
+        data = nil
+        return 1
+    end
+
+    transret, data = alpm.trans_commit({})
+    if (transret == -1) then
+        eprintf("LOG_ERROR", g("failed to commit transaction (%s)\n"), alpm.strerrorlast())
+        if (alpm.pm_errno() == "P_E_FILE_CONFLICTS") then
             for i, conflict in ipairs(data) do
                 if (conflict:fileconflict_get_type() == "FILECONFLICT_TARGET") then
                     printf(g("%s exists in both '%s' and '%s'\n"), conflict:fileconflict_get_file(),
@@ -127,14 +136,6 @@ local function clyde_upgrade(targets)
             end
             printf(g("\nerrors occurred, no packages were upgraded.\n"))
         end
-
-        trans_release()
-        data = nil
-        return 1
-    end
-
-    if (alpm.trans_commit({}) == -1) then
-        eprintf("LOG_ERROR", g("failed to commit transaction (%s)\n"), alpm.strerrorlast())
         trans_release()
         return 1
     end

@@ -40,6 +40,7 @@ local clydeconf = require "clydelib.config"
 
 local PACKAGE = "clyde"
 local LOCALEDIR = "/usr/share/locale"
+local VERSION   = '0.03.03'
 
 local function usage(op, myname)
     local str_opt = g("options")
@@ -152,7 +153,7 @@ end
 local function version()
     printf("\n")
     printf(C.yelb("    .--.     ")..C.yel("     .---.        ")..
-           "Clyde v0.03 - lualpm v0.01\n")
+           "Clyde v%s - lualpm v0.01\n", VERSION)
     printf(C.yelb("   '-._ \\")..C.bright(" .-.  .-")..C.yel("|O O  | ")..C.cya("~~    ").."Copyright (C) 2010 Robert Djubek\n")
     printf(C.yelb("   .-'  /")..C.bright(" '-'  '-")..C.yel("|~~~  |")..C.red("  ~~~  ").."This program may be freely redistributed under\n")
     printf(C.yelb("    '--'   ")..C.yel("      |.-.-.|")..C.gre(" ~~    ").."the terms of the GNU General Public License.\n")
@@ -945,11 +946,13 @@ end
 
 function main()
     local ret = 0
+
+    utilcore.setprocname( "clyde" )
+    utilcore.term_setup()
+
     signal.signal("SIGINT", function()
         printf("\nInterrupt signal received\n\n")
-        if (alpm.trans_interrupt() == 0) then
-            return
-        end
+        alpm.trans_interrupt() -- try to be nice
         util.trans_release()
         cleanup(2)
     end)
@@ -1069,4 +1072,9 @@ function main()
     return ret
 end
 
-return main()
+os.exit(main())
+
+-- Local Variables:
+-- mode: lua
+-- lua-indent-level: 4
+-- End:

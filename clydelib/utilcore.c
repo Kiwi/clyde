@@ -12,6 +12,8 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/utsname.h>
+#include <sys/prctl.h> /* for setprocname */
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,6 +26,8 @@
 #include <unistd.h> /* isatty, getuid */
 #include <limits.h>
 #include <wchar.h>
+#include <termios.h>
+
 //#define _XOPEN_SOURCE
 extern int errno;
 
@@ -198,6 +202,66 @@ static int clyde_arch(lua_State *L)
     return 1;
 }
 
+/* Sets the effective procedure name, to change the terminal's title. */
+static int clyde_setprocname ( lua_State *L )
+{
+    const char *procname;
+    int retval;
+    
+    procname = luaL_checkstring( L, 1 );
+    retval   = prctl( PR_SET_NAME, procname, 0, 0, 0 );
+
+    if ( retval == -1 ) {
+        lua_pushstring( L, strerror( errno ));
+        lua_error( L );
+    }
+    
+    return 0;
+}
+
+static const int STDIN = 0;
+
+static struct termios tio_orig;
+static int tio_need_reset;
+
+static int clyde_term_restore() {
+    /*
+     * this should be called on exit
+     */
+
+    if (tio_need_reset) {
+        tcsetattr(STDIN, TCSANOW, &tio_orig);
+    }
+
+    return 0;
+}
+
+static int clyde_term_setup() {
+    /*
+     * store terminal settings so we can reset them on exit
+     */
+
+    if (!tio_need_reset) {
+        tcgetattr(STDIN, &tio_orig);
+        tio_need_reset = 1;
+    }
+
+    /*
+     * disable linebuffer 
+     * this allows a proper io.stdin:read(1) so you only have to press one key
+     * at the prompt
+     */
+
+    struct termios tio;
+    tcgetattr(STDIN, &tio);
+    // disable canonical mode which also disables linebuffering
+    tio.c_lflag &= ~ICANON;
+    tcsetattr(STDIN, TCSANOW, &tio);
+    setbuf(stdin, NULL);
+
+    return 0;
+}
+
 
 static luaL_Reg const pkg_funcs[] = {
     { "bindtextdomain",             clyde_bindtextdomain },
@@ -212,6 +276,9 @@ static luaL_Reg const pkg_funcs[] = {
     { "mkdir",                      clyde_mkdir },
     { "umask",                      clyde_umask },
     { "arch",                       clyde_arch },
+    { "term_setup",                 clyde_term_setup },
+    { "term_restore",               clyde_term_restore },
+    { "setprocname",                clyde_setprocname },
     { NULL,                         NULL}
 };
 

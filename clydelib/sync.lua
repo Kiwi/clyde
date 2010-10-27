@@ -7,7 +7,6 @@ local C = colorize
 local util = require "clydelib.util"
 local utilcore = require "clydelib.utilcore"
 local packages = require "clydelib.packages"
-local transinit = require "clydelib.transinit"
 local aur = require "clydelib.aur"
 local upgrade = require "clydelib.upgrade"
 local callback = require "clydelib.callback"
@@ -29,7 +28,7 @@ local fastremove = util.fastremove
 local tblremovedupes = util.tblremovedupes
 local tbldiff = util.tbldiff
 local tblstrdup = util.tblstrdup
-local trans_init = transinit.trans_init
+local trans_init = util.trans_init
 local yesno = util.yesno
 local noyes = util.noyes
 local trans_release = util.trans_release
@@ -1486,7 +1485,8 @@ local function sync_trans(targets)
     if (next(aurpkgs)) then
         if (next(packages)) then
             printf(C.greb("\n==>")..C.bright(" Installing the following packages from repos\n"))
-            display_alpm_targets(packages)
+            util.display_targets(packages, true)
+            --  what about packages that are to be removed?
         end
 
         printf(C.greb("\n==>")..C.bright(" Installing the following packages from AUR\n"))
