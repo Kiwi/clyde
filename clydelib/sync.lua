@@ -52,7 +52,7 @@ require "socket"
 local http = require "socket.http"
 local url = require "socket.url"
 local ltn12 = require "ltn12"
-local aururl = "http://aur.archlinux.org/rpc.php?"
+local aururl = "https://aur.archlinux.org/rpc.php?"
 local aurmethod = {
     ['search'] = "type=search&";
     ['info'] = "type=info&";
@@ -1040,7 +1040,7 @@ local function getdepends(target, provided)
         end
     end
     local pkgbuildurl = string.format(
-            "http://aur.archlinux.org/packages/%s/%s/PKGBUILD",
+            "https://aur.archlinux.org/packages/%s/%s/PKGBUILD",
                 target, target)
     local pkgbuild = aur.getgzip(pkgbuildurl)
     if not pkgbuild then
