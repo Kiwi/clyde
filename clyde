@@ -1041,12 +1041,33 @@ function main()
         sync.sync_search(syncdb, pm_targets, true, install)
         if (next(install)) then
             if (myuid > 0) then
-                if (os.getenv("SUDO_USER")) then
-                    ret = os.execute("sudo clyde -S "..table.concat(install, " "))
-                else
-                    ret = os.execute("su -c 'clyde -S "..table.concat(install, " ").." '")
+                -- See whether sudo (preferable) or su exist
+                local sucmds = { { file   = "/usr/bin/sudo",
+                                   prefix = "%s sh -c" },
+                                 { file   = "/bin/su",
+                                   prefix = "%s -c" }, }
+                local prefix
+                for i, sucmd in ipairs( sucmds ) do
+                    -- Cannot use io.open because sudo doesn't give
+                    -- read access to anyone.
+                    if lfs.attributes( sucmd.file ) then
+                        prefix = string.format( sucmd.prefix,
+                                                sucmd.file )
+                        break
+                    end
                 end
-                return ret
+
+                if not prefix then
+                    eprintf( "LOG_ERROR",
+                             "neither sudo nor su are installed, cannot "
+                                 .. "automatically install search results" )
+                    os.exit( 1 )
+                end
+
+                local cmd = string.format( "%s '%s -S %s'",
+                                           prefix, arg[0],
+                                           table.concat( install, " " ))
+                return os.execute(cmd)
             else
                 ret = sync.main(install)
                 return ret

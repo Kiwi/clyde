@@ -454,14 +454,30 @@ function sync_search(syncs, targets, shownumbers, install)
     end
 
     if (shownumbers and found) then
-        printf("%s  %s\n%s  %s\n%s ", C.yelb("==>"),
-            C.bright("Enter #'s (separated by blanks) of packages to be installed"), C.yelb("==>"),
-            C.bright(("-"):rep(60)), C.yelb("==>"), C.yelb("==>"))
+        bars = C.yelb("==>")
+        printf("%s %s\n%s %s\n",
+               bars,
+               C.bright("Enter #'s (separated by blanks) of packages "
+                        .. "to be installed"),
+               bars, C.bright(("-"):rep(60)), bars )
 
-        local installstring = io.read("*l")
-        local installtbl = strsplit(installstring or "", " ")
-        for i, num in ipairs(installtbl) do
-            tblinsert(install, pkgnames[tonumber(num)])
+        while ( true ) do
+            io.write( bars .. " " )
+            local nums_choice = io.read()
+
+            if nums_choice == "" then
+                print( "Aborting" )
+                break
+            end
+
+            if nums_choice:match( "[%S%D]" ) then
+                print( "Valid inputs are numbers, whitespace, or empty." )
+            else
+                for num in nums_choice:gmatch( "(%d+)" ) do
+                    tblinsert(install, pkgnames[tonumber(num)])
+                end
+                break
+            end
         end
     end
     if found then
