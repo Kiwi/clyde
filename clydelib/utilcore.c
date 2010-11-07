@@ -225,37 +225,71 @@ static int clyde_setprocname ( lua_State *L )
 
 #define STDIN 0
 
+/* Save our old termio struct for the signal handler. */
+struct termios Old_termio;
+struct sigaction Old_sigint;
+
+/* This is just here to avoid copy/paste code. */
+static int restore_termio ( void )
+{
+    return tcsetattr( STDIN, TCSANOW, &Old_termio );
+}
+
+static void sig_restore_termio ( int signal )
+{
+    restore_termio(); /* XXX: Lacks error checking */
+
+    /* Call lua-signals old signal handler. */
+    (Old_sigint.sa_handler)( signal );
+    return;
+}
+
 static int clyde_getchar ( lua_State *L ) {
-    struct termios termio;
-    cc_t old_timer, old_min;
-    int stdin_isatty;
+    struct sigaction new_sigint;
+    struct termios new_termio;
     char input;
 
-    stdin_isatty = isatty( STDIN );
-    if ( stdin_isatty ) {
-        /* Save old values of termio */
-        CHECK_ERR( tcgetattr( STDIN, &termio ));
-        old_timer = termio.c_cc[ VTIME ];
-        old_min   = termio.c_cc[ VMIN  ];
-        
-        /* Turn off canonical mode, meaning read one char at a time.
-           Set timer to 0, to wait forever. Minimum chars is 1. */
-        termio.c_lflag &= ~ICANON;
-        termio.c_cc[ VTIME ] = 0;
-        termio.c_cc[ VMIN  ] = 1;
-        CHECK_ERR( tcsetattr( STDIN, TCSANOW, &termio ));
+    if ( isatty( STDIN ) == 0 ) {
+        /* The rest won't work if we aren't a real terminal. */
+        input = getchar();
+        lua_pushlstring( L, &input, 1 );
+        return 1;
     }
-    
+
+    /* XXX: This sets the terminal, etc, even if it is already
+       set to non-canonical mode. Lazy? Who cares? */
+
+    CHECK_ERR( tcgetattr( STDIN, &Old_termio ));
+    memcpy( &new_termio, &Old_termio, sizeof( struct termios ));
+
+    /* Turn off canonical mode, meaning read one char at a time.
+       Set timer to 0, to wait forever. Minimum chars is 1. */
+    new_termio.c_lflag      &= ~ICANON;
+    new_termio.c_cc[ VTIME ] = 0;
+    new_termio.c_cc[ VMIN  ] = 1;
+    CHECK_ERR( tcsetattr( STDIN, TCSANOW, &new_termio ));
+
+    /* We should confirm it worked, according to the manpage. */
+    CHECK_ERR( tcgetattr( STDIN, &new_termio ));
+    if ( new_termio.c_lflag & ICANON
+         || new_termio.c_cc[ VTIME ] != 0
+         || new_termio.c_cc[ VMIN  ] != 1 ) {
+        lua_pushstring( L, "Failed to set character read mode for terminal" );
+        lua_error( L );
+    }
+
+    /* Create our own signal handler. Store old signal handler. */
+    memset( &new_sigint, 0, sizeof( struct sigaction ));
+    new_sigint.sa_handler = sig_restore_termio;
+    CHECK_ERR( sigaction( SIGINT, &new_sigint, &Old_sigint ));
+    /* XXX: Should we handle more signals? */
+
     input = getchar();
     lua_pushlstring( L, &input, 1 );
 
-    if ( stdin_isatty ) {
-        /* Restore old values of termio */
-        termio.c_lflag |= ICANON;
-        termio.c_cc[ VTIME ] = old_timer;
-        termio.c_cc[ VMIN  ] = old_min;
-        CHECK_ERR( tcsetattr( STDIN, TCSANOW, &termio ));
-    }
+    /* Restore old signal handler and terminal IO setup. */
+    CHECK_ERR( sigaction( SIGINT, &Old_sigint, NULL ));
+    CHECK_ERR( restore_termio() );
 
     return 1;
 }
