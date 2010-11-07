@@ -51,7 +51,7 @@ require "socket"
 local http = require "socket.http"
 local url = require "socket.url"
 local ltn12 = require "ltn12"
-local aururl = "http://aur.archlinux.org/rpc.php?"
+local aururl = "https://aur.archlinux.org:443/rpc.php?"
 local aurmethod = {
     ['search'] = "type=search&";
     ['info'] = "type=info&";
@@ -904,7 +904,7 @@ local function download_extract(target, currentdir)
     local user = util.getbuilduser()
     local myuid = utilcore.geteuid()
     --local oldmask = utilcore.umask(tonumber("700", 8))
-    local host = "aur.archlinux.org"
+    local host = "aur.archlinux.org:443"
     aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target), user)
     aur.dispatcher()
     --utilcore.umask(oldmask)
@@ -1055,7 +1055,7 @@ local function getdepends(target, provided)
         end
     end
     local pkgbuildurl = string.format(
-            "http://aur.archlinux.org/packages/%s/%s/PKGBUILD",
+            "https://aur.archlinux.org:443/packages/%s/%s/PKGBUILD",
                 target, target)
     local pkgbuild = aur.getgzip(pkgbuildurl)
     if not pkgbuild then

@@ -7,6 +7,43 @@ local ltn12 = require "ltn12"
 local zlib = require "zlib"
 local yajl = require "yajl"
 local C = colorize
+local ssl = require "ssl"
+-- credit for params and create goes to James McLaughlin
+local params = {
+    mode = "client",
+    protocol = "sslv23",
+    cafile = "/etc/ssl/certs/ca-certificates.crt",
+    verify = "peer",
+    options = "all",
+}
+
+local try = socket.try
+local protect = socket.protect
+function create()
+    local t = {c=try(socket.tcp())}
+
+    function idx (tbl, key)
+        --print("idx " .. key)
+        return function (prxy, ...)
+                   local c = prxy.c
+                   return c[key](c,...)
+               end
+    end
+
+
+    function t:connect(host, port)
+        --print ("proxy connect ", host, port)
+        try(self.c:connect(host, port))
+        --print ("connected")
+        self.c = try(ssl.wrap(self.c,params))
+        --print("wrapped")
+        try(self.c:dohandshake())
+        --print("handshaked")
+        return 1
+    end
+
+    return setmetatable(t, {__index = idx})
+end
 
 function download(host, file, user)
     local filename = file:match(".+/(.+)$")
@@ -17,13 +54,15 @@ function download(host, file, user)
     local received = 0
     local r, c, h = http.request {
         method = "HEAD",
-        url = "http://" ..host..file
+        url = "https://" ..host..file,
+        create = create,
     }
 
     local size = h['content-length']
 
     http.request{
-        url = "http://" .. host .. file,
+        url = "https://" .. host .. file,
+        create = create,
         sink = ltn12.sink.chain(function(chunk)
                 if not chunk then return chunk end
                 received = received + #chunk
@@ -78,6 +117,7 @@ function getgzip(geturl)
         url = geturl;
         sink = ltn12.sink.table(sinktbl);
         headers = head;
+        create = create;
     }
     if (e ~= 200) then
         return nil
