@@ -948,7 +948,6 @@ function main()
     local ret = 0
 
     utilcore.setprocname( "clyde" )
-    utilcore.term_setup()
 
     signal.signal("SIGINT", function()
         printf("\nInterrupt signal received\n\n")

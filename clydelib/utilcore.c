@@ -219,47 +219,39 @@ static int clyde_setprocname ( lua_State *L )
     return 0;
 }
 
-static const int STDIN = 0;
+static int clyde_getchar ( lua_State *L ) {
+    struct termios termio;
+    cc_t old_timer, old_min;
+    int is_stdin_atty;
+    char input;
 
-static struct termios tio_orig;
-static int tio_need_reset;
+    stdin_isatty = isatty( STDIN )
+    if ( stdin_isatty ) {
+        /* Save old values of termio */
+        tcgetattr( STDIN, &termio );
+        old_timer = termio.c_cc[ VTIME ];
+        old_min   = termio.c_cc[ VMIN  ];
+        
+        /* Turn off canonical mode, meaning read one char at a time.
+           Set timer to 0, to wait forever. Minimum chars is 1. */
+        termio.c_lflag &= ^ICANON;
+        termio.c_cc[ VTIME ] = 0;
+        termio.c_cc[ VMIN  ] = 1;
+        tcsetattr( STDIN, &termio );
+    }
+    
+    input = getchar();
+    lua_pushlstring( L, &input, 1 );
 
-static int clyde_term_restore() {
-    /*
-     * this should be called on exit
-     */
-
-    if (tio_need_reset) {
-        tcsetattr(STDIN, TCSANOW, &tio_orig);
+    if ( stdin_isatty ) {
+        /* Restore old values of termio */
+        termio.c_lflag |= ICANON;
+        termio.c_cc[ VTIME ] = old_timer;
+        termio.c_cc[ VMIN  ] = old_min;
+        tcsetattr( STDIN, &termio );
     }
 
-    return 0;
-}
-
-static int clyde_term_setup() {
-    /*
-     * store terminal settings so we can reset them on exit
-     */
-
-    if (!tio_need_reset) {
-        tcgetattr(STDIN, &tio_orig);
-        tio_need_reset = 1;
-    }
-
-    /*
-     * disable linebuffer 
-     * this allows a proper io.stdin:read(1) so you only have to press one key
-     * at the prompt
-     */
-
-    struct termios tio;
-    tcgetattr(STDIN, &tio);
-    // disable canonical mode which also disables linebuffering
-    tio.c_lflag &= ~ICANON;
-    tcsetattr(STDIN, TCSANOW, &tio);
-    setbuf(stdin, NULL);
-
-    return 0;
+    return 1;
 }
 
 
@@ -276,8 +268,7 @@ static luaL_Reg const pkg_funcs[] = {
     { "mkdir",                      clyde_mkdir },
     { "umask",                      clyde_umask },
     { "arch",                       clyde_arch },
-    { "term_setup",                 clyde_term_setup },
-    { "term_restore",               clyde_term_restore },
+    { "getchar",                    clyde_getchar },
     { "setprocname",                clyde_setprocname },
     { NULL,                         NULL}
 };

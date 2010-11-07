@@ -90,7 +90,6 @@ function cleanup(ret)
     if (type(config.configfile) == "userdata") then
         config.configfile:close()
     end
-    utilcore.term_restore()
     os.exit(ret)
 end
 
