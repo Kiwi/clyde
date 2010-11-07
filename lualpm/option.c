@@ -8,22 +8,24 @@
 #include "callback.h"
 #include "dlhelper.h"
 
-int lalpm_option_set_logcb(lua_State *L)
-{
-    cb_register( L, &cb_key_log );
-    alpm_option_set_logcb( cb_cfunc_log );
+#define DEFINE_CB_OPT( NAME ) \
+    int lalpm_option_set_ ## NAME ## cb ( lua_State *L )    \
+    {                                                       \
+    if ( lua_isnil( L, 1 )) {                               \
+        alpm_option_set_ ## NAME ## cb( NULL );             \
+    }                                                       \
+    else {                                                  \
+    cb_register( L, &cb_key_ ## NAME );                     \
+    alpm_option_set_ ## NAME ## cb( cb_cfunc_ ## NAME );    \
+    }                                                       \
+    return 0;                                               \
+    }
 
-    return 0;
-}
+DEFINE_CB_OPT( log )
+DEFINE_CB_OPT( dl )
+DEFINE_CB_OPT( totaldl )
 
-int lalpm_option_set_dlcb(lua_State *L)
-{
-    cb_register( L, dl_cb_key );
-    alpm_option_set_dlcb(dl_cb_gateway_unprotected);
-
-    return 0;
-}
-
+#undef DEFINE_CB_OPT
 
 /* alpm_cb_fetch alpm_option_get_fetchcb(); */
 const char *xfercommand = NULL;
@@ -31,17 +33,6 @@ int lalpm_option_set_fetchcb(lua_State *L)
 {
     xfercommand = luaL_checkstring(L, 1);
     alpm_option_set_fetchcb(download_with_xfercommand);
-
-    return 0;
-}
-
-/* alpm_cb_fetch alpm_option_get_fetchcb(); */
-/* void alpm_option_set_fetchcb(alpm_cb_fetch cb); */
-
-int lalpm_option_set_totaldlcb(lua_State *L)
-{
-    cb_register( L, totaldl_cb_key );
-    alpm_option_set_totaldlcb(totaldl_cb_gateway_unprotected);
 
     return 0;
 }

@@ -7,6 +7,10 @@
  * goodness from.  Unfortunately alpm callbacks have no userdata or
  * other pointer which the client could use to send their own
  * parameters in. */
+
+/* This can probably be fixed by using lua's c-closures but maybe later...
+   -JD */
+
 lua_State *GlobalState;
 
 void
@@ -98,73 +102,22 @@ BEGIN_CALLBACK( log, pmloglevel_t level, char *fmt, va_list vargs )
     int err      = vasprintf( &fmted, fmt, vargs );
     assert( err != -1 && "[BUG] vasprintf ran out of memory" );
     
+    lua_pushstring( L, fmted );
     push_loglevel( L, level );
-    push_string( L, fmted );
 }
 END_CALLBACK( log, 2 )
 
-/****************************************************************************/
-
-/* alpm_cb_download alpm_option_get_dlcb(); */
-/* void alpm_option_set_dlcb(alpm_cb_download cb); */
-callback_key_t dl_cb_key[1] = {{ "download progress" }};
-
-static int
-dl_cb_gateway_protected(lua_State *L)
+BEGIN_CALLBACK( dl, const char *filename, off_t xfered, off_t total )
 {
-    struct dl_cb_args *args = lua_touserdata(L, 1);
-    cb_lookup(dl_cb_key);
-    push_string(L, args->filename);
-    lua_pushnumber(L, args->xfered);
-    lua_pushnumber(L, args->total);
-    lua_call(L, 3, 0);
-
-    return 0;
+    lua_pushstring( L, filename );
+    lua_pushnumber( L, xfered );
+    lua_pushnumber( L, total );
 }
+END_CALLBACK( dl, 3 )    
 
-void
-dl_cb_gateway_unprotected(const char *f, off_t x, off_t t)
+BEGIN_CALLBACK( totaldl, off_t total )
 {
-    lua_State *L = GlobalState;
-    struct dl_cb_args args[1];
-    int err;
-    assert(L && "[BUG] no global Lua state in download progress callback");
-    args->filename = f;
-    args->xfered = x;
-    args->total = t;
-    err = lua_cpcall(L, dl_cb_gateway_protected, args);
-    if (err) {
-        cb_error_handler("download", err);
-    }
+    lua_pushnumber( L, total );
 }
+END_CALLBACK( totaldl, 1 )
 
-/****************************************************************************/
-
-/* alpm_cb_totaldl alpm_option_get_totaldlcb(); */
-/* void alpm_option_set_totaldlcb(alpm_cb_totaldl cb); */
-callback_key_t totaldl_cb_key[1] = {{ "total download progress" }};
-
-static int
-totaldl_cb_gateway_protected(lua_State *L)
-{
-    struct totaldl_cb_args *args = lua_touserdata(L, 1);
-    cb_lookup(totaldl_cb_key);
-    lua_pushnumber(L, args->total);
-    lua_call(L, 1, 0);
-
-    return 0;
-}
-
-void
-totaldl_cb_gateway_unprotected(off_t t)
-{
-    lua_State *L = GlobalState;
-    struct totaldl_cb_args args[1];
-    int err;
-    assert(L && "[BUG] no global Lua state in total download progress callback");
-    args->total = t;
-    err = lua_cpcall(L, totaldl_cb_gateway_protected, args);
-    if (err) {
-        cb_error_handler("total download", err);
-    }
-}
