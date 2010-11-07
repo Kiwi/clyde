@@ -523,7 +523,7 @@ local function question(preset, fmt, ...)
         return preset
     end
 
-    local answer = io.stdin:read(1)
+    local answer = utilcore.getchar()
     print()
 
     if (answer == "\n") then
