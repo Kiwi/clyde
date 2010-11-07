@@ -24,18 +24,9 @@
 DEFINE_CB_OPT( log )
 DEFINE_CB_OPT( dl )
 DEFINE_CB_OPT( totaldl )
+DEFINE_CB_OPT( fetch )
 
 #undef DEFINE_CB_OPT
-
-/* alpm_cb_fetch alpm_option_get_fetchcb(); */
-const char *xfercommand = NULL;
-int lalpm_option_set_fetchcb(lua_State *L)
-{
-    xfercommand = luaL_checkstring(L, 1);
-    alpm_option_set_fetchcb(download_with_xfercommand);
-
-    return 0;
-}
 
 /* const char *alpm_option_get_root(); */
 int lalpm_option_get_root(lua_State *L)

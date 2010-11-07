@@ -121,3 +121,24 @@ BEGIN_CALLBACK( totaldl, off_t total )
 }
 END_CALLBACK( totaldl, 1 )
 
+/* The fetch callback is tricker because it returns -1 if an error
+   occurs. */
+callback_key_t cb_key_fetch = { "fetch callback" };
+
+int cb_cfunc_fetch ( const char *url, const char *localpath, int force )
+{
+    lua_State *L = GlobalState;
+    int count;
+
+    lua_pushstring( L, url );
+    lua_pushstring( L, localpath );
+    lua_pushboolean( L, force );
+    int lua_err = lua_pcall( L, 3, 0, 0 );
+    if ( lua_err != 0 ) {
+        cb_error_handler( "fetch", lua_err );
+        return -1;
+    }
+
+    if ( lua_isnil( L, 1 ) || !lua_isnumber( L, 1 )) { return -1; }
+    return lua_tointeger( L, 1 );
+}
