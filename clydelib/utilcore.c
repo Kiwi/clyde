@@ -202,42 +202,48 @@ static int clyde_arch(lua_State *L)
     return 1;
 }
 
+static void throw_errno ( lua_State *L )
+{
+    lua_pushstring( L, strerror( errno ));
+    lua_error( L );
+    return;
+}
+
+/* A semicolon is required at the end */
+#define CHECK_ERR( FUNCCALL ) if ( FUNCCALL == -1 ) throw_errno( L )
+
 /* Sets the effective procedure name, to change the terminal's title. */
 static int clyde_setprocname ( lua_State *L )
 {
     const char *procname;
-    int retval;
     
     procname = luaL_checkstring( L, 1 );
-    retval   = prctl( PR_SET_NAME, procname, 0, 0, 0 );
-
-    if ( retval == -1 ) {
-        lua_pushstring( L, strerror( errno ));
-        lua_error( L );
-    }
+    CHECK_ERR( prctl( PR_SET_NAME, procname, 0, 0, 0 ));
     
     return 0;
 }
 
+#define STDIN 0
+
 static int clyde_getchar ( lua_State *L ) {
     struct termios termio;
     cc_t old_timer, old_min;
-    int is_stdin_atty;
+    int stdin_isatty;
     char input;
 
-    stdin_isatty = isatty( STDIN )
+    stdin_isatty = isatty( STDIN );
     if ( stdin_isatty ) {
         /* Save old values of termio */
-        tcgetattr( STDIN, &termio );
+        CHECK_ERR( tcgetattr( STDIN, &termio ));
         old_timer = termio.c_cc[ VTIME ];
         old_min   = termio.c_cc[ VMIN  ];
         
         /* Turn off canonical mode, meaning read one char at a time.
            Set timer to 0, to wait forever. Minimum chars is 1. */
-        termio.c_lflag &= ^ICANON;
+        termio.c_lflag &= ~ICANON;
         termio.c_cc[ VTIME ] = 0;
         termio.c_cc[ VMIN  ] = 1;
-        tcsetattr( STDIN, &termio );
+        CHECK_ERR( tcsetattr( STDIN, TCSANOW, &termio ));
     }
     
     input = getchar();
@@ -248,7 +254,7 @@ static int clyde_getchar ( lua_State *L ) {
         termio.c_lflag |= ICANON;
         termio.c_cc[ VTIME ] = old_timer;
         termio.c_cc[ VMIN  ] = old_min;
-        tcsetattr( STDIN, &termio );
+        CHECK_ERR( tcsetattr( STDIN, TCSANOW, &termio ));
     }
 
     return 1;
