@@ -461,22 +461,49 @@ function sync_search(syncs, targets, shownumbers, install)
                         .. "to be installed"),
                bars, C.bright(("-"):rep(60)), bars )
 
-        while ( true ) do
+        local function ask_package_nums ( maxnum )
             io.write( bars .. " " )
             local nums_choice = io.read()
 
-            if nums_choice == "" then
-                print( "Aborting" )
-                break
+            if nums_choice == "" then return nil end
+
+            input_numbers = {}
+            for num in nums_choice:gmatch( "(%S+)" ) do
+                if num:match( "%D" ) then
+                    error( "Invalid input", 0 )
+                else
+                    num = tonumber( num )
+                    if ( num < 1 or num > maxnum ) then
+                        error( "Out of range", 0 )
+                    end
+                    table.insert( input_numbers, num )
+                end
             end
 
-            if nums_choice:match( "[%S%D]" ) then
-                print( "Valid inputs are numbers, whitespace, or empty." )
-            else
-                for num in nums_choice:gmatch( "(%d+)" ) do
-                    tblinsert(install, pkgnames[tonumber(num)])
+            return input_numbers
+        end
+
+        local max = table.maxn( pkgnames )
+        while ( true ) do
+            local success, answer
+                = pcall( ask_package_nums, max )
+
+            if ( success ) then
+                if ( answer ) then
+                    for i, num in ipairs( answer ) do
+                        table.insert( install, pkgnames[num] )
+                    end
+                else
+                    print( "Aborting." )
                 end
                 break
+            elseif ( answer == "Invalid input" ) then
+                print( "Please enter only digits and/or whitespace." )
+            elseif ( answer == "Out of range" ) then
+                print( "Package numbers must be between 1 and "
+                       .. max .. "." )
+            else
+                error( answer, 0 )
             end
         end
     end
