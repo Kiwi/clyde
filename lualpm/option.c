@@ -6,7 +6,6 @@
 #include "types.h"
 #include "lualpm.h"
 #include "callback.h"
-#include "dlhelper.h"
 
 #define DEFINE_CB_OPT( NAME ) \
     int lalpm_option_set_ ## NAME ## cb ( lua_State *L )    \
