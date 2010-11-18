@@ -33,22 +33,26 @@ static const char * trans_flag_names[] =
 pmtransflag_t lualpm_totransflags( lua_State *L )
 {
     pmtransflag_t result;
-    int    opt_shift;
+    int opt_shift;
 
     if ( ! lua_istable( L, -1 )) {
         /* XXX: Report this error in trans_init instead? Meh. */
-        lua_pushstring( L, "Transaction flags must be provided as a list of "
-                           " flag names " );
+        lua_pushstring( L, "Transaction flags must be provided as a table "
+                           " with flag names as keys" );
         lua_error( L );
                      
     }
 
+    /* Each flag has a key in the table. If the key's value is true
+       the flag is enabled for the transaction. */
     result = 0;
-    while ( lua_next( L, -1 )) {
-        /* Ignores the key since this is a array-ish table. */
-        opt_shift = luaL_checkoption( L, -1, NULL, trans_flag_names );
-        result |= ( 1 << opt_shift );
-        lua_pop( L, 2 );
+    lua_pushnil( L );
+    while ( lua_next( L, -2 ) != 0 ) {
+        if ( lua_toboolean( L, -1 )) {
+            opt_shift = luaL_checkoption( L, -2, NULL, trans_flag_names );
+            result |= ( 1 << opt_shift );
+        }
+        lua_pop( L, 1 );
     }
 
     return result;
@@ -60,7 +64,12 @@ int lalpm_trans_init ( lua_State *L )
     int result;
 
     lua_getfield( L, -1, "flags" );
+    if ( ! lua_istable( L, -1 )) {
+        lua_pushstring( L, "No 'flags' field was provided to trans_init!" );
+        lua_error( L );
+    }
     flags = lualpm_totransflags( L );
+    lua_pop( L, 1 ); /* Pop the flags table off the stack. */
 
     /* Registering a nil value with these is alright. In fact it is
        better than running old callbacks. */
@@ -71,7 +80,7 @@ int lalpm_trans_init ( lua_State *L )
     cb_register( L, &transcb_key_conv );
     lua_getfield( L, -1, "progresscb" );
     cb_register( L, &transcb_key_progress );
-    
+
     result = alpm_trans_init( flags,
                               transcb_cfunc_event,
                               transcb_cfunc_conv,

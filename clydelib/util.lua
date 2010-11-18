@@ -235,7 +235,11 @@ end
 
 function trans_init(flags)
     local callback = require "clydelib.callback"
-    local ret  = alpm.trans_init(flags, callback.cb_trans_evt, callback.cb_trans_conv, callback.cb_trans_progress)
+
+    local ret  = alpm.trans_init { flags      = flags,
+                                   eventscb   = callback.cb_trans_event,
+                                   convcb     = callback.cb_trans_conv,
+                                   progresscb = callback.cb_trans_progress }
     if (ret == -1) then
         eprintf("LOG_ERROR", g("failed to init transaction (%s)\n"), alpm.strerrorlast())
         if (alpm.pm_errno() == "P_E_HANDLE_LOCK") then

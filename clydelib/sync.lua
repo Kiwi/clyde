@@ -1183,7 +1183,10 @@ local function aur_install(targets)
 
     getalldeps(targets, needs, needsdeps, caninstall, provided)
 
-    config.flagsdupe = tblstrdup(config.flags)
+    tflags = {}
+    for flag, status in pairs( config.flags ) do
+        if status then tflags[flag] = true end
+    end
 
     local installed = 0
     local pacmanpkgs = {}
@@ -1200,9 +1203,8 @@ local function aur_install(targets)
     end
 
     for i, pkg in ipairs(pacmanpkgs) do
-        if (tblisin(targets, pkg)) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
-                or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
-                    and not (tblisin(config.flagsdupe, "T_F_ALLDEPS"))) then
+        if (tblisin(targets, pkg) and not tflags["alldeps"]
+            or (tflags["allexplicit"] and not tflags["alldeps"])) then
             tblinsert(pacmanexplicit, pkg)
         else
             tblinsert(pacmandeps, pkg)
@@ -1211,9 +1213,9 @@ local function aur_install(targets)
 
     config.noconfirm = true
     sync_aur_trans(pacmanexplicit)
-    tblinsert(config.flags, "T_F_ALLDEPS")
+    config.flags["alldeps"] = true
     sync_aur_trans(pacmandeps)
-    removeflags("T_F_ALLDEPS")
+    config.flags["alldeps"] = false
     config.noconfirm = noconfirm
 
     local installedtbl = {}
@@ -1226,9 +1228,8 @@ local function aur_install(targets)
 
         for i, pkg in ipairs(aurpkgs) do
             if (tblisin(caninstall, pkg) and not tblisin(installedtbl, pkg)) then
-                if (tblisin(targets, pkg) and not tblisin(config.flagsdupe, "T_F_ALLDEPS")
-                    or (tblisin(config.flagsdupe, "T_F_ALLEXPLICIT")
-                        and not (tblisin(config.flagsdupe, "T_F_ALLDEPS")))) then
+                if (tblisin(targets, pkg) and not tflags["alldeps"])
+                    or (tflags["allexplicit"] and not tflags["alldeps"]) then
                     download_extract(pkg)
                     customizepkg(pkg)
                     makepkg(pkg, mkpkgopts)
@@ -1236,12 +1237,12 @@ local function aur_install(targets)
                     installed = installed + 1
                     tblinsert(installedtbl, pkg)
                 else
-                    tblinsert(config.flags, "T_F_ALLDEPS")
+                    config.flags["alldeps"] = true
                     download_extract(pkg)
                     customizepkg(pkg)
                     makepkg(pkg, mkpkgopts)
                     installpkgs(pkg)
-                    removeflags("T_F_ALLDEPS")
+                    config.flags["alldeps"] = false
                     installed = installed + 1
                     tblinsert(installedtbl, pkg)
                 end
@@ -1544,7 +1545,7 @@ local function sync_trans(targets)
 end
 
 local function clyde_sync(targets)
-    if (tblisin(config.flags, "T_F_DOWNLOADONLY") or config.op_s_printuris) then
+    if (config.flags["downloadonly"] or config.op_s_printuris) then
         local isin, int = tblisin(config.logmask, "LOG_WARNING")
         if (isin) then
             fastremove(config.logmask, int)
@@ -1612,7 +1613,7 @@ local function clyde_sync(targets)
 
     local targs = tblstrdup(targets)
 
-    if ((not tblisin(config.flags, "T_F_DOWNLOADONLY")) and (not config.op_s_printuris)) then
+    if (not config.flags["downloadonly"] and (not config.op_s_printuris)) then
         local packages = syncfirst()
         if (next(packages)) then
             local tmp = tbldiff(targets, packages)

@@ -23,9 +23,20 @@ cb_log_error ( const char *cbname, const char *message )
 void
 cb_register ( lua_State *L, callback_key_t *key )
 {
+    int argtype;
+    argtype = lua_type( L, -1 );
+    if ( argtype != LUA_TFUNCTION && argtype != LUA_TNIL ) {
+        lua_pushstring( L, "Only nil or a function can be registered "
+                           "as a callback" );
+        lua_error( L );
+    }
     lua_pushlightuserdata( L, key );
     lua_pushvalue( L, -2 );
     lua_settable( L, LUA_REGISTRYINDEX );
+
+    /* Pop our original argument off of the stack. */
+    lua_pop( L, 1 );
+    return;
 }
 
 int
@@ -154,12 +165,12 @@ int cb_cfunc_fetch ( const char *url, const char *localpath, int force )
     void transcb_cfunc_ ## NAME ( __VA_ARGS__ )                  \
     {                                                            \
     lua_State *L = GlobalState;                                  \
-    lua_newtable( L );                                           \
                                                                  \
-    if ( ! cb_lookup( &transcb_key_ ## NAME )) { return; }
+    if ( ! cb_lookup( &transcb_key_ ## NAME )) { return; }       \
+    lua_newtable( L );
 
 #define END_TRANS_CALLBACK( NAME )                  \
-    int lua_err = lua_pcall( L, 1, 0, 0 );   \
+    int lua_err = lua_pcall( L, 1, 0, 0 );          \
     if ( lua_err != 0 ) {                           \
         cb_error_handler( #NAME, lua_err );         \
     }                                               \
@@ -255,39 +266,41 @@ BEGIN_TRANS_CALLBACK( event, pmtransevt_t event, void *arg_one, void *arg_two )
         EVT_STATUS("done")
 		break;
 	case PM_TRANS_EVT_DELTA_INTEGRITY_START:
-        EVT_NAME("deltaintegrity")
+        EVT_NAME("delta_integrity")
         EVT_STATUS("start")
 		break;
 	case PM_TRANS_EVT_DELTA_INTEGRITY_DONE:
-        EVT_NAME("deltaintegrity")
+        EVT_NAME("delta_integrity")
         EVT_STATUS("done")
 		break;
 	case PM_TRANS_EVT_DELTA_PATCHES_START:
-        EVT_NAME("deltapatches")
+        EVT_NAME("delta_patches")
         EVT_STATUS("start")
 		break;
 	case PM_TRANS_EVT_DELTA_PATCHES_DONE:
-        EVT_NAME("deltapatches")
+        EVT_NAME("delta_patches")
         EVT_STATUS("done")
         EVT_TEXT("pkgname", arg_one)
         EVT_TEXT("patch", arg_two)
 		break;
 	case PM_TRANS_EVT_DELTA_PATCH_START:
-        EVT_NAME("deltapatch")
+        EVT_NAME("delta_patch")
         EVT_STATUS("start")
+        EVT_TEXT("pkgname", arg_one)
+        EVT_TEXT("patch", arg_two)
 		break;
 	case PM_TRANS_EVT_DELTA_PATCH_DONE:
-        EVT_NAME("deltapatch")
+        EVT_NAME("delta_patch")
         EVT_STATUS("done")
 		break;
 	case PM_TRANS_EVT_DELTA_PATCH_FAILED:
-        EVT_NAME("deltapatch")
+        EVT_NAME("delta_patch")
         EVT_STATUS("failed")
         EVT_TEXT("error", arg_one)
 		break;
 	case PM_TRANS_EVT_SCRIPTLET_INFO:
-        EVT_NAME("scriplet")
-        EVT_STATUS("")
+        EVT_NAME("scriptlet")
+        EVT_STATUS("info")
         EVT_TEXT("text", arg_one)
 		break;
     case PM_TRANS_EVT_RETRIEVE_START:
