@@ -22,8 +22,7 @@ manext = .8
 
 lualpm_objects = lualpm/callback.o lualpm/db.o lualpm/delta.o		\
 	lualpm/dep.o lualpm/group.o lualpm/option.o lualpm/package.o	\
-	lualpm/sync.o lualpm/trans.o lualpm/types.o lualpm/lualpm.o     \
-    lualpm/dlhelper.o
+	lualpm/sync.o lualpm/trans.o lualpm/types.o lualpm/lualpm.o
 
 all: clyde lualpm
 
@@ -57,9 +56,6 @@ clydelib/signal.so: clydelib/signal.c
 clydelib/utilcore.so: clydelib/utilcore.c
 	$(CC) $(CFLAGS) $(SOFLAGS) -o $@ $^
 
-lualpm/dlhelper.o: lualpm/dlhelper.c lualpm/dlhelper.h
-	$(CC) $(CFLAGS) -c -o $@ $<
-
 man/clyde.8: man/clyde.ronn
 	-ronn man/clyde.ronn
 
@@ -83,7 +79,7 @@ install_clyde: clyde
 	$(INSTALL_DATA) extras/clydebash $(DESTDIR)$(bashcompdir)/clyde
 
 clean:
-	-rm -f *.so clydelib/*.so lualpm/*.o misc/dlhelper.o
+	-rm -f *.so clydelib/*.so lualpm/*.o
 
 uninstall_lualpm:
 	rm -f $(DESTDIR)$(libdir)/lualpm.so
