@@ -383,7 +383,7 @@ trans_event_lookup = {
                                              evt.package:pkg_get_name(),
                                              evt.package:pkg_get_version())
                    alpm.logaction()
-                   util.display_optdepends(data1)
+                   util.display_optdepends(evt.package)
                    io.stdout:flush()
                end
     },
