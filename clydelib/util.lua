@@ -503,37 +503,32 @@ local function question(preset, fmt, ...)
     -- get single-character input
     local stream
 
-    if (config.noconfirm) then
-        stream = "stdout"
-    else
-        stream = "stderr"
-    end
-
     local str = string.format(fmt, ...)
-    fprintf(stream, fmt, ...)
-
-    if (preset) then
-        fprintf(stream, " %s ", g("[Y/n]"))
+    if ( preset ) then
+        str = str .. " [Y/n] "
     else
-        fprintf(stream, " %s ", g("[y/N]"))
+        str = str .. " [y/N] "
     end
 
     if (config.noconfirm) then
-        fprintf(stream, "\n")
+        io.stderr:write( str )
+        if ( preset ) then io.stderr:write( "Y\n" )
+        else io.stderr:write( "N\n" ) end
         return preset
     end
 
-    local answer = utilcore.getchar()
-    print()
+    while ( true ) do
+        io.write( str )
+        local answer = string.upper( utilcore.getchar())
 
-    if (answer == "\n") then
-        return preset
-    end
+        if (answer == "\n") then return preset end
+        print() -- print newline if the user didn't
 
-    if (not strcasecmp(answer, g("Y"))) then
-        return true
-    elseif (not strcasecmp(answer, g("N"))) then
-        return false
+        if answer == "Y" then return true
+        elseif answer == "N" then return false
+        end
+
+        print( "Please answer 'Y', 'N', or ENTER." )
     end
 
     return false
