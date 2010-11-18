@@ -369,28 +369,43 @@ return;
     lua_pushnumber( L, INT );                   \
     lua_setfield( L, -2, KEY );
 
-BEGIN_TRANS_CALLBACK( progress,
-                      pmtransprog_t type,
-                      const char * desc,
-                      int item_progress,
-                      int total_count,
-                      int total_pos )
+callback_key_t transcb_key_progress = { "progress callback" };
+                                                                 \
+void transcb_cfunc_progress ( pmtransprog_t type,
+                              const char * desc,
+                              int item_progress,
+                              int total_count,
+                              int total_pos )
 {
+    char * name;
+    int lua_error;
+    lua_State * L;
+
+    L = GlobalState;
+
+    if ( ! cb_lookup( &transcb_key_progress )) { return; }
+
     switch( type ) {
-    case PM_TRANS_PROGRESS_ADD_START:       EVT_NAME( "add"       ) break;
-    case PM_TRANS_PROGRESS_UPGRADE_START:   EVT_NAME( "upgrade"   ) break;
-    case PM_TRANS_PROGRESS_REMOVE_START:    EVT_NAME( "remove"    ) break;
-    case PM_TRANS_PROGRESS_CONFLICTS_START: EVT_NAME( "conflicts" ) break;
-    default:                                EVT_NAME( "UNKNOWN"   ) break;
+    case PM_TRANS_PROGRESS_ADD_START:       name = "add";       break;
+    case PM_TRANS_PROGRESS_UPGRADE_START:   name = "upgrade";   break;
+    case PM_TRANS_PROGRESS_REMOVE_START:    name = "remove";    break;
+    case PM_TRANS_PROGRESS_CONFLICTS_START: name = "conflicts"; break;
+    default:                                name = "UNKNOWN";   break;
     }
 
-    EVT_TEXT( "desc",        desc );
-    EVT_INT ( "item",        item_progress );
-    EVT_INT ( "total_count", total_count );
-    EVT_INT ( "total_pos",   total_pos );
-}
-END_TRANS_CALLBACK( progress )
+    lua_pushstring(  L, name );
+    lua_pushstring(  L, desc );
+    lua_pushinteger( L, item_progress );
+    lua_pushinteger( L, total_count );
+    lua_pushinteger( L, total_pos );
 
+    lua_error = lua_pcall( L, 5, 1, 0 );
+    if ( lua_error != 0 ) {
+        cb_error_handler( "progress", lua_error );
+    }
+
+    return;
+}
 
 #undef EVT_INT
 #undef EVT_NAME

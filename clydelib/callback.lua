@@ -123,7 +123,7 @@ function fill_progress(bar_percent, disp_percent, proglen)
         io.stdout:flush()
 end
 
-function cb_trans_progress(event, pkgname, percent, howmany, remain)
+function cb_trans_progress( type, pkgname, percent, total_count, total_pos )
     local timediff
     local infolen = 50
     local tmp, digits, textlen, opr
@@ -151,18 +151,18 @@ function cb_trans_progress(event, pkgname, percent, howmany, remain)
     prevpercent = percent
 
     local lookuptbl = {
-        ["T_P_ADD_START"] = function() opr = g("installing") end;
-        ["T_P_UPGRADE_START"] = function() opr = g("upgrading") end;
-        ["T_P_REMOVE_START"] = function() opr = g("removing") end;
-        ["T_P_CONFLICTS_START"] = function() opr = g("checking for file conflicts") end;
+        ["add"] = function() opr = g("installing") end;
+        ["upgrade"] = function() opr = g("upgrading") end;
+        ["remove"] = function() opr = g("removing") end;
+        ["conflicts"] = function() opr = g("checking for file conflicts") end;
     }
-    if (lookuptbl[event]) then
-        lookuptbl[event]()
+    if (lookuptbl[type]) then
+        lookuptbl[type]()
     else
-        printf("error: unknown event type")
+        return -- Abort on an unknown event type
     end
 
-    digits = #tostring(howmany)
+    digits = #tostring(total_count)
     textlen = infolen -3 - (2 * digits)
     len = #opr + (#pkgname or 0)
     wcstr = string.format("%s %s", opr, pkgname)
@@ -175,7 +175,7 @@ function cb_trans_progress(event, pkgname, percent, howmany, remain)
         wcstr = wcstr.."..."
         padwid = 0
     end
-    printf("(%d/%d) %s %s", remain, howmany, wcstr, string.rep(" ", padwid ))
+    printf("(%d/%d) %s %s", total_pos, total_count, wcstr, string.rep(" ", padwid ))
     fill_progress(percent, percent, getcols() - infolen)
 
     if (percent == 100) then
