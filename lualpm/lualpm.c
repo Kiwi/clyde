@@ -19,6 +19,7 @@
 
 #include "lualpm.h"
 #include "types.h"
+#include "callback.h"
 
 /* A proxy to alpm_logaction() to be called from the Lua side of the
  * fence.  Unlike libalpm's alpm_logaction(), this function does not
@@ -242,7 +243,7 @@ static luaL_Reg const pkg_funcs[] =
 //    { "option_get_dlcb",            lalpm_option_get_dlcb },
     { "option_set_dlcb",            lalpm_option_set_dlcb },
 //    { "option_get_fetchcb",         lalpm_option_get_fetchcb },
-//    { "option_set_fetchcb",         lalpm_option_set_fetchb },
+    { "option_set_fetchcb",         lalpm_option_set_fetchcb },
 //    { "option_get_totaldlcb",       lalpm_option_get_totaldlcb },
     { "option_set_totaldlcb",       lalpm_option_set_totaldlcb },
     { "option_get_root",            lalpm_option_get_root }, /* works */

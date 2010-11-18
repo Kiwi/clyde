@@ -11,7 +11,7 @@ typedef enum types {
     PMPKG_T,
     PMDELTA_T,
     PMGRP_T,
-    PMTRANS_T,
+/*     PMTRANS_T, */
     PMDEPEND_T,
     PMDEPMISSING_T,
     PMCONFLICT_T,

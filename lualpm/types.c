@@ -104,7 +104,7 @@ push_typed_object(lua_State *L, types value_type, void *value)
     case PMPKG_T: push_pmpkg(L, value); return 1;
     case PMDELTA_T: push_pmdelta(L, value); return 1;
     case PMGRP_T: push_pmgrp(L, value); return 1;
-    case PMTRANS_T: push_pmtrans(L, value); return 1;
+/*     case PMTRANS_T: push_pmtrans(L, value); return 1; */
     case PMDEPEND_T: push_pmdepend(L, value); return 1;
     case PMDEPMISSING_T: push_pmdepmissing(L, value); return 1;
     case PMCONFLICT_T: push_pmconflict(L, value); return 1;

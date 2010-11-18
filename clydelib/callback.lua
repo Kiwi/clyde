@@ -123,7 +123,7 @@ function fill_progress(bar_percent, disp_percent, proglen)
         io.stdout:flush()
 end
 
-function cb_trans_progress(event, pkgname, percent, howmany, remain)
+function cb_trans_progress( type, pkgname, percent, total_count, total_pos )
     local timediff
     local infolen = 50
     local tmp, digits, textlen, opr
@@ -151,18 +151,18 @@ function cb_trans_progress(event, pkgname, percent, howmany, remain)
     prevpercent = percent
 
     local lookuptbl = {
-        ["T_P_ADD_START"] = function() opr = g("installing") end;
-        ["T_P_UPGRADE_START"] = function() opr = g("upgrading") end;
-        ["T_P_REMOVE_START"] = function() opr = g("removing") end;
-        ["T_P_CONFLICTS_START"] = function() opr = g("checking for file conflicts") end;
+        ["add"] = function() opr = g("installing") end;
+        ["upgrade"] = function() opr = g("upgrading") end;
+        ["remove"] = function() opr = g("removing") end;
+        ["conflicts"] = function() opr = g("checking for file conflicts") end;
     }
-    if (lookuptbl[event]) then
-        lookuptbl[event]()
+    if (lookuptbl[type]) then
+        lookuptbl[type]()
     else
-        printf("error: unknown event type")
+        return -- Abort on an unknown event type
     end
 
-    digits = #tostring(howmany)
+    digits = #tostring(total_count)
     textlen = infolen -3 - (2 * digits)
     len = #opr + (#pkgname or 0)
     wcstr = string.format("%s %s", opr, pkgname)
@@ -175,7 +175,7 @@ function cb_trans_progress(event, pkgname, percent, howmany, remain)
         wcstr = wcstr.."..."
         padwid = 0
     end
-    printf("(%d/%d) %s %s", remain, howmany, wcstr, string.rep(" ", padwid ))
+    printf("(%d/%d) %s %s", total_pos, total_count, wcstr, string.rep(" ", padwid ))
     fill_progress(percent, percent, getcols() - infolen)
 
     if (percent == 100) then
@@ -335,158 +335,240 @@ function cb_log(level, message)
     end
 end
 
+local function flusher ()
+    io.stdout:flush()
+end
 
-cb_trans_evt = {
-    ["T_E_CHECKDEPS_START"] = function()
-        printf(g("checking dependencies...\n"))
-        io.stdout:flush()
-    end;
-    ["T_E_FILECONFLICTS_START"] = function()
-        if (config.noprogressbar) then
-            printf(g("checking for file conflicts...\n"))
-        end
-        io.stdout:flush()
-    end;
-    ["T_E_RESOLVEDEPS_START"] = function()
-        printf(g("resolving dependencies...\n"))
-        io.stdout:flush()
-    end;
-    ["T_E_INTERCONFLICTS_START"] = function()
-        printf(g("looking for inter-conflicts...\n"))
-        io.stdout:flush()
-    end;
-    ["T_E_ADD_START"] = function(data1)
-        if (config.noprogressbar) then
-            printf(g("installing %s...\n"), data1:pkg_get_name())
-        end
-        io.stdout:flush()
-    end;
-    ["T_E_ADD_DONE"] = function(data1)
-        alpm.logaction(string.format("installed %s (%s)\n",
-            data1:pkg_get_name(),
-            data1:pkg_get_version()))
-            util.display_optdepends(data1)
-        io.stdout:flush()
-        end;
-    ["T_E_REMOVE_START"] = function(data1)
-        if (config.noprogressbar) then
-            printf(g("removing %s...\n"), data1:pkg_get_name())
-        end
-        io.stdout:flush()
-    end;
-    ["T_E_REMOVE_DONE"] = function(data1)
-        alpm.logaction(string.format("removed %s (%s)\n",
-            data1:pkg_get_name(),
-            data1:pkg_get_version()))
-        io.stdout:flush()
-    end;
-    ["T_E_UPGRADE_START"] = function(data1)
-        if (config.noprogressbar) then
-            printf(g("upgrading %s...\n"), data1:pkg_get_name())
-        end
-        io.stdout:flush()
-    end;
-    ["T_E_UPGRADE_DONE"] = function(data1, data2)
-        alpm.logaction(string.format("upgraded %s (%s -> %s)\n",
-            data1:pkg_get_name(),
-            data2:pkg_get_version(),
-            data1:pkg_get_version()))
-            util.display_new_optdepends(data2, data1)
-        io.stdout:flush()
-    end;
-    ["T_E_INTEGRITY_START"] = function()
-        printf(g("checking package integrity...\n"))
-        io.stdout:flush()
-    end;
-    ["T_E_DELTA_INTEGRITY_START"] = function()
-        printf(g("checking delta integrity...\n"))
-        io.stdout:flush()
-    end;
-    ["T_E_DELTA_PATCHES_START"] = function()
-        printf(g("applying deltas...\n"))
-        io.stdout:flush()
-    end;
-    ["T_E_DELTA_PATCH_START"] = function(data1, data2)
-        printf(g("generating %s with %s... "), data1, data2)
-        io.stdout:flush()
-    end;
-    ["T_E_DELTA_PATCH_DONE"] = function()
-        printf(g("success!\n"))
-        io.stdout:flush()
-    end;
-    ["T_E_DELTA_PATCH_FAILED"] = function()
-        printf(f("failed.\n"))
-        io.stdout:flush()
-    end;
-    ["T_E_SCRIPTLET_INFO"] = function(data1)
-        printf("%s", data1)
-        io.stdout:flush()
-    end;
-    ["T_E_RETRIEVE_START"] = function(data1)
-        printf(g(C.blub("::")..C.bright(" Retrieving packages from %s...\n")), data1)
-        io.stdout:flush()
-    end;
-    ["T_E_FILECONFLICTS_DONE"] = function()
-        io.stdout:flush()
-    end;
-    ["T_E_CHECKDEPS_DONE"] = function()
-        io.stdout:flush()
-    end;
-    ["T_E_RESOLVEDEPS_DONE"] = function()
-        io.stdout:flush()
-    end;
-    ["T_E_INTERCONFLICTS_DONE"] = function()
-        io.stdout:flush()
-    end;
-    ["T_E_INTEGRITY_DONE"] = function()
-        io.stdout:flush()
-    end;
-    ["T_E_DELTA_INTEGRITY_DONE"] = function()
-        io.stdout:flush()
-    end;
-    ["T_E_DELTA_PATCHES_DONE"] = function()
-        io.stdout:flush()
-    end;
+trans_event_lookup = {
+    ["checkdeps"] = {
+        ["start"] = function( evt )
+                    printf(g("checking dependencies...\n"))
+                    io.stdout:flush()
+                end,
+        ["done"]  = flusher,
+    },
+    ["fileconflicts"] = {
+        ["start"] = function( evt )
+                    if (config.noprogressbar) then
+                        printf(g("checking for file conflicts...\n"))
+                    end
+                    io.stdout:flush()
+                end,
+        ["done"]  = flusher,
+    },
+    ["resolvedeps"] = {
+        ["start"] = function()
+                    printf(g("resolving dependencies...\n"))
+                    io.stdout:flush()
+                end,
+        ["done"]  = flusher
+    },
+    ["interconflicts"] = {
+        ["start"] = function()
+                        printf(g("looking for inter-conflicts...\n"))
+                        io.stdout:flush()
+                    end,
+        ["done"]  = flusher
+    },
+    ["add"] = {
+        ["start"] = function(evt)
+                    if (config.noprogressbar) then
+                        printf(g("installing %s...\n"),
+                               evt.package:pkg_get_name())
+                    end
+                    io.stdout:flush()
+                end,
+        ["done"] = function(evt)
+                   local msg = string.format("installed %s (%s)\n",
+                                             evt.package:pkg_get_name(),
+                                             evt.package:pkg_get_version())
+                   alpm.logaction()
+                   util.display_optdepends(evt.package)
+                   io.stdout:flush()
+               end
+    },
+    ["remove"] = {
+        ["start"] = function(evt)
+                    if (config.noprogressbar) then
+                        printf(g("removing %s...\n"),
+                               evt.package:pkg_get_name())
+                    end
+                    io.stdout:flush()
+                end,
+        ["done"] = function(evt)
+                   alpm.logaction(string.format("removed %s (%s)\n",
+                                                evt.package:pkg_get_name(),
+                                                evt.package:pkg_get_version()))
+                   io.stdout:flush()
+               end
+    },
+    ["upgrade"] = {
+        ["start"] = function(evt)
+                    if (config.noprogressbar) then
+                        printf(g("upgrading %s...\n"),
+                               evt.package:pkg_get_name())
+                    end
+                    io.stdout:flush()
+                end,
+        ["done"] = function(evt)
+                       alpm.logaction(string.format("upgraded %s (%s -> %s)\n",
+                                                    evt.new:pkg_get_name(),
+                                                    evt.new:pkg_get_version(),
+                                                    evt.new:pkg_get_version()))
+                       util.display_new_optdepends(evt.old, evt.new)
+                       io.stdout:flush()
+                   end
+    },
+    ["integrity"] = {
+        ["start"] = function()
+                    printf(g("checking package integrity...\n"))
+                    io.stdout:flush()
+                end ;
+        ["done"]  = flusher
+    },
+    ["delta_integrity"] = {
+        ["start"] = function()
+                    printf(g("checking delta integrity...\n"))
+                    io.stdout:flush()
+                end ;
+        ["done"]  = flusher
+    },
+    ["deltapatches"] = {
+        ["start"] = function()
+                    printf(g("applying deltas...\n"))
+                    io.stdout:flush()
+                end ;
+        ["done"]  = flusher
+    },
+    ["deltapatch"] = {
+        ["start"] = function(evt)
+                    printf(g("generating %s with %s... "),
+                           evt.pkgname, evt.patch)
+                    io.stdout:flush()
+                end ;
+        ["done"] = function()
+                   printf(g("success!\n"))
+                   io.stdout:flush()
+               end ;
+        ["failed"] = function()
+                     printf(g("failed.\n"))
+                     io.stdout:flush()
+                 end ;
+    },
+    ["scriptlet"] = {
+        ["info"] = function(evt)
+                   io.write( evt.text )
+                   io.stdout:flush()
+               end ;
+    },
+    ["retrieve"] = {
+        ["start"] = function(evt)
+                    printf(C.blub("::")..
+                       C.bright(g(" Retrieving packages from %s...\n")), evt.db)
+                    io.stdout:flush()
+                end ;
+    },
 }
 
-cb_trans_conv = {
-    ["T_C_INSTALL_IGNOREPKG"] = function(data1)
-        local response = yesno(g(C.yelb("::")..C.bright(" %s is in IgnorePkg/IgnoreGroup. Install anyway?")),
-            data1:pkg_get_name())
-        return response
+function cb_trans_event( event )
+    local name, status = event.name, event.status
+    if ( trans_event_lookup[ name ][ status ] ) then
+        trans_event_lookup[ name ][ status ]( event )
+    end
+end
+
+trans_conv_lookup = {
+    ["install_ignore"] =
+        function (evt)
+            local msg = ( C.yelb("::")
+                          .. C.bright(g(" %s is in IgnorePkg/IgnoreGroup. "
+                                        .. "Install anyway?")) )
+            local response = yesno( msg, evt.package:pkg_get_name())
+            return response
+        end ;
+    ["replace_package"] =
+        function (evt)
+            local msg = C.yelb("::") .. C.bright(g(" Replace %s with %s/%s?"))
+            local response = yesno( msg,
+                                    evt.old:pkg_get_name(),
+                                    evt.db,
+                                    evt.new:pkg_get_name() )
+            return response
+        end ;
+    ["package_conflict"] =
+        function (evt)
+            local msg = C.yelb("::")
+                .. C.bright(g(" %s conflicts with %s. Remove %s?"))
+            local response = yesno( msg, evt.target, evt["local"], evt.conflict)
+            return response
     end;
-    ["T_C_REPLACE_PKG"] = function(data1, data2, data3)
-        local response = yesno(g(C.yelb("::")..C.bright(" Replace %s with %s/%s?")),
-            data1:pkg_get_name(),
-            data3, data2:pkg_get_name())
-        return response
-    end;
-    ["T_C_CONFLICT_PKG"] = function(data1, data2)
-        local response = yesno(g(C.yelb("::")..C.bright(" %s conflicts with %s. Remove %s?")),
-            data1, data2, data2)
-        return response
-    end;
-    ["T_C_REMOVE_PKGS"] = function(data1)
+    ["remove_packages"] = function(evt)
         local namelist = {}
-        for i, pkg in ipairs(data1) do
+        for i, pkg in ipairs(evt.packages) do
             table.insert(namelist, pkg:pkg_get_name())
         end
-        printf(g(C.blub("::")..C.bight(" the following pakage(s) cannot be upgraded due to unresolvable dependencies:\n")))
+        printf(g(C.blub("::")..C.bright(" the following pakage(s) cannot be upgraded due to unresolvable dependencies:\n")))
         list_display("     ", namelist)
         local response = yesno(g("\nDo you want to skip the above package(s) for this upgrade?"))
         return response
     end;
-    ["T_C_LOCAL_NEWER"] = function(data1)
+    ["local_newer"] = function(evt)
         local response
         if (not config.op_s_downloadonly) then
             response = yesno(g(C.yelb("::")..C.bright(" %s-%s: local version is newer. Upgrade anyway?")),
-                data1:pkg_get_name(), data1:pkg_get_version())
+                evt.package:pkg_get_name(), evt.package:pkg_get_version())
         else
             response = true
         end
     end;
-    ["T_C_CORRUPTED_PKG"] = function(data1)
+    ["corrupted_package"] = function(evt)
         local response = yesno(g(C.yelb("::")..C.bright(" File %s is corrupted. Do you want to delete it?")),
-            data1)
+            evt.filename)
     end;
 }
+
+function cb_trans_conv ( event )
+    local name = event.name
+    if ( trans_conv_lookup[ name ] ) then
+        trans_conv_lookup[ name ]( event )
+    end
+end
+
+function create_xfercmd_cb ( cmd )
+    return function ( url, localpath, force )
+               local filename = url:match( "^.*/(.*)$" );
+               if not filename then
+                   error( "Could not extract filename from url: " .. url )
+               end
+               
+               local destfile = localpath .. filename
+               local tempfile = destfile  .. ".part"
+
+               if ( force ) then
+                   if io.open( tempfile ) then os.remove( tempfile ) end
+                   if io.open( destfile ) then os.remove( destfile ) end
+               end
+
+               local origdir = lfs.currentdir()
+
+               local xfercmd = cmd
+               local use_partial = nil
+               xfercmd = xfercmd:gsub( "%%o", function ( str )
+                                                  use_partial = true
+                                                  return tempfile
+                                              end )
+               xfercmd = xfercmd:gsub( "%%u", url )
+
+               assert( lfs.chdir( localpath ))
+               local retval = os.execute( xfercmd )
+
+               lfs.chdir( origdir )
+               if retval ~= 0 then
+                   return -1
+               elseif use_partial then
+                   assert( os.rename( tempfile, destfile ))
+               end
+
+               return 0
+           end
+end    

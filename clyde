@@ -416,16 +416,16 @@ local longopts = {
 
         ['c'] = function()
             config.op_s_clean = config.op_s_clean + 1
-            tblinsert(config.flags, "T_F_CASCADE")
+            config.flags["cascade"] = true
             config.op_q_changelog = true
         end;
         ['d'] = function()
             config.op_q_deps = true
-            tblinsert(config.flags, "T_F_NODEPS")
+            config.flags["nodeps"] = true
             config.op_g_get_deps = true
         end;
         ['e'] = function() config.op_q_explicit = true end;
-        ['f'] = function() tblinsert(config.flags, "T_F_FORCE") end;
+        ['f'] = function() config.flags["force"] = true end;
         ['g'] = function() config.group = config.group + 1 end;
         ['h'] = function() config.help = true end;
         ['i'] = function()
@@ -433,47 +433,41 @@ local longopts = {
             config.op_s_info = true
         end;
         ['k'] = function()
-            tblinsert(config.flags, "T_F_DBONLY")
+                    config.flags["dbonly"] = true
             config.op_q_check = true
         end;
         ['l'] = function() config.op_q_list = true end;
         ['m'] = function() config.op_q_foreign = true end;
-        ['n'] = function() tblinsert(config.flags, "T_F_NOSAVE") end;
+        ['n'] = function() config.flags["nosave"] = true end;
         ['o'] = function() config.op_q_owns = true end;
         ['p'] = function()
             config.op_q_isfile = true
             config.op_s_printuris = true
-            tblinsert(config.flags, "T_F_NOCONFLICTS")
-            tblinsert(config.flags, "T_F_NOLOCK")
+            config.flags["noconflicts"] = true
+            config.flags["nolock"] = true
         end;
         ['q'] = function() config.quiet = true end;
         ['r'] = function(opt) config.rootdir = opt end;
         ['s'] = function()
             config.op_s_search = true
             config.op_q_search = true
-            local found = false
-            for i, val in ipairs(config.flags) do
-                if (val == "T_F_RECURSE") then
-                    tblinsert(config.flags, "T_F_RECURSEALL")
-                    found = true
-                    break
-                end
-            end
-            if (not found) then
-                tblinsert(config.flags, "T_F_RECURSE")
+            if config.flags["recurse"] then
+                config.flags["recurseall"] = true
+            else
+                config.flags["recurse"] = true
             end
         end;
         ['t'] = function() config.op_q_unrequired = true end;
         ['u'] = function()
             config.op_s_upgrade = config.op_s_upgrade + 1
             config.op_q_upgrade = true
-            tblinsert(config.flags, "T_F_UNNEEDED")
+            config.flags["unneeded"] = true
         end;
         ['v'] = function() config.verbose = config.verbose + 1 end;
         ['w'] = function()
             config.op_s_downloadonly = true
-            tblinsert(config.flags, "T_F_DOWNLOADONLY")
-            tblinsert(config.flags, "T_F_NOCONFLICTS")
+            config.flags["downloadonly"] = true
+            config.flags["noconflicts"]  = true
         end;
         ['y'] = function() config.op_s_sync = config.op_s_sync + 1 end;
         ['OP_NOCONFIRM'] = function() config.noconfirm = true end;
@@ -505,7 +499,9 @@ local longopts = {
             config.noprogressbar = true
         end;
         ['OP_NOPROGRESSBAR'] = function() config.noprogressbar = true end;
-        ['OP_NOSCRIPTLET'] = function() tblinsert(config.flags, "T_F_NOSCRIPTLET") end;
+        ['OP_NOSCRIPTLET'] = function()
+                                 config.flags["noscriptlet"] = true
+                             end;
 --        ['OP_ASK'] = function() end;
         ['OP_CACHEDIR'] = function(opt)
             local result = alpm.option_add_cachedir(opt)
@@ -514,7 +510,9 @@ local longopts = {
                 return 1
             end
         end;
-        ['OP_ASDEPS'] = function() tblinsert(config.flags, "T_F_ALLDEPS") end;
+        ['OP_ASDEPS'] = function()
+                            config.flags["alldeps"] = true
+                        end;
         ['OP_LOGFILE'] = function(opt) config.logfile = opt end;
         ['OP_IGNOREGROUP'] = function(opt)
             if (opt) then
@@ -525,8 +523,8 @@ local longopts = {
             end
 
         end;
-        ['OP_NEEDED'] = function() tblinsert(config.flags, "T_F_NEEDED") end;
-        ['OP_ASEXPLICIT'] = function() tblinsert(config.flags, "T_F_ALLEXPLICIT") end;
+        ['OP_NEEDED'] = function() config.flags["needed"] = true end;
+        ['OP_ASEXPLICIT'] = function() config.flags["allexplicit"] = true end;
 --        ['OP_ARCH'] = function() end;
     }
     local shortopts = "RUQSTr:b:vkhscVfmnoldepqituwyg"
@@ -803,10 +801,8 @@ local function _parseconfig(file, givensection, givendb)
             lprintf("LOG_DEBUG", "config: logfile: %s\n", str)
         end
     end;
-    --TODO: add xfercommand
     ['XferCommand'] = function(str)
-        config.xfercommand = str
-        --alpm.option_set_fetchcb(download_with_xfercommand)
+        alpm.option_set_fetchcb( callback.create_xfercmd_cb( str ))
         lprintf("LOG_DEBUG", "config: xfercommand: %s\n", str)
     end;
     ['CleanMethod'] = function(str)

@@ -5,33 +5,28 @@
 #include <lauxlib.h>
 #include "types.h"
 #include "lualpm.h"
+#include "callback.h"
+#include "dlhelper.h"
 
-int lalpm_option_set_logcb(lua_State *L)
-{
-    register_callback(L, log_cb_key, 1);
-    alpm_option_set_logcb(log_cb_gateway_unprotected);
+#define DEFINE_CB_OPT( NAME ) \
+    int lalpm_option_set_ ## NAME ## cb ( lua_State *L )    \
+    {                                                       \
+    if ( lua_isnil( L, 1 )) {                               \
+        alpm_option_set_ ## NAME ## cb( NULL );             \
+    }                                                       \
+    else {                                                  \
+    cb_register( L, &cb_key_ ## NAME );                     \
+    alpm_option_set_ ## NAME ## cb( cb_cfunc_ ## NAME );    \
+    }                                                       \
+    return 0;                                               \
+    }
 
-    return 0;
-}
+DEFINE_CB_OPT( log )
+DEFINE_CB_OPT( dl )
+DEFINE_CB_OPT( totaldl )
+DEFINE_CB_OPT( fetch )
 
-int lalpm_option_set_dlcb(lua_State *L)
-{
-    register_callback(L, dl_cb_key, 1);
-    alpm_option_set_dlcb(dl_cb_gateway_unprotected);
-
-    return 0;
-}
-
-/* alpm_cb_fetch alpm_option_get_fetchcb(); */
-/* void alpm_option_set_fetchcb(alpm_cb_fetch cb); */
-
-int lalpm_option_set_totaldlcb(lua_State *L)
-{
-    register_callback(L, totaldl_cb_key, 1);
-    alpm_option_set_totaldlcb(totaldl_cb_gateway_unprotected);
-
-    return 0;
-}
+#undef DEFINE_CB_OPT
 
 /* const char *alpm_option_get_root(); */
 int lalpm_option_get_root(lua_State *L)
