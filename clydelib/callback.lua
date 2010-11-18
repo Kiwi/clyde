@@ -533,3 +533,42 @@ function cb_trans_conv ( event )
         trans_conv_lookup[ name ]( event )
     end
 end
+
+function create_xfercmd_cb ( cmd )
+    return function ( url, localpath, force )
+               local filename = url:match( "^.*/(.*)$" );
+               if not filename then
+                   error( "Could not extract filename from url: " .. url )
+               end
+               
+               local destfile = localpath .. filename
+               local tempfile = destfile  .. ".part"
+
+               if ( force ) then
+                   if io.open( tempfile ) then os.remove( tempfile ) end
+                   if io.open( destfile ) then os.remove( destfile ) end
+               end
+
+               local origdir = lfs.currentdir()
+
+               local xfercmd = cmd
+               local use_partial = nil
+               xfercmd = xfercmd:gsub( "%%o", function ( str )
+                                                  use_partial = true
+                                                  return tempfile
+                                              end )
+               xfercmd = xfercmd:gsub( "%%u", url )
+
+               assert( lfs.chdir( localpath ))
+               local retval = os.execute( xfercmd )
+
+               lfs.chdir( origdir )
+               if retval ~= 0 then
+                   return -1
+               elseif use_partial then
+                   assert( os.rename( tempfile, destfile ))
+               end
+
+               return 0
+           end
+end    

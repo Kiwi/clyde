@@ -47,10 +47,12 @@ cb_lookup ( callback_key_t *key )
 
     if ( lua_isnil( GlobalState, -1 )) {
         /* cb_log_error( key->name, "Value for callback is nil!" ); */
+        lua_pop( GlobalState, 1 );
         return 0;
     }
     else if ( lua_type( GlobalState, -1 ) != LUA_TFUNCTION ) {
         cb_log_error( key->name, "Value for callback is not a function!" );
+        lua_pop( GlobalState, 1 );
         return 0;
     }
 
@@ -143,16 +145,18 @@ int cb_cfunc_fetch ( const char *url, const char *localpath, int force )
 {
     lua_State *L = GlobalState;
 
+    if ( cb_lookup( &cb_key_fetch ) == 0 ) { return -1; }
+
     lua_pushstring( L, url );
     lua_pushstring( L, localpath );
     lua_pushboolean( L, force );
-    int lua_err = lua_pcall( L, 3, 0, 0 );
+    int lua_err = lua_pcall( L, 3, 1, 0 );
     if ( lua_err != 0 ) {
         cb_error_handler( "fetch", lua_err );
         return -1;
     }
 
-    if ( lua_isnil( L, 1 ) || !lua_isnumber( L, 1 )) { return -1; }
+    if ( lua_isnil( L, 1 ) || !lua_isnumber( L, 1 )) { return 1; }
     return lua_tointeger( L, 1 );
 }
 

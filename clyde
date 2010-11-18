@@ -802,9 +802,7 @@ local function _parseconfig(file, givensection, givendb)
         end
     end;
     ['XferCommand'] = function(str)
-        config.xfercommand = str
-        --alpm.option_set_fetchcb(download_with_xfercommand)
-        alpm.option_set_fetchcb(config.xfercommand)
+        alpm.option_set_fetchcb( callback.create_xfercmd_cb( str ))
         lprintf("LOG_DEBUG", "config: xfercommand: %s\n", str)
     end;
     ['CleanMethod'] = function(str)
