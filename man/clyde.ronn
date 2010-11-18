@@ -308,10 +308,15 @@ Otto Allmendinger <otto.allmendinger@gmail.com>:
   * Fix for dependencies not displaying properly for AUR package
     requiring additional ALPM dependencies (#35).
   * Fix for SIGINT (C-c) not being thrown immediately. (#71)
+  * Patch to read yes/no answers without requiring enter.
 
 Matthew "paradoq" Bauer:
 
   * Added support for regexp matching/filtering in AUR searches.
+
+Ronald Kammerer:
+
+  * Patch to implement the XferCommand config option.
 
 LICENSE
 -------
