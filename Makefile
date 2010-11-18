@@ -27,7 +27,7 @@ lualpm_objects = lualpm/callback.o lualpm/db.o lualpm/delta.o		\
 all: clyde lualpm
 
 .PHONY: all lualpm clyde install install_lualpm install_clyde \
-        clean uninstall uninstall_lualpm uninstall_clyde
+        clean uninstall uninstall_lualpm uninstall_clyde doc
 
 lualpm/callback.o: lualpm/lualpm.h
 
@@ -56,10 +56,12 @@ clydelib/signal.so: clydelib/signal.c
 clydelib/utilcore.so: clydelib/utilcore.c
 	$(CC) $(CFLAGS) $(SOFLAGS) -o clydelib/utilcore.so clydelib/utilcore.c
 
-man/clyde.8: man/clyde.ronn
-	-ronn man/clyde.ronn
+doc: man/clyde.8
 
-clyde: clydelib/signal.so clydelib/utilcore.so man/clyde.8
+man/clyde.8: man/clyde.ronn
+	ronn man/clyde.ronn
+
+clyde: clydelib/signal.so clydelib/utilcore.so
 
 install: install_lualpm install_clyde
 
