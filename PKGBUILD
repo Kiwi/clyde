@@ -2,14 +2,14 @@
 # Contributor: Daniel J Griffiths <ghost1227@archlinux.us>
 # Contributor: Justin Davis <jrcd83@gmail.com>
 pkgname='clyde'
-pkgver='0.03.02'
+pkgver='0.03.07'
 pkgrel='1'
 pkgdesc="Next-generation libalpm/makepkg wrapper."
 arch=('i686' 'x86_64')
 url="http://clyde.archuser.com"
 license=('custom')
 makedepends=('make')
-depends=('lua-lzlib' 'lua-yajl-git' 'luasocket' 'luafilesystem'
+depends=('lua-lzlib' 'lua-yajl-git' 'luafilesystem' 'lua-curl'
          'pacman>=3.4' 'pacman<3.5')
 provides=('lualpm=0.01')
 conflicts=('clyde-git')
