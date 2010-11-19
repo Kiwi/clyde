@@ -104,3 +104,8 @@ function download ( url, destdir, downloadcb )
 
     return
 end
+
+function urlescape ( url )
+    local easyh = curl.easy_init()
+    return easyh:escape( url )
+end

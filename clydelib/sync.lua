@@ -47,10 +47,7 @@ local dump_pkg_sync = packages.dump_pkg_sync
 
 local tblsort = table.sort
 local tblconcat = table.concat
-require "socket"
 local http = require "clydelib.http"
-local url = require "socket.url"
-local ltn12 = require "ltn12"
 local aururl = "https://aur.archlinux.org/rpc.php?"
 local aurmethod = {
     ['search'] = "type=search&";
@@ -410,7 +407,8 @@ function sync_search(syncs, targets, shownumbers, install)
             targets[1] = targets[1]:gsub("^^", "")
             targets[1] = targets[1]:gsub("$$", "")
         end
-        local searchurl = aururl..aurmethod.search.."arg="..url.escape(targets[1])
+        local searchurl = aururl..aurmethod.search.."arg="
+            ..http.urlescape(targets[1])
         local aurresults = http.getgzip(searchurl)
         if (not aurresults) then
             return (not found)
@@ -616,7 +614,8 @@ local function sync_info(syncs, targets)
             local inforesults
             local jsonresults = {results = {}}
             if (not foundpkg) then
-                infourl = aururl..aurmethod.info.."arg="..url.escape(target)
+                infourl = aururl..aurmethod.info.."arg="..
+                    http.urlescape(target)
                 inforesults = http.getgzip(infourl)
                 if (not inforesults) then
                     return 1
@@ -779,7 +778,8 @@ local function sync_aur_trans(targets)
 
                     if (not found) then
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
-                        local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
+                        local infourl = aururl..aurmethod.info.."arg="
+                            ..http.urlescape(targ)
                         local inforesults = http.getgzip(infourl)
                         if (not inforesults) then
                             return 1
@@ -1328,7 +1328,8 @@ local function trans_aurupgrade(targets)
         len = #message
         repeat
         count = count + 1
-        local infourl = aururl..aurmethod.info.."arg="..url.escape(pkg.name)
+        local infourl = aururl..aurmethod.info.."arg="..
+                http.urlescape(pkg.name)
         local inforesults = http.getgzip(infourl)
         callback.fill_progress(math.floor(count*100/#foreign), math.ceil(count*100/#foreign), util.getcols() - len)
         if (not inforesults) then
@@ -1431,7 +1432,8 @@ local function sync_trans(targets)
 
                     if (not found) then
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
-                        local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
+                        local infourl = aururl..aurmethod.info.."arg="
+                            ..http.urlescape(targ)
                         local inforesults = http.getgzip(infourl)
                         if (not inforesults) then
                             return 1
