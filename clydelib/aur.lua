@@ -2,9 +2,7 @@ module(..., package.seeall)
 ---downloading AUR stuff---
 local lfs = require "lfs"
 local http = require "clydelib.http"
-local zlib = require "zlib"
 local util = require "clydelib.util"
-local utilcore = require "clydelib.utilcore"
 local C = colorize
 
 local AURURL    = "https://aur.archlinux.org/"
