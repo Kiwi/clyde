@@ -48,10 +48,10 @@ local dump_pkg_sync = packages.dump_pkg_sync
 local tblsort = table.sort
 local tblconcat = table.concat
 require "socket"
-local http = require "socket.http"
+local http = require "clydelib.http"
 local url = require "socket.url"
 local ltn12 = require "ltn12"
-local aururl = "https://aur.archlinux.org:443/rpc.php?"
+local aururl = "https://aur.archlinux.org/rpc.php?"
 local aurmethod = {
     ['search'] = "type=search&";
     ['info'] = "type=info&";
@@ -411,7 +411,7 @@ function sync_search(syncs, targets, shownumbers, install)
             targets[1] = targets[1]:gsub("$$", "")
         end
         local searchurl = aururl..aurmethod.search.."arg="..url.escape(targets[1])
-        local aurresults = aur.getgzip(searchurl)
+        local aurresults = http.getgzip(searchurl)
         if (not aurresults) then
             return (not found)
         end
@@ -617,7 +617,7 @@ local function sync_info(syncs, targets)
             local jsonresults = {results = {}}
             if (not foundpkg) then
                 infourl = aururl..aurmethod.info.."arg="..url.escape(target)
-                inforesults = aur.getgzip(infourl)
+                inforesults = http.getgzip(infourl)
                 if (not inforesults) then
                     return 1
                 end
@@ -780,7 +780,7 @@ local function sync_aur_trans(targets)
                     if (not found) then
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
-                        local inforesults = aur.getgzip(infourl)
+                        local inforesults = http.getgzip(infourl)
                         if (not inforesults) then
                             return 1
                         end
@@ -927,33 +927,44 @@ local function updateprovided(tbl)
 end
 
 local function download_extract(target, currentdir)
-    local retmv, retex, ret
-    local user = util.getbuilduser()
     local myuid = utilcore.geteuid()
     --local oldmask = utilcore.umask(tonumber("700", 8))
-    local host = "aur.archlinux.org:443"
-    aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target), user)
-    aur.dispatcher()
+
+    local user = util.getbuilduser()
+    local builddir
+    if currentdir then
+        aur.download( target )
+    else
+        builddir = aur.prepare_builddir( target )
+        aur.download( target, builddir )
+    end
+
     --utilcore.umask(oldmask)
-    if (not currentdir) then
-        lfs.chdir("/tmp/clyde-"..user.."/"..target)
-        os.execute("chmod 700 /tmp/clyde-"..user.."/"..target)
-        os.execute("bsdtar -xf " .. target .. ".tar.gz &>/dev/null")
+    if (builddir) then
+        local tarball = target .. ".tar.gz"
+        assert(lfs.chdir(builddir))
+        local ret = os.execute("bsdtar -xf " .. tarball)
+        if (ret ~= 0) then
+            local errmsg = string.format( "could not extract %s\n",
+                                          tarball )
+            lprintf("LOG_ERROR", errmsg)
+            error(errmsg) -- stop execution
+        end
+
         if (myuid == 0) then
-            os.execute("chown "..user..":users -R /tmp/clyde-"..user)
+            os.execute("chown "..user..":users -R "..builddir)
         end
     else
---        os.execute("mv /tmp/clyde-"..user.."/"..target.."/"..target..".tar.gz "..lfs.currentdir())
-        retmv = os.execute(string.format("mv /tmp/clyde-%s/%s/%s.tar.gz %s &>/dev/null",
-            user, target, target, lfs.currentdir()))
         retex = os.execute("bsdtar -xf "..target..".tar.gz &>/dev/null")
-        if(retex == 0 and retmv == 0) then
+        if(retex == 0) then
             printf(C.greb("==>")..C.bright(" Extracted %s.tar.gz to current directory\n"), target)
         else
-            lprintf("LOG_ERROR", "could not extract %s.tar.gz\n", target)
+            local errmsg = string.format( "could not extract %s.tar.gz\n",
+                                          target )
+            lprintf("LOG_ERROR", errmsg)
+            error(errmsg)
         end
     end
---    os.execute("chmod 700 -R /tmp/clyde/"..target)
 
 end
 
@@ -1084,7 +1095,7 @@ local function getdepends(target, provided)
     local pkgbuildurl = string.format(
             "https://aur.archlinux.org:443/packages/%s/%s/PKGBUILD",
                 target, target)
-    local pkgbuild = aur.getgzip(pkgbuildurl)
+    local pkgbuild = http.getgzip(pkgbuildurl)
     if not pkgbuild then
         return ret, {}, {}
     end
@@ -1318,7 +1329,7 @@ local function trans_aurupgrade(targets)
         repeat
         count = count + 1
         local infourl = aururl..aurmethod.info.."arg="..url.escape(pkg.name)
-        local inforesults = aur.getgzip(infourl)
+        local inforesults = http.getgzip(infourl)
         callback.fill_progress(math.floor(count*100/#foreign), math.ceil(count*100/#foreign), util.getcols() - len)
         if (not inforesults) then
             break
@@ -1421,7 +1432,7 @@ local function sync_trans(targets)
                     if (not found) then
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
                         local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
-                        local inforesults = aur.getgzip(infourl)
+                        local inforesults = http.getgzip(infourl)
                         if (not inforesults) then
                             return 1
                         end
