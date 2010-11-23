@@ -409,8 +409,8 @@ function sync_search(syncs, targets, shownumbers, install)
         end
         local searchurl = aururl..aurmethod.search.."arg="
             ..http.urlescape(targets[1])
-        local aurresults = http.getgzip(searchurl)
-        if (not aurresults) then
+        local success, aurresults = pcall( http.getgzip, searchurl )
+        if (not success) then
             return (not found)
         end
         local jsonresults = yajl.to_value(aurresults) or {}
@@ -616,8 +616,8 @@ local function sync_info(syncs, targets)
             if (not foundpkg) then
                 infourl = aururl..aurmethod.info.."arg="..
                     http.urlescape(target)
-                inforesults = http.getgzip(infourl)
-                if (not inforesults) then
+                local success, inforesults = pcall( http.getgzip, infourl )
+                if (not success) then
                     return 1
                 end
                 jsonresults = yajl.to_value(inforesults) or {}
@@ -780,8 +780,9 @@ local function sync_aur_trans(targets)
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
                         local infourl = aururl..aurmethod.info.."arg="
                             ..http.urlescape(targ)
-                        local inforesults = http.getgzip(infourl)
-                        if (not inforesults) then
+                        local success, inforesults
+                            = pcall( http.getgzip, infourl )
+                        if (not success) then
                             return 1
                         end
                         local jsonresults =  yajl.to_value(inforesults) or {}
@@ -1095,8 +1096,8 @@ local function getdepends(target, provided)
     local pkgbuildurl = string.format(
             "https://aur.archlinux.org:443/packages/%s/%s/PKGBUILD",
                 target, target)
-    local pkgbuild = http.getgzip(pkgbuildurl)
-    if not pkgbuild then
+    local success, pkgbuild = pcall( http.getgzip, pkgbuildurl )
+    if not success then
         return ret, {}, {}
     end
     local tmp = os.tmpname()
@@ -1330,9 +1331,9 @@ local function trans_aurupgrade(targets)
         count = count + 1
         local infourl = aururl..aurmethod.info.."arg="..
                 http.urlescape(pkg.name)
-        local inforesults = http.getgzip(infourl)
+        local success, inforesults = pcall( http.getgzip, infourl )
         callback.fill_progress(math.floor(count*100/#foreign), math.ceil(count*100/#foreign), util.getcols() - len)
-        if (not inforesults) then
+        if (not success) then
             break
         end
 
@@ -1434,8 +1435,9 @@ local function sync_trans(targets)
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
                         local infourl = aururl..aurmethod.info.."arg="
                             ..http.urlescape(targ)
-                        local inforesults = http.getgzip(infourl)
-                        if (not inforesults) then
+                        local success, inforesults = pcall( http.getgzip,
+                                                            infourl )
+                        if (not success) then
                             return 1
                         end
                         local jsonresults = yajl.to_value(inforesults) or {}
