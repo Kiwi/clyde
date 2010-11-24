@@ -36,6 +36,7 @@ local CLYDECONF = "/etc/clyde.conf"
 local DBPATH = "/var/lib/pacman/"
 local CACHEDIR = "/var/cache/pacman/pkg/"
 local LOGFILE = "/var/log/pacman.log"
+local BUILDDIR = "/tmp"
 local clydeconf = require "clydelib.config"
 
 local PACKAGE = "clyde"
@@ -135,6 +136,7 @@ local function usage(op, myname)
         printf(g("  -r, --root <path>    set an alternate installation root\n"))
         printf(g("  -b, --dbpath <path>  set an alternate database location\n"))
         printf(g("      --cachedir <dir> set an alternate package cache location\n"))
+        printf(g("      --builddir <dir> set an alternate package build location\n"))
         printf(g("      --editor <prg>   edit the PKGBUILD with the configured editor\n"))
         printf(g("      --color          enable colors\n"))
         printf(g("      --nocolor        disable colors\n"))
@@ -306,6 +308,7 @@ local longopts = {
         {"repos",       "no_argument",      0,  'OP_REPOS'},
         {"getpkgbuild", "no_argument",      0,  'G'},
         {"user",        "required_argument",0,  'OP_BUILD'},
+        {"builddir",    "required_argument",0,  'OP_BUILDDIR'},
     --[[
     --pacman feature functions
     --]]
@@ -401,6 +404,15 @@ local longopts = {
         ['G'] = settrans('PM_OP_GETPKG');
         ['OP_BUILD'] = function(opt)
             config.op_s_build_user = opt
+        end;
+        ['OP_BUILDDIR'] = function(opt)
+            local writable = os.rename(opt, opt)
+            if (not writable) then
+                lprintf("LOG_DEBUG", "cannot access specified build directory, defaulting.\n")
+                config.builddir = BUILDDIR
+            else
+                config.builddir = opt
+            end
         end;
         --[[
         --pacman feature functions
@@ -652,6 +664,8 @@ local function config_init(uid)
                 "#ReposOnly";
                 "#You must set this to a normal user to install packages from AUR safely while running without sudo";
                 "BuildUser = "..util.getbuilduser();
+                "#Modify the following line to specify the directory in which clyde should build packages from AUR";
+                "#BuildDir = /tmp";
             }
             clydeconf = string.format(
                 "#\n# CLYDE OPTIONS\n#\n[clydeoptions]\nEditor = %s\n%s\n%s",
@@ -738,6 +752,18 @@ local function _parseconfig(file, givensection, givendb)
         if (not config.op_s_build_user) then
             config.op_s_build_user = str
             lprintf("LOG_DEBUG", "config: builduser\n")
+        end
+    end;
+    ['BuildDir'] = function(str)
+        if (not config.builddir) then
+            local writable = os.rename(str, str)
+            if (not writable) then
+                lprintf("LOG_DEBUG", "cannot access specified build directory, defaulting.\n")
+                config.builddir = BUILDDIR
+            else
+                config.builddir = str
+                lprintf("LOG_DEBUG", "config: builddir: %s\n", str)
+            end
         end
     end;
         --[[
@@ -981,6 +1007,10 @@ function main()
     ret = parseconfig(config.configfile)
     if (ret ~= 0) then
         cleanup(ret)
+    end
+
+    if (not config.builddir) then
+        config.builddir = BUILDDIR
     end
 
     if (config.stats) then
