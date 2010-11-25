@@ -36,7 +36,6 @@ local CLYDECONF = "/etc/clyde.conf"
 local DBPATH = "/var/lib/pacman/"
 local CACHEDIR = "/var/cache/pacman/pkg/"
 local LOGFILE = "/var/log/pacman.log"
-local BUILDDIR = "/tmp"
 local clydeconf = require "clydelib.config"
 
 local PACKAGE = "clyde"
@@ -406,13 +405,7 @@ local longopts = {
             config.op_s_build_user = opt
         end;
         ['OP_BUILDDIR'] = function(opt)
-            local writable = os.rename(opt, opt)
-            if (not writable) then
-                lprintf("LOG_DEBUG", "cannot access specified build directory, defaulting.\n")
-                config.builddir = BUILDDIR
-            else
-                config.builddir = opt
-            end
+            config.builddir = opt
         end;
         --[[
         --pacman feature functions
@@ -665,7 +658,7 @@ local function config_init(uid)
                 "#You must set this to a normal user to install packages from AUR safely while running without sudo";
                 "BuildUser = "..util.getbuilduser();
                 "#Modify the following line to specify the directory in which clyde should build packages from AUR";
-                "#BuildDir = /tmp";
+                "#BuildDir = /var/cache/clyde";
             }
             clydeconf = string.format(
                 "#\n# CLYDE OPTIONS\n#\n[clydeoptions]\nEditor = %s\n%s\n%s",
@@ -756,14 +749,8 @@ local function _parseconfig(file, givensection, givendb)
     end;
     ['BuildDir'] = function(str)
         if (not config.builddir) then
-            local writable = os.rename(str, str)
-            if (not writable) then
-                lprintf("LOG_DEBUG", "cannot access specified build directory, defaulting.\n")
-                config.builddir = BUILDDIR
-            else
-                config.builddir = str
-                lprintf("LOG_DEBUG", "config: builddir: %s\n", str)
-            end
+            config.builddir = str
+            lprintf("LOG_DEBUG", "config: builddir: %s\n", str)
         end
     end;
         --[[
@@ -1007,10 +994,6 @@ function main()
     ret = parseconfig(config.configfile)
     if (ret ~= 0) then
         cleanup(ret)
-    end
-
-    if (not config.builddir) then
-        config.builddir = BUILDDIR
     end
 
     if (config.stats) then

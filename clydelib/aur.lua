@@ -48,9 +48,13 @@ end
 function download(host, file, user)
     local filename = file:match(".+/(.+)$")
     local foldername = file:match(".+/(.+)/.+$")
-    lfs.mkdir(config.builddir.."/clyde-"..user)
-    lfs.mkdir(config.builddir.."/clyde-"..user.."/"..foldername)
-    local f, err = io.open(config.builddir.."/clyde-"..user.."/"..foldername.. "/" ..filename, "w")
+    local builddir = config.builddir or "/tmp/clyde-"..user
+
+    lfs.mkdir(builddir)
+    lfs.mkdir(builddir.."/"..foldername)
+    --os.execute("mkdir -p " .. builddir.."/"..foldername)
+
+    local f, err = io.open(builddir.."/"..foldername.. "/" ..filename, "w")
     local received = 0
     local r, c, h = http.request {
         method = "HEAD",

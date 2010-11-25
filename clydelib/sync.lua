@@ -930,22 +930,24 @@ local function download_extract(target, currentdir)
     local retmv, retex, ret
     local user = util.getbuilduser()
     local myuid = utilcore.geteuid()
+    local builddir = config.builddir or "/tmp/clyde-"..user
+
     --local oldmask = utilcore.umask(tonumber("700", 8))
     local host = "aur.archlinux.org:443"
     aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target), user)
     aur.dispatcher()
     --utilcore.umask(oldmask)
     if (not currentdir) then
-        lfs.chdir(config.builddir.."/clyde-"..user.."/"..target)
-        os.execute("chmod 700 "..config.builddir.."/clyde-"..user.."/"..target)
+        lfs.chdir(builddir.."/"..target)
+        os.execute("chmod 700 "..builddir.."/"..target)
         os.execute("bsdtar -xf " .. target .. ".tar.gz &>/dev/null")
         if (myuid == 0) then
-            os.execute("chown "..user..":users -R "..config.builddir.."/clyde-"..user)
+            os.execute("chown "..user..":users -R "..builddir)
         end
     else
---        os.execute("mv "..config.builddir.."/clyde-"..user.."/"..target.."/"..target..".tar.gz "..lfs.currentdir())
-        retmv = os.execute(string.format("mv "..config.builddir.."/clyde-%s/%s/%s.tar.gz %s &>/dev/null",
-            user, target, target, lfs.currentdir()))
+--        os.execute("mv "..builddir.."/"..target.."/"..target..".tar.gz "..lfs.currentdir())
+        retmv = os.execute(string.format("mv "..builddir.."/%s/%s.tar.gz %s &>/dev/null",
+            target, target, lfs.currentdir()))
         retex = os.execute("bsdtar -xf "..target..".tar.gz &>/dev/null")
         if(retex == 0 and retmv == 0) then
             printf(C.greb("==>")..C.bright(" Extracted %s.tar.gz to current directory\n"), target)
@@ -953,13 +955,15 @@ local function download_extract(target, currentdir)
             lprintf("LOG_ERROR", "could not extract %s.tar.gz\n", target)
         end
     end
---    os.execute("chmod 700 -R "..config.builddir.."/clyde/"..target)
+--    os.execute("chmod 700 -R "..builddir.."/"..target)
 
 end
 
 local function customizepkg(target)
     local user = util.getbuilduser()
-    lfs.chdir(config.builddir.."/clyde-"..user.."/"..target.."/"..target)
+    local builddir = config.builddir or "/tmp/clyde-"..user
+
+    lfs.chdir(builddir.."/"..target.."/"..target)
     if (not config.noconfirm) then
         local editor
         if (not config.editor) then
@@ -1023,8 +1027,9 @@ local function installpkgs(targets)
         targets = {targets}
     end
     local user = util.getbuilduser()
+    local builddir = config.builddir or "/tmp/clyde-"..user
     local packagedir = getbasharrayuser("/etc/makepkg.conf", "PKGDEST", user)
-            or config.builddir.."/clyde-"..user.."/"..target.."/"..target
+            or builddir.."/"..target.."/"..target
 
     local pkgs = {}
     local toinstall = {}
