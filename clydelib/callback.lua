@@ -488,7 +488,7 @@ trans_conv_lookup = {
         end ;
     ["replace_package"] =
         function (evt)
-            local msg = C.yelb("::") .. C.bright(g(" Replace %s with %s/%s?"))
+            local msg = C.yelb("::") .. C.bright(" Replace %s with %s/%s?")
             local response = yesno( msg,
                                     evt.old:pkg_get_name(),
                                     evt.db,
@@ -497,10 +497,16 @@ trans_conv_lookup = {
         end ;
     ["package_conflict"] =
         function (evt)
-            local msg = C.yelb("::")
-                .. C.bright(g(" %s conflicts with %s. Remove %s?"))
-            local response = yesno( msg, evt.target, evt["local"], evt.conflict)
-            return response
+            local target, localpkg, conflict =
+                evt.target, evt["local"], evt.conflict
+
+            if conflict == target or conflict == localpkg then
+                local msg = C.yelb("::") .. C.bright(" %s conflicts with %s. Remove %s?")
+                return yesno( msg, target, localpkg, localpkg )
+            else
+                local msg = C.yelb("::") .. C.bright(" %s and %s are in conflict (%s). Remove %s?")
+                return yesno( msg, target, localpkg, conflict, localpkg )
+            end
     end;
     ["remove_packages"] = function(evt)
         local namelist = {}

@@ -358,9 +358,9 @@ BEGIN_TRANS_CALLBACK( conv, pmtransconv_t type,
     default:
         return;
     }
-    int lua_err = lua_pcall( L, 1, 0, 1 );
+    int lua_err = lua_pcall( L, 1, 1, 0 );
     if ( lua_err != 0 ) {
-        cb_error_handler( "conv", lua_err );
+        cb_error_handler( "conversation", lua_err );
     }
 }
 
