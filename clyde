@@ -136,6 +136,7 @@ local function usage(op, myname)
         printf(g("  -r, --root <path>    set an alternate installation root\n"))
         printf(g("  -b, --dbpath <path>  set an alternate database location\n"))
         printf(g("      --cachedir <dir> set an alternate package cache location\n"))
+        printf(g("      --builddir <dir> set an alternate package build location\n"))
         printf(g("      --editor <prg>   edit the PKGBUILD with the configured editor\n"))
         printf(g("      --color          enable colors\n"))
         printf(g("      --nocolor        disable colors\n"))
@@ -307,6 +308,7 @@ local longopts = {
         {"repos",       "no_argument",      0,  'OP_REPOS'},
         {"getpkgbuild", "no_argument",      0,  'G'},
         {"user",        "required_argument",0,  'OP_BUILD'},
+        {"builddir",    "required_argument",0,  'OP_BUILDDIR'},
     --[[
     --pacman feature functions
     --]]
@@ -402,6 +404,9 @@ local longopts = {
         ['G'] = settrans('PM_OP_GETPKG');
         ['OP_BUILD'] = function(opt)
             config.op_s_build_user = opt
+        end;
+        ['OP_BUILDDIR'] = function(opt)
+            config.builddir = opt
         end;
         --[[
         --pacman feature functions
@@ -653,6 +658,8 @@ local function config_init(uid)
                 "#ReposOnly";
                 "#You must set this to a normal user to install packages from AUR safely while running without sudo";
                 "BuildUser = "..util.getbuilduser();
+                "#Modify the following line to specify the directory in which clyde should build packages from AUR";
+                "#BuildDir = /var/cache/clyde";
             }
             clydeconf = string.format(
                 "#\n# CLYDE OPTIONS\n#\n[clydeoptions]\nEditor = %s\n%s\n%s",
@@ -739,6 +746,12 @@ local function _parseconfig(file, givensection, givendb)
         if (not config.op_s_build_user) then
             config.op_s_build_user = str
             lprintf("LOG_DEBUG", "config: builduser\n")
+        end
+    end;
+    ['BuildDir'] = function(str)
+        if (not config.builddir) then
+            config.builddir = str
+            lprintf("LOG_DEBUG", "config: builddir: %s\n", str)
         end
     end;
         --[[

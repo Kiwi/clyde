@@ -28,6 +28,7 @@ return {
 ['rootdir'] = false;
 ['dbpath'] = false;
 ['logfile'] = false;
+['builddir'] = false;
 --	/* TODO how to handle cachedirs? */
 ['op_q_isfile'] = false;
 ['op_q_info'] = 0;
