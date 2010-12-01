@@ -295,6 +295,20 @@ local function getopt_long(argv, sh_opts, long_opts, option_tbl)
         if exit == true then cleanup(1) return nil end
     end
 end
+
+local function set_builddir ( builddir )
+    if config.builddir then return end
+
+    if not pcall( lfs.dir, builddir ) then
+        eprintf( "LOG_ERROR",
+                 "The specified builddir (" .. builddir .. ") does not exist!\n" )
+        os.exit( 1 )
+    end
+
+    lprintf("LOG_DEBUG", "config: builddir: %s\n", str)
+    config.builddir = builddir
+end
+
 local function parseargs()
 local longopts = {
     --[[
@@ -405,9 +419,7 @@ local longopts = {
         ['OP_BUILD'] = function(opt)
             config.op_s_build_user = opt
         end;
-        ['OP_BUILDDIR'] = function(opt)
-            config.builddir = opt
-        end;
+        ['OP_BUILDDIR'] = function(opt) set_builddir( opt ) end;
         --[[
         --pacman feature functions
         --]]
@@ -748,12 +760,7 @@ local function _parseconfig(file, givensection, givendb)
             lprintf("LOG_DEBUG", "config: builduser\n")
         end
     end;
-    ['BuildDir'] = function(str)
-        if (not config.builddir) then
-            config.builddir = str
-            lprintf("LOG_DEBUG", "config: builddir: %s\n", str)
-        end
-    end;
+    ['BuildDir'] = function(str) set_builddir(str) end;
         --[[
         --pacman feature functions
         --]]
