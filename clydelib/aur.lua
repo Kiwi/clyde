@@ -46,9 +46,9 @@ function create()
 end
 
 function download(host, file, user)
-    local filename = file:match(".+/(.+)$")
-    local foldername = file:match(".+/(.+)/.+$")
-    local builddir = config.builddir or "/tmp/clyde-"..user
+    local filename   = file:gsub("^.*/", "")
+    local foldername = file:match("/([^/]+)/[^/]+$")
+    local builddir   = config.builddir or "/tmp/clyde-"..user
 
     -- lfs.mkdir(builddir)
     -- lfs.mkdir(builddir.."/"..foldername)
