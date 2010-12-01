@@ -932,20 +932,20 @@ local function download_extract(target, currentdir)
     local myuid = utilcore.geteuid()
     local builddir = config.builddir or "/tmp/clyde-"..user
 
-    --local oldmask = utilcore.umask(tonumber("700", 8))
     local host = "aur.archlinux.org:443"
     aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target), user)
     aur.dispatcher()
-    --utilcore.umask(oldmask)
+
     if (not currentdir) then
+        local olddir = lfs.currentdir()
         lfs.chdir(builddir.."/"..target)
         os.execute("chmod 700 "..builddir.."/"..target)
         os.execute("bsdtar -xf " .. target .. ".tar.gz &>/dev/null")
         if (myuid == 0) then
             os.execute("chown "..user..":users -R "..builddir)
         end
+        lfs.chdir(olddir)
     else
---        os.execute("mv "..builddir.."/"..target.."/"..target..".tar.gz "..lfs.currentdir())
         retmv = os.execute(string.format("mv "..builddir.."/%s/%s.tar.gz %s &>/dev/null",
             target, target, lfs.currentdir()))
         retex = os.execute("bsdtar -xf "..target..".tar.gz &>/dev/null")
@@ -955,8 +955,6 @@ local function download_extract(target, currentdir)
             lprintf("LOG_ERROR", "could not extract %s.tar.gz\n", target)
         end
     end
---    os.execute("chmod 700 -R "..builddir.."/"..target)
-
 end
 
 local function customizepkg(target)

@@ -50,14 +50,11 @@ function download(host, file, user)
     local foldername = file:match("/([^/]+)/[^/]+$")
     local builddir   = config.builddir or "/tmp/clyde-"..user
 
-    -- lfs.mkdir(builddir)
-    -- lfs.mkdir(builddir.."/"..foldername)
-
-    -- prevent user from executing arbitrary commands via "builddir"
-    builddir = string.gsub(builddir, ";", "")
-    os.execute("mkdir -p "..builddir.."/"..foldername)
+    assert( lfs.mkdir( builddir .. "/" .. foldername ))
 
     local f, err = io.open(builddir.."/"..foldername.. "/" ..filename, "w")
+    assert( f, err )
+
     local received = 0
     local r, c, h = http.request {
         method = "HEAD",
