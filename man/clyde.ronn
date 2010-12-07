@@ -314,7 +314,7 @@ Matthew "paradoq" Bauer:
 
   * Added support for regexp matching/filtering in AUR searches.
 
-Ronald Kammerer:
+Roland Kammerer:
 
   * Patch to implement the XferCommand config option.
 
