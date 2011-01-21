@@ -413,7 +413,7 @@ trans_event_lookup = {
         ["done"] = function(evt)
                        alpm.logaction(string.format("upgraded %s (%s -> %s)\n",
                                                     evt.new:pkg_get_name(),
-                                                    evt.new:pkg_get_version(),
+                                                    evt.old:pkg_get_version(),
                                                     evt.new:pkg_get_version()))
                        util.display_new_optdepends(evt.old, evt.new)
                        io.stdout:flush()
