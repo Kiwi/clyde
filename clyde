@@ -40,7 +40,7 @@ local clydeconf = require "clydelib.config"
 
 local PACKAGE = "clyde"
 local LOCALEDIR = "/usr/share/locale"
-local VERSION   = '0.03.07'
+local VERSION   = '0.03.08'
 local LUALPM_VERSION = '0.02'
 
 local function usage(op, myname)
