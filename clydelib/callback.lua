@@ -526,10 +526,10 @@ trans_conv_lookup = {
         else
             response = true
         end
+        return response
     end;
     ["corrupted_package"] = function(evt)
-        local response = yesno(g(C.yelb("::")..C.bright(" File %s is corrupted. Do you want to delete it?")),
-            evt.filename)
+        return yesno(g(C.yelb("::")..C.bright(" File %s is corrupted. Do you want to delete it?")), evt.filename)
     end;
 }
 
