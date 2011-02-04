@@ -536,7 +536,7 @@ trans_conv_lookup = {
 function cb_trans_conv ( event )
     local name = event.name
     if ( trans_conv_lookup[ name ] ) then
-        trans_conv_lookup[ name ]( event )
+        return trans_conv_lookup[ name ]( event )
     end
 end
 
