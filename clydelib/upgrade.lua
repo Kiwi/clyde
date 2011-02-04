@@ -3,7 +3,6 @@ local lfs = require "lfs"
 local alpm = require "lualpm"
 local util = require "clydelib.util"
 local utilcore = require "clydelib.utilcore"
-local packages = require "clydelib.packages"
 local C = colorize
 local eprintf = util.eprintf
 local lprintf = util.lprintf
@@ -30,9 +29,6 @@ local strerror = utilcore.strerror
 local g = utilcore.gettext
 local pm_targets = pm_targets
 local community = community
-local dump_pkg_changelog = packages.dump_pkg_changelog
-local dump_pkg_files = packages.dump_pkg_files
-local dump_pkg_sync = packages.dump_pkg_sync
 
 local function clyde_upgrade(targets)
     local retval = 0
