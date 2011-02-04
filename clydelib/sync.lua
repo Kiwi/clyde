@@ -926,152 +926,6 @@ local function updateprovided(tbl)
     end
 end
 
-local function download_extract(target, currentdir)
-    local retmv, retex, ret
-    local user = util.getbuilduser()
-    local myuid = utilcore.geteuid()
-    local builddir = config.builddir or "/tmp/clyde-"..user
-
-    local host = "aur.archlinux.org:443"
-    aur.get(host, string.format("/packages/%s/%s.tar.gz", target, target), user)
-    aur.dispatcher()
-
-    if (not currentdir) then
-        local olddir = lfs.currentdir()
-        lfs.chdir(builddir.."/"..target)
-        os.execute("chmod 700 "..builddir.."/"..target)
-        os.execute("bsdtar -xf " .. target .. ".tar.gz &>/dev/null")
-        if (myuid == 0) then
-            os.execute("chown "..user..":users -R "..builddir)
-        end
-        lfs.chdir(olddir)
-    else
-        retmv = os.execute(string.format("mv "..builddir.."/%s/%s.tar.gz %s &>/dev/null",
-            target, target, lfs.currentdir()))
-        retex = os.execute("bsdtar -xf "..target..".tar.gz &>/dev/null")
-        if(retex == 0 and retmv == 0) then
-            printf(C.greb("==>")..C.bright(" Extracted %s.tar.gz to current directory\n"), target)
-        else
-            lprintf("LOG_ERROR", "could not extract %s.tar.gz\n", target)
-        end
-    end
-end
-
-local function customizepkg(target)
-    local user = util.getbuilduser()
-    local builddir = config.builddir or "/tmp/clyde-"..user
-
-    lfs.chdir(builddir.."/"..target.."/"..target)
-    if (not config.noconfirm) then
-        local editor
-        if (not config.editor) then
-            printf("No editor is set.\n")
-            printf("What editor would you like to use? ")
-            editor = io.read()
-            if (editor == (" "):rep(#editor)) then
-                printf("Defaulting to nano")
-                editor = "nano"
-            end
-            printf("Using %s\n", editor)
-            printf("To avoid this message in the future please create a config file or use the --editor command line option\n")
-        else
-            editor = config.editor
-        end
-
-        printf(C.blink..C.redb("    ( Unsupported package from AUR: Potentially dangerous! )"))
-        printf("\n")
-
-        repeat
-            local response = yesno(C.yelb("==> ")..C.bright("Edit the PKGBUILD (highly recommended for security reasons)?"))
-            if (response) then
-                os.execute(editor.." PKGBUILD")
-            end
-        until not response
-        local instfile = getbasharray("PKGBUILD", "install")
-        if (instfile and #instfile > 0) then
-            repeat
-                local response = yesno(C.yelb("==> ")..C.bright("Edit "..instfile.." (highly recommended for security reasons)?"))
-                if (response) then
-                    os.execute(editor.." "..instfile)
-                end
-            until not response
-        end
-    end
-end
-
-local function makepkg(target, mkpkgopts)
-    local user = util.getbuilduser()
-    local result
-    if (user ~= "root") then
-        result = os.execute("su "..user.." -c 'makepkg -f' "..mkpkgopts)
-    else
-        printf(C.redb("==> ")..C.bright(C.onred("Running makepkg as root is a bad idea!")))
-        printf("\n"..C.redb("==> ")..C.bright("To avoid this message please set BuildUser in clyde.conf\n"))
-        local response = noyes(C.redb("==> ")..C.bright("Continue anyway?"))
-        if (response)  then
-            result = os.execute("makepkg -f --asroot "..mkpkgopts)
-        else
-            cleanup(1)
-        end
-    end
-    if (result ~= 0) then
-        eprintf("LOG_ERROR", "%s\n", "Build failed")
-        cleanup(1)
-    end
-end
-
-local function installpkgs(targets)
-    if (type(targets) ~= "table") then
-        targets = {targets}
-    end
-    local user = util.getbuilduser()
-    local builddir = config.builddir or "/tmp/clyde-"..user
-    local packagedir = getbasharrayuser("/etc/makepkg.conf", "PKGDEST", user)
-            or builddir.."/"..target.."/"..target
-
-    local pkgs = {}
-    local toinstall = {}
-
-    for i, target in ipairs(targets) do
-        lfs.chdir(packagedir)
-        for file in lfs.dir(lfs.currentdir()) do
-            local pkg = file:match(".-%.pkg%.tar%.%az")
-            if (pkg) then
-                tblinsert(pkgs, pkg)
-            end
-        end
-    end
-
-    for i, pkg in ipairs(pkgs) do
-        local loaded, err = alpm.pkg_load(pkg, false)
-        local pkgver = loaded:pkg_get_version()
-        local pacname = loaded:pkg_get_name()
-        local found, indx = tblisin(toinstall, pacname)
-        local istarget, _ = tblisin(targets, pacname)
-        if (found and istarget) then
-            local comp = alpm.pkg_vercmp(pkgver, toinstall[indx][pacname].ver)
-            if comp == 1 then
-                toinstall[indx][pacname].fname = pkg
-            end
-        elseif (istarget) then
-            toinstall[#toinstall+1] = {}
-            toinstall[#toinstall][pacname] = {['fname'] = pkg; ['ver'] = pkgver}
-        end
-    end
-
-    for i, pkgtbl in ipairs(toinstall) do
-        for l, pkg in pairs(pkgtbl) do
-            toinstall[i] = pkg.fname
-            break
-        end
-    end
-
-    local ret = upgrade.main(toinstall)
-    if (ret ~= 0) then
-        cleanup(ret)
-    end
-end
-
 local function getdepends(target, provided)
     local ret, ret2, ret3 = {}, {}, {}
     local sync_dbs = alpm.option_get_syncdbs()
@@ -1201,13 +1055,13 @@ function getpkgbuild(targets)
            -- tblinsert(pacmanpkgs, pkg)
         --else
             --tblinsert(aurpkgs, pkg)
-                download_extract(pkg, true)
+                aur.download_extract(pkg, true)
             end
         end
     else
         for i, pkg in ipairs(targets) do
             if (not pacmaninstallable(pkg)) then
-                download_extract(pkg, true)
+                aur.download_extract(pkg, true)
             end
         end
     end
@@ -1264,6 +1118,8 @@ local function aur_install(targets)
     config.flags["alldeps"] = false
     config.noconfirm = noconfirm
 
+    local origdir = lfs.currentdir()
+
     local installedtbl = {}
     local needscount = #needs - #pacmanpkgs
     while (#installedtbl < needscount ) do
@@ -1276,18 +1132,20 @@ local function aur_install(targets)
             if (tblisin(caninstall, pkg) and not tblisin(installedtbl, pkg)) then
                 if (tblisin(targets, pkg) and not tflags["alldeps"])
                     or (tflags["allexplicit"] and not tflags["alldeps"]) then
-                    download_extract(pkg)
-                    customizepkg(pkg)
-                    makepkg(pkg, mkpkgopts)
-                    installpkgs(pkg)
+                    local pkgdir = aur.download_extract(pkg)
+                    aur.customizepkg(pkgdir)
+                    aur.makepkg(pkgdir, mkpkgopts)
+                    aur.installpkg(pkg)
+
                     installed = installed + 1
                     tblinsert(installedtbl, pkg)
                 else
                     config.flags["alldeps"] = true
-                    download_extract(pkg)
-                    customizepkg(pkg)
-                    makepkg(pkg, mkpkgopts)
-                    installpkgs(pkg)
+                    local pkgdir = aur.download_extract(pkg)
+                    aur.customizepkg(pkgdir)
+                    aur.makepkg(pkgdir)
+                    aur.installpkg(pkg)
+
                     config.flags["alldeps"] = false
                     installed = installed + 1
                     tblinsert(installedtbl, pkg)
