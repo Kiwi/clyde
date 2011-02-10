@@ -159,52 +159,61 @@ function download_extract ( pkgname )
     return extdir
 end
 
-function customizepkg ( pkgdir )
-    if (not config.noconfirm) then
-        local editor
-        if (not config.editor) then
-            printf("No editor is set.\n")
-            printf("What editor would you like to use? ")
-            editor = io.read()
-            if (editor == (" "):rep(#editor)) then
-                printf("Defaulting to nano")
-                editor = "nano"
-            end
-            -- Avoid asking this over and over...
-            config.editor = editor
+function customizepkg ( pkgname, pkgdir )
+    print( C.greb( "==>" )
+       .. C.bright( " Customizing " .. pkgname .. "..." ))
 
-            printf("Using %s\n", editor)
-            printf("To avoid this message in the future please create a config file or use the --editor command line option\n")
-        else
-            editor = config.editor
+    local editor
+    if (not config.editor) then
+        printf("No editor is set.\n")
+        printf("What editor would you like to use? ")
+        editor = io.read()
+        if (editor == (" "):rep(#editor)) then
+            printf("Defaulting to nano")
+            editor = "nano"
         end
+        
+        print( "Using " .. editor .. "." )
+        print( "To avoid this message in the future please create a "
+               .. "config file or use the --editor command line option")
 
-        local offeredit =
-            function ( filename )
-                local msg = C.yelb("==> ")
-                msg = msg ..
-                    C.bright( "Edit the " .. filename .. "? "
-                              .. "(highly recommended for "
-                              .. "security reasons)")
-                local confirmedit = yesno( msg )
+        config.editor = editor -- Avoid asking this repeatedly...
+    else
+        editor = config.editor
+    end
 
-                -- Changed this to stop asking after the user says yes.
-                -- JD
-                if (confirmedit) then
-                    -- TODO error checking/recovery?
-                    os.execute( editor .. " " .. filename )
-                end
-            end
+    local function offeredit ( filename )
+        local msg = "Edit the " .. filename .. "? (recommended)"
+        local confirmedit = yesno( msg )
 
-        printf(C.redb("    ( Unsupported package from AUR: Potentially dangerous! )"))
-        printf("\n")
-
-        offeredit( "PKGBUILD" )
-
-        local instfile = util.getbasharray("PKGBUILD", "install")
-        if (instfile and #instfile > 0) then
-            offeredit( instfile )
+        -- Changed this to stop asking after the user says yes.
+        -- JD
+        if confirmedit then
+            -- TODO error checking/recovery?
+            local olddir = lfs.currentdir()
+            assert( olddir, lfs.chdir( pkgdir ))
+            os.execute( editor .. " " .. filename )
+            assert( lfs.chdir( olddir ))
         end
+    end
+
+    print(C.yelb .. C.blink("==>") .. C.yelb(" WARNING: ") .. C.bright
+          .. "Packages from the AUR are potentially dangerous!"
+          .. C.reset)
+
+    local success, errmsg = pcall(
+        function ()
+            offeredit( "PKGBUILD" )
+
+            local instfile = util.getbasharray("PKGBUILD", "install")
+            if instfile and #instfile > 0 then
+                offeredit( instfile )
+            end
+        end )
+
+    if not success then
+        eprintf( "LOG_ERROR", "Error customizing %s: %s",
+                 pkgdir, errmsg )
     end
 end
 

@@ -1133,7 +1133,9 @@ local function aur_install(targets)
                 if (tblisin(targets, pkg) and not tflags["alldeps"])
                     or (tflags["allexplicit"] and not tflags["alldeps"]) then
                     local pkgdir = aur.download_extract(pkg)
-                    aur.customizepkg(pkgdir)
+                    if not config.noconfirm then
+                        aur.customizepkg(pkg, pkgdir)
+                    end
                     aur.makepkg(pkgdir, mkpkgopts)
                     aur.installpkg(pkg)
 
@@ -1142,7 +1144,9 @@ local function aur_install(targets)
                 else
                     config.flags["alldeps"] = true
                     local pkgdir = aur.download_extract(pkg)
-                    aur.customizepkg(pkgdir)
+                    if not config.noconfirm then
+                        aur.customizepkg(pkg, pkgdir)
+                    end
                     aur.makepkg(pkgdir)
                     aur.installpkg(pkg)
 
