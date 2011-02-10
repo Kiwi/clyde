@@ -1,0 +1,38 @@
+Changelog -*- org -*-
+
+  ____ _           _         ____ _                                 
+ / ___| |_   _  __| | ___   / ___| |__   __ _ _ __   __ _  ___  ___ 
+| |   | | | | |/ _` |/ _ \ | |   | '_ \ / _` | '_ \ / _` |/ _ \/ __|
+| |___| | |_| | (_| |  __/ | |___| | | | (_| | | | | (_| |  __/\__ \
+ \____|_|\__, |\__,_|\___|  \____|_| |_|\__,_|_| |_|\__, |\___||___/
+         |___/                                      |___/           
+
+
+* Version 0.3.10 [2011-02-10 Thu]
+
+** AUR Customize Messages
+
+The great big warning has been changed to yellow and now only the arrow
+next to it blinks. And there was much rejoicing. A new "Customizing..."
+status message was added just to be complete...
+
+** AUR Build Directory is Overridable                                   :NEW:
+
+You can override the build directory now. The build directory is where
+source packages are extracted to. Alot of the AUR code was re-written
+and moved to the aur.lua file. Keen!
+
+The build directory must exist, clyde will not create it for you.
+Thanks to "rekado" on github for the patch that started it all.
+
+** Change Log                                                           :NEW:
+
+I started this change log because I tend to forget what I change. I
+wanted a higher-level view of changes than git commit logs give
+me. This text file uses org-mode in Emacs.
+
+* Version 0.3.09 [2011-02-04 Fri]
+
+** Transaction Conversation Callbacks                                   :BUG:
+
+Answers would always came back to clyde as a no. :^o
