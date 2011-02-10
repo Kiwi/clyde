@@ -278,7 +278,7 @@ function installpkg( target )
     if table.maxn( pkgfiles ) == 0 then
         eprintf( "LOG_ERROR", "Could not find a built package in %s.",
                  pkgdir )
-        cleanup( 1 )
+        util.cleanup( 1 )
     end
 
     local function pkg_ver ( pkgpath )
@@ -296,6 +296,6 @@ function installpkg( target )
     
     local ret = upgrade.main({ pkgfile })
     if (ret ~= 0) then
-        cleanup(ret)
+        util.cleanup(ret)
     end
 end
