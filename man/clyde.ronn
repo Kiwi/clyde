@@ -182,6 +182,8 @@ SYNC OPTIONS
   set an alternate database location
 * `--cachedir` _DIR_:
   set an alternate package cache location
+* `--builddir` _DIR_:
+  set an alternate build directory for AUR source packages
 * `--editor` _PRG_:
   edit the PKGBUILD with the configured editor
 * `--color`:
