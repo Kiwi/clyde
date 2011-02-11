@@ -318,6 +318,11 @@ Roland Kammerer:
 
   * Patch to implement the XferCommand config option.
 
+rekado:
+
+  * Patch to override the build directory where AUR source packages are
+    built. Adds the --builddir option for -S.
+
 LICENSE
 -------
 
