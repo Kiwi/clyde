@@ -13,6 +13,8 @@ local alpm = require "lualpm"
 local utilcore = require "clydelib.utilcore"
 local signal = require "clydelib.signal"
 local callback = require "clydelib.callback"
+local aur = require "clydelib.aur"
+local get_builduser = aur.get_builduser
 local needs_root = util.needs_root
 local printf = util.printf
 local lprintf = util.lprintf
@@ -669,7 +671,7 @@ local function config_init(uid)
                 "#Searching AUR is enabled by default. Uncomment the following line to only search with --aur";
                 "#ReposOnly";
                 "#You must set this to a normal user to install packages from AUR safely while running without sudo";
-                "BuildUser = "..util.getbuilduser();
+                "BuildUser = " .. get_builduser();
                 "#Modify the following line to specify the directory in which clyde should build packages from AUR";
                 "#BuildDir = /var/cache/clyde";
             }
