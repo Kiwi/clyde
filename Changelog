@@ -8,7 +8,29 @@ Changelog -*- org -*-
          |___/                                      |___/           
 
 
-* Version 0.3.10 [2011-02-10 Thu]
+* Version 0.03.12 [2011-02-14 Mon]
+
+** Strange Clyde Crash                                                  :BUG:
+
+RamsesDeNorre reported that clyde will crash because 'alpm' needed to be
+require-ed inside aur.lua. For some reason I could not reproduce.
+RamsesDeNorre was kind enough to submit a patch that is merged.
+
+Bug Report : https://github.com/Kiwi/clyde/issues/closed#issue/97
+
+Thanks RamsesDeNorre!
+
+* Version 0.03.11 [2011-02-14 Mon]
+
+** Config File Creation Failed                                          :BUG:
+
+I typod a function (getbuilduser) causing file creation to error out.
+
+Bug Report : https://github.com/Kiwi/clyde/issues/closed#issue/96
+
+Thanks thechitowncubs!
+
+* Version 0.03.10 [2011-02-10 Thu]
 
 ** AUR Customize Messages
 
@@ -31,7 +53,7 @@ I started this change log because I tend to forget what I change. I
 wanted a higher-level view of changes than git commit logs give
 me. This text file uses org-mode in Emacs.
 
-* Version 0.3.09 [2011-02-04 Fri]
+* Version 0.03.09 [2011-02-04 Fri]
 
 ** Transaction Conversation Callbacks                                   :BUG:
 
