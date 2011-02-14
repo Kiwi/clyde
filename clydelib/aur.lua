@@ -7,6 +7,7 @@ local ltn12   = require "ltn12"
 local zlib    = require "zlib"
 local yajl    = require "yajl"
 local C       = colorize
+local alpm    = require "lualpm"
 
 local util    = require "clydelib.util"
 local printf  = util.printf
