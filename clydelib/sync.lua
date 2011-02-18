@@ -1160,15 +1160,31 @@ local function aur_install(targets)
     end
 end
 
+-- Convert the table from alpm.option_get_ignorepkgs() to an easily
+-- queryable table indexed by the pkg name
+local function get_ignore_pkgs()
+    local alpm_ignore_pkgs = alpm.option_get_ignorepkgs()
+    local ignore_pkgs = {}
+
+    for _,pkg in ipairs(alpm_ignore_pkgs) do
+        ignore_pkgs[pkg] = true
+    end
+
+    return ignore_pkgs
+end
+
 local function trans_aurupgrade(targets)
     local pkgcache = db_local:db_get_pkgcache()
     local foreign = {}
     local possibleaurpkgs = {}
     local aurpkgs = {}
     local len
+    local ignore_pkgs = get_ignore_pkgs()
+
     for i, pkg in ipairs (pkgcache) do
         local name = pkg:pkg_get_name()
-        if (not pacmaninstallable(name)) then
+
+        if (not pacmaninstallable(name) and not ignore_pkgs[name]) then
             tblinsert(foreign, {name = name; version = pkg:pkg_get_version()})
             possibleaurpkgs[name] = true
         end
