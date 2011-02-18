@@ -101,7 +101,7 @@ function download ( pkgname, destdir )
     local pkgfh, err = io.open( pkgfile, "w" )
     assert( pkgfh, err )
 
-    print( C.greb("==>") .. C.bright( " Downloading " .. pkgname ))
+    print( C.greb("==>") .. C.bright( " Downloading " .. pkgname .. "..."))
     assert( http.request { url    = srcpkguri( pkgname ),
                            create = create_socket,
                            sink   = ltn12.sink.file( pkgfh ) } );
