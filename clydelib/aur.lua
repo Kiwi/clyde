@@ -144,7 +144,7 @@ function download_extract ( pkgname )
         local builduser = get_builduser()
         cmdline = string.format( "chown '%s:users' -R '%s'",
                                  builduser, builddir )
-        
+
         if os.execute( cmdline ) ~= 0 then
             error( string.format( "failed to chown '%s' to '%s'",
                                   builddir, builduser ))
@@ -173,7 +173,7 @@ function customizepkg ( pkgname, pkgdir )
             printf("Defaulting to nano")
             editor = "nano"
         end
-        
+
         print( "Using " .. editor .. "." )
         print( "To avoid this message in the future please create a "
                .. "config file or use the --editor command line option")
@@ -255,7 +255,7 @@ function makepkg ( target, mkpkgopts )
                                     end
                                 end )
     lfs.chdir( oldwd )
-    
+
     if not success then
         eprintf( "LOG_ERROR", "%s\n", err )
         util.cleanup( 1 )
@@ -281,7 +281,7 @@ function installpkg( target )
     for file in lfs.dir( pkgdir ) do
         if ( file:match( "[.]pkg[.]tar[.]%az$" ) and
              not file:match( "[.]src[.]pkg[.]tar[.]%az$" )) then
-            table.insert( pkgfiles, file )
+            table.insert( pkgfiles, pkgdir .. "/" .. file )
         end
     end
 
@@ -302,8 +302,7 @@ function installpkg( target )
 
     table.sort( pkgfiles, by_version )
     local pkgfile = pkgfiles[ table.maxn( pkgfiles ) ]
-    pkgfile = pkgdir .. "/" .. pkgfile
-    
+
     local ret = upgrade.main({ pkgfile })
     if (ret ~= 0) then
         util.cleanup(ret)
