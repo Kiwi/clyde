@@ -325,6 +325,14 @@ function sync_search(syncs, targets, shownumbers, install)
             return ""
         end
     end
+    local function get_installed_string_for(pkg_name, pkg_version)
+        local installed_version = (localdb:db_get_pkg(pkg_name)):pkg_get_version()
+        local installed_string = "[installed]"
+        if (alpm.pkg_vercmp(installed_version, pkg_version) ~= 0) then
+            installed_string = "[" .. installed_version .. " installed]"
+        end
+        return installed_string
+    end
 
     local packages = {}
     local pkgcache = localdb:db_get_pkgcache()
@@ -347,8 +355,6 @@ function sync_search(syncs, targets, shownumbers, install)
                 found = true
             end
 
-
-
             for i, pkg in ipairs(ret) do
                 pkgcount = pkgcount + 1
                 pkgnames[pkgcount] = pkg:pkg_get_name()
@@ -357,12 +363,9 @@ function sync_search(syncs, targets, shownumbers, install)
                     local dbcolor = dbcolors[db:db_get_name()] or C.magb
 
                     if (packages[pkg:pkg_get_name()]) then
-                        local installed_version = (localdb:db_get_pkg(pkg:pkg_get_name())):pkg_get_version()
-                        local repo_version = pkg:pkg_get_version()
-                        local installed_text = "[installed]"
-                        if (alpm.pkg_vercmp(installed_version, repo_version) ~= 0) then
-                            installed_text = "[" .. installed_version .. " installed]"
-                        end
+                        local installed_text =
+                                get_installed_string_for(pkg:pkg_get_name(),
+                                                         pkg:pkg_get_version())
 
                         printf("%s%s%s %s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(repo_version), yelbold..installed_text..C.reset)
                     else
@@ -448,12 +451,7 @@ function sync_search(syncs, targets, shownumbers, install)
 
             if (not config.quiet) then
                 if (localdb:db_get_pkg(pkg.name)) then
-                    local installed_version = (localdb:db_get_pkg(pkg.name)):pkg_get_version()
-                    local repo_version = pkg.version
-                    local installed_text = "[installed]"
-                    if (alpm.pkg_vercmp(installed_version, repo_version) ~= 0) then
-                        installed_text = "[" .. installed_version .. " installed]"
-                    end
+                    local installed_text = get_installed_string_for(pkg.name, pkg.version)
 
                     printf("%s%s%s %s %s %s\n    ", numerize(pkgcount), C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold..installed_text..C.reset, yelbold.."("..pkg.votes..")"..C.reset)
                 else
