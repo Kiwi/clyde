@@ -275,9 +275,7 @@ function installpkg( target )
         pkgdir = builddir.."/"..target.."/"..target
     end
 
-    local pkgfiles  = {}
-    local toinstall = {}
-
+    local pkgfiles = {}
     for file in lfs.dir( pkgdir ) do
         if ( file:match( "[.]pkg[.]tar[.]%az$" ) and
              not file:match( "[.]src[.]pkg[.]tar[.]%az$" )) then
@@ -285,14 +283,19 @@ function installpkg( target )
         end
     end
 
-    if table.maxn( pkgfiles ) == 0 then
+    local maxn = table.maxn( pkgfiles )
+    if maxn == 0 then
         eprintf( "LOG_ERROR", "Could not find a built package in %s.",
                  pkgdir )
         util.cleanup( 1 )
     end
 
     local function pkg_ver ( pkgpath )
-        local pkg = alpm.pkg_load( pkgpath, false )
+        local pkg, retcode = alpm.pkg_load( pkgpath, false )
+        if not retcode or retcode ~= 0 then
+            error( "Failed to load package file:\n" .. pkgpath .. "\n"
+                   .. "ALPM Error: " .. alpm.strerrorlast())
+        end
         return pkg:pkg_get_version()
     end
 
@@ -300,11 +303,8 @@ function installpkg( target )
         return alpm.pkg_vercmp( pkg_ver( left ), pkg_ver( right ))
     end
 
-    table.sort( pkgfiles, by_version )
-    local pkgfile = pkgfiles[ table.maxn( pkgfiles ) ]
-
-    local ret = upgrade.main({ pkgfile })
-    if (ret ~= 0) then
-        util.cleanup(ret)
-    end
+    table.sort( pkgfiles, by_version ) -- highest version should be last now
+    local ret = upgrade.main({ pkgfiles[ maxn ] }) -- expects a table as arg
+    if ( ret ~= 0 ) then util.cleanup( ret ) end
+    return
 end
