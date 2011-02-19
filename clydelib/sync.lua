@@ -325,6 +325,14 @@ function sync_search(syncs, targets, shownumbers, install)
             return ""
         end
     end
+    local function get_installed_string_for(pkg_name, pkg_version)
+        local installed_version = (localdb:db_get_pkg(pkg_name)):pkg_get_version()
+        if (alpm.pkg_vercmp(installed_version, pkg_version) ~= 0) then
+            return "[" .. installed_version .. " installed]"
+        else
+            return "[installed]"
+        end
+    end
 
     local packages = {}
     local pkgcache = localdb:db_get_pkgcache()
@@ -347,17 +355,19 @@ function sync_search(syncs, targets, shownumbers, install)
                 found = true
             end
 
-
-
             for i, pkg in ipairs(ret) do
                 pkgcount = pkgcount + 1
                 pkgnames[pkgcount] = pkg:pkg_get_name()
-                --TODO: show versions if different
+
                 if (not config.quiet) then
                     local dbcolor = dbcolors[db:db_get_name()] or C.magb
-                   -- if (localdb:db_get_pkg(pkg:pkg_get_name())) then
-                   if (packages[pkg:pkg_get_name()]) then
-                        printf("%s%s%s %s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold.."[installed]"..C.reset)
+
+                    if (packages[pkg:pkg_get_name()]) then
+                        local installed_text =
+                                get_installed_string_for(pkg:pkg_get_name(),
+                                                         pkg:pkg_get_version())
+
+                        printf("%s%s%s %s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold..installed_text..C.reset)
                     else
                         printf("%s%s%s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
                     end
@@ -438,10 +448,12 @@ function sync_search(syncs, targets, shownumbers, install)
         for i, pkg in ipairs(sortedpkgs) do
             pkgcount = pkgcount + 1
             pkgnames[pkgcount] = pkg.name
-            --TODO: same as above
+
             if (not config.quiet) then
                 if (localdb:db_get_pkg(pkg.name)) then
-                    printf("%s%s%s %s %s %s\n    ", numerize(pkgcount), C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."[installed]"..C.reset, yelbold.."("..pkg.votes..")"..C.reset)
+                    local installed_text = get_installed_string_for(pkg.name, pkg.version)
+
+                    printf("%s%s%s %s %s %s\n    ", numerize(pkgcount), C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold..installed_text..C.reset, yelbold.."("..pkg.votes..")"..C.reset)
                 else
                     printf("%s%s%s %s %s\n    ", numerize(pkgcount), C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."("..pkg.votes..")"..C.reset)
                 end
