@@ -281,15 +281,22 @@ function customizepkg ( pkgname, pkgdir )
     end
 end
 
-function makepkg ( target, mkpkgopts )
+function makepkg ( target )
+    -- config.mkpkgopts don't seem to get set anywhere
+    -- for now it is safe to assume they are empty...
+    local cmdlineopts = table.concat( config.mkpkgopts, " " )
+
     local oldwd = lfs.currentdir()
     assert( lfs.chdir( target ))
 
     local user = get_builduser()
     local maker
 
+    -- We assume we are being run as root but whether the "build user"
+    -- is root or not is important...
     if (user == "root") then
         maker = function ()
+            -- Try to warn people away from running makepkg as root...
             printf( C.redb("==> ")
             .. C.bright( C.onred( "Running makepkg as root is a bad idea!" )))
             print("")
@@ -299,25 +306,30 @@ function makepkg ( target, mkpkgopts )
             local response = noyes( C.redb("==> ")
                                 .. C.bright("Continue anyway?"))
             if ( response )  then
-                return os.execute("makepkg -f --asroot "..mkpkgopts)
+                return os.execute("makepkg -f --asroot "..cmdlineopts)
             else
                 error( "Build aborted" )
             end
         end
     else
+        -- Since we are already root we can use su to switch users...
         maker = function ()
-            return os.execute("su "..user.." -c 'makepkg -f' "..mkpkgopts)
+            return os.execute("su "..user.." -c 'makepkg -f' "..cmdlineopts)
         end
     end
 
-    local success, err = pcall( function ()
-                                    if maker() ~= 0 then
-                                        error( "Build failed" )
-                                    else
-                                        return true
-                                    end
-                                end )
-    lfs.chdir( oldwd )
+    -- A simple wrapper function to check makepkg's return code.
+    local function wrapmaker ()
+        local ret = maker()
+        if ret ~= 0 then
+            error( "Build failed. makepkg returned " .. ret )
+        else
+            return true
+        end
+    end
+
+    local success, err = pcall( wrapmaker )
+    lfs.chdir( oldwd ) -- always chdir back
 
     if not success then
         eprintf( "LOG_ERROR", "%s\n", err )

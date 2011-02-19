@@ -1068,18 +1068,11 @@ function getpkgbuild(targets)
 end
 
 local function aur_install(targets)
-    local mkpkgopts = table.concat(config.mkpkgopts)
     local provided = {}
     local needs = {}
     local caninstall = {}
     local needsdeps = {}
     updateprovided(provided)
-
---TODO use memonization to improve performance
-
-    local memodepends = {}
-    local memomakedepends = {}
-
 
     getalldeps(targets, needs, needsdeps, caninstall, provided)
 
@@ -1136,7 +1129,7 @@ local function aur_install(targets)
                     if not config.noconfirm then
                         aur.customizepkg(pkg, pkgdir)
                     end
-                    aur.makepkg(pkgdir, mkpkgopts)
+                    aur.makepkg(pkgdir)
                     aur.installpkg(pkg)
 
                     installed = installed + 1
