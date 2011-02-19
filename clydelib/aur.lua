@@ -43,6 +43,16 @@ function pkgbuilduri ( pkgname )
     return string.format( PBURIFMT, pkgname, pkgname )
 end
 
+-- Create a URI for RPC calls
+local VALID_RPC_METHOD = { search = true, info = true, msearch = true }
+function rpcuri ( method, arg )
+    if not method or not VALID_RPC_METHOD[ method ] then
+        error( method .. " is not a valid AUR RPC method" )
+    end
+
+    return AURURI .. "/rpc.php?type=" .. method .. "&arg=" .. arg
+end
+
 function get_builduser()
     return config.op_s_build_user or os.getenv("SUDO_USER") or "root"
 end
@@ -93,6 +103,59 @@ function get_content_length ( uri )
     if c ~= 200 then return nil
     else return h['content-length'] end
 end
+
+-- RPC -----------------------------------------------------------------------
+
+local NEWKEYNAME_FOR = { Description = "desc",
+                         NumVotes    = "votes",
+                         CategoryID  = "category",
+                         LocationID  = "location",
+                         OutOfDate   = "outdated" }
+
+local function aur_rpc_keyname ( key )
+    return NEWKEYNAME_FOR[ key ] or key:lower()
+end
+
+function rpc_info ( name )
+    local url    = rpcuri( "info", name )
+    local chunks = {}
+    local ret, code = http.request { url    = url,
+                                     create = create_socket,
+                                     sink   = ltn12.sink.table( chunks ) }
+    if not ret or code ~= 200 then
+        error( "HTTP request for info RPC failed: " .. code )
+    end
+
+    local jsontxt = table.concat( chunks, "" )
+
+    local keyname, in_results, results = "", false, {}
+    local parser = yajl.parser {
+        events = { open_object = function ( events )
+                                     if keyname == "results" then
+                                         in_results = true
+                                     end
+                                 end,
+                   object_key  = function ( events, name )
+                                     keyname = aur_rpc_keyname( name )
+                                 end,
+                   value       = function ( events, value, type )
+                                     if keyname == "type" and
+                                         value == "error" then
+                                         error( "AUR info RPC failed" )
+                                     end
+                                     if not in_results then return end
+                                     if keyname == "outdated" then
+                                         value = ( value == "1" )
+                                     end
+                                     results[ keyname ] = value
+                                 end
+          }}
+
+    if not pcall( parser, jsontxt ) then return nil end
+    return results
+end
+
+------------------------------------------------------------------------------
 
 function download ( pkgname, destdir )
     local pkgfile = string.format( "%s/%s.src.tar.gz", destdir, pkgname )
