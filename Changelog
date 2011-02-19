@@ -8,6 +8,21 @@ Changelog -*- org -*-
          |___/                                      |___/           
 
 
+* Version 0.03.13 [2011-02-19 Sat]
+
+** AUR Sysupgrade Is ... Upgraded
+
+Thanks to RamsesDeNorre IgnorePkg will work properly when performing
+a sysupgrade on AUR packages.
+
+When you run sysupgrade for AUR packages it should also look a
+little nicer. Now you can see what packages are being checked.
+
+** Multiple Built Packages                                              :BUG:
+
+Multiple package files in the same build directory for an AUR package
+would cause a bug.  Fixed thanks to RamsesDeNorre's patch.
+
 * Version 0.03.12 [2011-02-14 Mon]
 
 ** Strange Clyde Crash                                                  :BUG:
