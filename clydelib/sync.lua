@@ -327,11 +327,11 @@ function sync_search(syncs, targets, shownumbers, install)
     end
     local function get_installed_string_for(pkg_name, pkg_version)
         local installed_version = (localdb:db_get_pkg(pkg_name)):pkg_get_version()
-        local installed_string = "[installed]"
         if (alpm.pkg_vercmp(installed_version, pkg_version) ~= 0) then
-            installed_string = "[" .. installed_version .. " installed]"
+            return "[" .. installed_version .. " installed]"
+        else
+            return "[installed]"
         end
-        return installed_string
     end
 
     local packages = {}
