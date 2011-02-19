@@ -1166,59 +1166,74 @@ local function get_ignore_pkgs()
     local alpm_ignore_pkgs = alpm.option_get_ignorepkgs()
     local ignore_pkgs = {}
 
-    for _,pkg in ipairs(alpm_ignore_pkgs) do
+    for i, pkg in ipairs(alpm_ignore_pkgs) do
         ignore_pkgs[pkg] = true
     end
 
     return ignore_pkgs
 end
 
-local function trans_aurupgrade(targets)
-    local pkgcache = db_local:db_get_pkgcache()
-    local foreign = {}
-    local possibleaurpkgs = {}
-    local aurpkgs = {}
-    local len
-    local ignore_pkgs = get_ignore_pkgs()
+local function find_installed_aur ()
+    -- Gather a list of packages which aren't available from our repos...
+    local foreign_count, foreign_pkgs = 0, {}
+    local is_ignorepkg = get_ignore_pkgs()
 
-    for i, pkg in ipairs (pkgcache) do
+    for i, pkg in ipairs( db_local:db_get_pkgcache()) do
         local name = pkg:pkg_get_name()
 
-        if (not pacmaninstallable(name) and not ignore_pkgs[name]) then
-            tblinsert(foreign, {name = name; version = pkg:pkg_get_version()})
-            possibleaurpkgs[name] = true
+        if not is_ignorepkg[name] and not pacmaninstallable(name) then
+            local foreigner = { name = name; version = pkg:pkg_get_version() }
+            table.insert( foreign_pkgs, foreigner )
+            foreign_count = foreign_count + 1
         end
     end
 
-    printf(C.blub("::")..C.bright(" Synchronizing AUR database...\n"))
-    local count = 0
-    for i, pkg in ipairs(foreign) do
-        local message = string.format(" aur%s%3.0f/%3.0f", (" "):rep(20), i, #foreign)
-        printf("\r%s", message)
-        len = #message
-        repeat
-        count = count + 1
-        local infourl = aururl..aurmethod.info.."arg="..url.escape(pkg.name)
-        local inforesults = aur.getgzip(infourl)
-        callback.fill_progress(math.floor(count*100/#foreign), math.ceil(count*100/#foreign), util.getcols() - len)
-        if (not inforesults) then
-            break
-        end
+    -- If the version on AUR is > our installed version get ready
+    -- to update the package from AUR...
 
-        local jsonresults = yajl.to_value(inforesults) or {}
-
-        if (type(jsonresults.results == "table")) then
-            if jsonresults.results.Name then
-                if possibleaurpkgs[jsonresults.results.Name] then
-                    aurpkgs[pkg.name] = jsonresults.results.Version
-                    if (alpm.pkg_vercmp(jsonresults.results.Version, pkg.version) == 1) then
-                        tblinsert(targets, pkg.name)
-                    end
-                end
-            end
-        end
-        until 1
+    local function aur_version ( pkgname )
+        local pkginfo = aur.rpc_info( pkgname )
+        if not pkginfo then return nil
+        else return pkginfo.version end
     end
+
+    -- Loop through the packages in alphabetical order...
+    table.sort( foreign_pkgs,
+                function ( left, right )
+                    return left.name < right.name
+                end )
+
+    print( C.blub("::") .. C.bright(" Identifying AUR packages..."))
+
+    local aurpkgs = {}
+    for i, foreigner in ipairs( foreign_pkgs ) do
+        local name, version = foreigner.name, foreigner.version
+
+        -- Display the progress bar with package name...
+        local dispname = foreigner.name
+        if #dispname > 22 then
+            dispname = string.sub( dispname, 1, 19 )
+            dispname = dispname .. "..."
+        end
+
+        local message = string.format( "\r %-23s%3.0f/%3.0f",
+                                       dispname, i, foreign_count )
+        io.write( message )
+        callback.fill_progress( math.floor( i*100/foreign_count ),
+                                math.ceil( i*100/foreign_count ),
+                                util.getcols() - #message )
+
+        -- If a newer version is on the AUR, then add it to our list
+        local aurver = aur_version( name )
+        if aurver and alpm.pkg_vercmp( aurver, version ) > 0 then
+            table.insert( aurpkgs, name )
+        end
+    end
+
+    print( C.blub("  -> ") .. C.bright
+       .. "Identified " .. #aurpkgs .. " AUR packages." .. C.reset )
+
+    return aurpkgs
 end
 
 local function sync_trans(targets)
@@ -1252,7 +1267,7 @@ local function sync_trans(targets)
 
         if (config.op_s_upgrade_aur) then
             config.op_s_upgrade = 0
-            trans_aurupgrade(aurpkgs)
+            aurpkgs = find_installed_aur()
             targets = aurpkgs
         end
     else
