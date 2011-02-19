@@ -375,7 +375,7 @@ function installpkg( target )
     end
 
     local function by_version ( left, right )
-        return alpm.pkg_vercmp( pkg_ver( left ), pkg_ver( right ))
+        return alpm.pkg_vercmp( pkg_ver( left ), pkg_ver( right )) < 0
     end
 
     table.sort( pkgfiles, by_version ) -- highest version should be last now
