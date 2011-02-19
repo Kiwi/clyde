@@ -325,6 +325,11 @@ rekado:
   * Patch to override the build directory where AUR source packages are
     built. Adds the --builddir option for -S.
 
+RamsesDeNorre:
+
+  * Bugfix for package file sorting after building a package.
+  * Add IgnorePkg support for AUR package searches.
+
 LICENSE
 -------
 
