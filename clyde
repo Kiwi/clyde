@@ -963,6 +963,67 @@ local function parseconfig(file)
     return _parseconfig(file, nil, nil)
 end
 
+-- Offer to install packages in the package_names list
+-- Returns the names of packages they want to install.
+function install_numprompt ( package_names )
+    bars = C.yelb("==>")
+    printf("\n%s %s\n%s %s\n",
+           bars,
+           C.bright("Enter #'s (separated by blanks) of packages "
+                    .. "to be installed"),
+           bars, C.bright(("-"):rep(60)), bars )
+
+    local function ask_package_nums ( maxnum )
+        io.write( bars .. " " )
+        local nums_choice = io.read()
+
+        if nums_choice == "" then return nil end
+
+        input_numbers = {}
+        for num in nums_choice:gmatch( "(%S+)" ) do
+            if num:match( "%D" ) then
+                error( "Invalid input", 0 )
+            else
+                num = tonumber( num )
+                if ( num < 1 or num > maxnum ) then
+                    error( "Out of range", 0 )
+                end
+                table.insert( input_numbers, num )
+            end
+        end
+
+        return input_numbers
+    end
+
+    local install_me = {}
+    local max        = table.maxn( package_names )
+    while ( true ) do
+        local success, answer
+            = pcall( ask_package_nums, max )
+
+        if ( success ) then
+            if ( answer ) then
+                for i, num in ipairs( answer ) do
+                    table.insert( install_me, package_names[num] )
+                end
+            else
+                print( "Aborting." )
+            end
+            break
+        elseif ( answer == "Invalid input" ) then
+            print( "Please enter only digits and/or whitespace." )
+        elseif ( answer == "Out of range" ) then
+            print( "Package numbers must be between 1 and "
+                   .. max .. "." )
+        else
+            -- Rethrow an unknown error.
+            error( answer, 0 )
+        end
+    end
+
+    return install_me
+end
+
 function main()
     local ret = 0
 
@@ -1050,47 +1111,46 @@ function main()
         ['PM_OP_GETPKG'] = function() return sync.getpkgbuild(pm_targets) end;
     }
 
-    local install = {}
     local ran = false
     if (config.op ~= "PM_OP_MAIN") then
          ret = lookuptbl[config.op]()
          ran = true
     elseif next(pm_targets) then
-        local syncdb = alpm.option_get_syncdbs()
-        sync.sync_search(syncdb, pm_targets, true, install)
-        if (next(install)) then
-            if (myuid > 0) then
-                -- See whether sudo (preferable) or su exist
-                local sucmds = { { file   = "/usr/bin/sudo",
-                                   prefix = "%s sh -c" },
-                                 { file   = "/bin/su",
-                                   prefix = "%s -c" }, }
-                local prefix
-                for i, sucmd in ipairs( sucmds ) do
-                    -- Cannot use io.open because sudo doesn't give
-                    -- read access to anyone.
-                    if lfs.attributes( sucmd.file ) then
-                        prefix = string.format( sucmd.prefix,
-                                                sucmd.file )
-                        break
-                    end
-                end
+        local found_names = sync.sync_search( pm_targets, true )
+        local install     = install_numprompt( found_names )
 
-                if not prefix then
-                    eprintf( "LOG_ERROR",
-                             "neither sudo nor su are installed, cannot "
-                                 .. "automatically install search results" )
-                    os.exit( 1 )
+        if not next( install ) then return 1 end
+        if (myuid > 0) then
+            -- See whether sudo (preferable) or su exist
+            local sucmds = { { file   = "/usr/bin/sudo",
+                               prefix = "%s sh -c" },
+                             { file   = "/bin/su",
+                               prefix = "%s -c" }, }
+            local prefix
+            for i, sucmd in ipairs( sucmds ) do
+                -- Cannot use io.open because sudo doesn't give
+                -- read access to anyone.
+                if lfs.attributes( sucmd.file ) then
+                    prefix = string.format( sucmd.prefix,
+                                            sucmd.file )
+                    break
                 end
-
-                local cmd = string.format( "%s '%s -S %s'",
-                                           prefix, arg[0],
-                                           table.concat( install, " " ))
-                return os.execute(cmd)
-            else
-                ret = sync.main(install)
-                return ret
             end
+
+            if not prefix then
+                eprintf( "LOG_ERROR",
+                         "neither sudo nor su are installed, cannot "
+                             .. "automatically install search results" )
+                os.exit( 1 )
+            end
+
+            local cmd = string.format( "%s '%s -S %s'",
+                                       prefix, arg[0],
+                                       table.concat( install, " " ))
+            return os.execute(cmd)
+        else
+            ret = sync.main(install)
+            return ret
         end
     else
         eprintf("LOG_ERROR", g("no operation specified (use -h for help)\n"))

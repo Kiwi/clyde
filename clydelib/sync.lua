@@ -305,227 +305,227 @@ local function sync_synctree(level, syncs)
     return success > 0 and 1 or 0
 end
 
-function sync_search(syncs, targets, shownumbers, install)
+-- SYNC SEARCH ---------------------------------------------------------------
+
+-- These little helper functions are used by print_fancy_match. Their
+-- results are gathered in a table, so if they don't want to be printed
+-- they return nil.
+
+-- Helper function for installed_tag().
+local function get_installed_version ( pkg_name )
+    local pkg = alpm.option_get_localdb():db_get_pkg( pkg_name )
+    if pkg then return pkg:pkg_get_version()
+    else return nil
+    end
+end
+
+-- Enbolden the periods and hyphen in a version string.
+local function color_version( verstr, color )
+    local verstr = color( verstr )
+    verstr = verstr:gsub( "-(%d+)\27%[0m$",
+                          function ( pkgrel )
+                              -- I tried to use C.dim here but GNU Screen
+                              -- is buggy and thought it was underlined...
+                              -- TODO: patch GNU Screen?
+                              return C.bright .. "-" .. C.reset
+                                  .. color( pkgrel )
+                          end )
+    verstr = verstr:gsub( "%.", C.bright( "." ) .. color )
+    return verstr
+end
+
+-- Returns a tag (string) to print showing if a pkg is installed and
+-- if a different version is installed. If the pkg is not installed,
+-- returns nil.
+local function installed_tag(pkg_name, pkg_version)
+    local installed_version = get_installed_version( pkg_name )
+    if not installed_version then return nil end
+
+    -- If the found version is different from installed version,
+    -- print the installed version.
+    local tagtext = ""
+    if alpm.pkg_vercmp( installed_version, pkg_version ) ~= 0 then
+        tagtext = color_version( installed_version, C.yel ) .. " "
+    end
+
+    tagtext = tagtext .. C.yel( "installed" )
+
+    -- Put a space in-between ourself and previous text on the line.
+    return C.yelb( "[" ) .. tagtext .. C.yelb( "]" )
+end
+
+-- Returns the size of the download or nil if N/A.
+local function download_size_tag ( size )
+    if size and config.showsize then
+        if size > (1024 * 1024) then
+            return string.format( "[%.2f MB]", size / (1024 * 1024))
+        elseif size > 1024 then
+            return string.format( "[%.2f KB]", size / 1024 )
+        else
+            return string.format( "[%d B]", size )
+        end
+    else
+        return nil
+    end
+end
+
+-- Returns the colorized group list, as a string to be printed
+local function groups_tag ( group_names )
+    if not group_names or not next( group_names ) then return nil end
+    return C.blub( "(" ) .. C.blu( table.concat( group_names, " " )) .. C.blub( ")" )
+end
+
+-- Obviously, this only works for AUR packages...
+local function votes_tag ( votes )
+    if votes then
+        return C.yelb( "(" ) .. C.yel( votes ) .. C.yelb( ")" )
+    else
+        return nil
+    end
+end
+
+local print_counter = 1
+
+-- Prints a fancy colorized entry for a search match.
+-- TODO: shownumbers is kind of funky, better design?
+local function print_fancy_match ( match, shownumbers )
     local dbcolors = {
         extra = C.greb;
         core = C.redb;
         community = C.magb;
         testing = C.yelb;
+        aur = C.cyab;
     }
-    local yelbold = C.yel..C.onblab..C.reverse
-    local found = false
-    local ret
-    local localdb = alpm.option_get_localdb()
-    local pkgcount = 0
-    local pkgnames = {}
-    local function numerize(count)
-        if (shownumbers) then
-            return yelbold..count..C.reset.." "
-        else
-            return ""
-        end
-    end
-    local function get_installed_string_for(pkg_name, pkg_version)
-        local installed_version = (localdb:db_get_pkg(pkg_name)):pkg_get_version()
-        if (alpm.pkg_vercmp(installed_version, pkg_version) ~= 0) then
-            return "[" .. installed_version .. " installed]"
-        else
-            return "[installed]"
-        end
+
+    local words = {}
+
+    local function revyel( str )
+        return C.yel .. C.onblab .. C.reverse .. str .. C.reset
     end
 
-    local packages = {}
-    local pkgcache = localdb:db_get_pkgcache()
-    for i, pkg in ipairs(pkgcache) do
-        packages[pkg:pkg_get_name()] = true
+    if shownumbers then
+        io.write( print_counter .. " " )
+        print_counter = print_counter + 1
     end
+    
+    -- Our package name is changed to dbname/pkgname
+    local dbcolor  = dbcolors[ match.dbname ] or C.bright
+    local longname = dbcolor .. match.dbname .. C.reset
+        .. "/" .. C.whib(match.name)
+    table.insert( words, longname )
 
-    if (not config.op_s_search_aur_only) then
-    for i, db in ipairs(syncs) do
-        repeat
-            if (next(targets)) then
-                ret = db:db_search(targets)
-            else
-                ret = db:db_get_pkgcache()
-            end
+    -- Package version is the next word
+    table.insert( words, color_version( match.version, C.gre ))
 
-            if (not next(ret)) then
-                break
-            else
-                found = true
-            end
+    -- Any of the following words might be nil...
+    table.insert( words, installed_tag( match.name, match.version ))
+    table.insert( words, download_size_tag( tonumber( match.size )))
+    table.insert( words, groups_tag( match.groups ))
+    table.insert( words, votes_tag( match.votes ))
 
-            for i, pkg in ipairs(ret) do
-                pkgcount = pkgcount + 1
-                pkgnames[pkgcount] = pkg:pkg_get_name()
+    print( table.concat( words, " " ))
+    io.write( "    " )
+    indentprint( match.desc, 3 )
+    print()
 
-                if (not config.quiet) then
-                    local dbcolor = dbcolors[db:db_get_name()] or C.magb
-
-                    if (packages[pkg:pkg_get_name()]) then
-                        local installed_text =
-                                get_installed_string_for(pkg:pkg_get_name(),
-                                                         pkg:pkg_get_version())
-
-                        printf("%s%s%s %s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold..installed_text..C.reset)
-                    else
-                        printf("%s%s%s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
-                    end
-                else
-                    printf("%s", C.bright(pkg:pkg_get_name()))
-                end
-
-                if (not config.quiet and config.showsize) then
-                    local mbsize = pkg:pkg_get_size() / (1024 * 1024)
-
-                    printf(" [%.2f MB]", mbsize)
-                end
-
-                if (not config.quiet) then
-                    local grp = pkg:pkg_get_groups()
-                    if (next(grp)) then
-                        printf(C.blub.." (")
-                        for i, group in ipairs(grp) do
-                            printf("%s", group)
-                            if (i < #grp) then
-                                printf(" ")
-                            end
-                        end
-                        printf(")"..C.reset)
-                    end
-
-                    printf("\n    ")
-                    indentprint(C.italic(pkg:pkg_get_desc()), 3)
-                end
-                printf("\n")
-            end
-
-        until 1
-    end
-    end
-
-    if (next(targets) and (not config.op_s_search_repos_only)) then
-        if (#targets[1] < 2) then
-            lprintf("LOG_WARNING", "First query arg too small to search AUR\n")
-            return (not found)
-        end
-
-        local pattern
-        -- the following gets rid of some common regular expressions
-        if ( targets[1]:find("^^") or targets[1]:find("$$") ) then
-            lprintf("LOG_DEBUG", "regex detected\n")
-
-            -- escape other regexp special chars so they are taken literally
-            pattern = targets[1]:gsub("([().%+*?[-])", "%%%1")
-            targets[1] = targets[1]:gsub("^^", "")
-            targets[1] = targets[1]:gsub("$$", "")
-        end
-        local searchurl = aururl..aurmethod.search.."arg="..url.escape(targets[1])
-        local aurresults = aur.getgzip(searchurl)
-        if (not aurresults) then
-            return (not found)
-        end
-        local jsonresults = yajl.to_value(aurresults) or {}
-
-        local aurpkgs = {}
-        if (type(jsonresults.results) ~= "table") then
-            jsonresults.results = {}
-        end
-        for k, v in pairs( jsonresults.results ) do
-            if ( not pattern or v.Name:find(pattern)
-                             or v.Description:find(pattern) ) then
-                aurpkgs[ v.Name ] = { name        = v.Name,
-                                      version     = v.Version,
-                                      description = v.Description,
-                                      votes       = v.NumVotes }
-            end
-        end
-        prune(aurpkgs, targets)
-        local sortedpkgs = sortaur(aurpkgs)
-        if (next(sortedpkgs)) then
-            found = true
-        end
-        for i, pkg in ipairs(sortedpkgs) do
-            pkgcount = pkgcount + 1
-            pkgnames[pkgcount] = pkg.name
-
-            if (not config.quiet) then
-                if (localdb:db_get_pkg(pkg.name)) then
-                    local installed_text = get_installed_string_for(pkg.name, pkg.version)
-
-                    printf("%s%s%s %s %s %s\n    ", numerize(pkgcount), C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold..installed_text..C.reset, yelbold.."("..pkg.votes..")"..C.reset)
-                else
-                    printf("%s%s%s %s %s\n    ", numerize(pkgcount), C.magb("aur/"), C.bright(pkg.name), C.greb(pkg.version), yelbold.."("..pkg.votes..")"..C.reset)
-                end
-                indentprint(C.italic(pkg.description), 3)
-                printf("\n")
-            else
-                printf("%s\n", C.bright(pkg.name))
-            end
-        end
-    end
-
-    if (shownumbers and found) then
-        bars = C.yelb("==>")
-        printf("%s %s\n%s %s\n",
-               bars,
-               C.bright("Enter #'s (separated by blanks) of packages "
-                        .. "to be installed"),
-               bars, C.bright(("-"):rep(60)), bars )
-
-        local function ask_package_nums ( maxnum )
-            io.write( bars .. " " )
-            local nums_choice = io.read()
-
-            if nums_choice == "" then return nil end
-
-            input_numbers = {}
-            for num in nums_choice:gmatch( "(%S+)" ) do
-                if num:match( "%D" ) then
-                    error( "Invalid input", 0 )
-                else
-                    num = tonumber( num )
-                    if ( num < 1 or num > maxnum ) then
-                        error( "Out of range", 0 )
-                    end
-                    table.insert( input_numbers, num )
-                end
-            end
-
-            return input_numbers
-        end
-
-        local max = table.maxn( pkgnames )
-        while ( true ) do
-            local success, answer
-                = pcall( ask_package_nums, max )
-
-            if ( success ) then
-                if ( answer ) then
-                    for i, num in ipairs( answer ) do
-                        table.insert( install, pkgnames[num] )
-                    end
-                else
-                    print( "Aborting." )
-                end
-                break
-            elseif ( answer == "Invalid input" ) then
-                print( "Please enter only digits and/or whitespace." )
-            elseif ( answer == "Out of range" ) then
-                print( "Package numbers must be between 1 and "
-                       .. max .. "." )
-            else
-                error( answer, 0 )
-            end
-        end
-    end
-    if found then
-        return 0
-    else
-        return 1
-    end
---    return (not found)
+    return
 end
+
+local function sync_search_alpm ( targets, printcb )
+    local found_names = {}
+    local syncsdbs = alpm.option_get_syncdbs()
+
+    for i, syncdb in ipairs( syncsdbs ) do
+        local matching_pkgs
+        if next( targets ) then
+            -- Let libalpm search for target strings
+            matching_pkgs = syncdb:db_search( targets )
+        else
+            -- If no query strings are given then print everything out
+            matching_pkgs = syncdb:db_get_pkgcache()
+        end
+        
+        for i, pkg in ipairs( matching_pkgs ) do
+            table.insert( found_names, pkg:pkg_get_name())
+            printcb { name    = pkg:pkg_get_name();
+                      version = pkg:pkg_get_version();
+                      desc    = pkg:pkg_get_desc();
+                      dbname  = syncdb:db_get_name();
+                      size    = pkg:pkg_get_size();
+                      groups  = pkg:pkg_get_groups() }
+        end
+    end
+
+    return found_names
+end
+
+local function sync_search_aur ( targets, printcb )
+    if not targets or #targets == 0 then return {} end
+
+    -- Check all of our target strings first and remove invalid ones...
+    local targets = targets -- copy it first
+    local i = 1
+    while i <= #targets do
+        local target = targets[i]
+        if #target < 2 then
+            lprintf("LOG_WARNING",
+                    "Query arg '%s' is too small to search AUR\n",
+                    target)
+            table.remove( targets, i )
+        else
+            i = i + 1
+        end
+    end
+
+    local found_names = {}
+    for i, query in ipairs( targets ) do
+        local matches = aur.rpc_search( query )
+        for name, info in pairs( matches ) do
+            table.insert( found_names, name )
+            printcb { name    = name;
+                      version = info.version;
+                      desc    = info.desc;
+                      votes   = info.votes;
+                      dbname  = "aur";
+                      groups  = nil }
+        end
+    end
+
+    return found_names
+end
+
+-- Searches for the given "targets" in ALPM and AUR. Returns a list of
+-- package names that were found.
+function sync_search ( targets, shownumbers )
+    local found_names = {}
+
+    local function print_dumb ( match )
+        print( C.bright( match.name ))
+    end
+
+    local function print_fancy ( match )
+        print_fancy_match( match, shownumbers )
+    end
+
+    local match_printcb = config.quiet and print_dumb or print_fancy
+
+    -- First we search the ALPM repos...
+    if not config.op_s_search_aur_only then
+        found_names = sync_search_alpm( targets, match_printcb )
+    end
+
+    -- Next we search the AUR...
+    if not config.op_s_search_repos_only then
+        local found_aur_names = sync_search_aur( targets, match_printcb )
+        for i, pkgname in ipairs( found_aur_names ) do
+            table.insert( found_names, pkgname )
+        end
+    end
+
+    return found_names
+end
+
+------------------------------------------------------------------------------
 
 local function sync_group(level, syncs, targets)
     if (targets and next(targets)) then
@@ -1505,7 +1505,8 @@ local function clyde_sync(targets)
     end
 
     if (config.op_s_search) then
-        return sync_search(sync_dbs, targets)
+        local found = sync_search( targets )
+        if #found > 0 then return 0 else return 1 end
     end
 
     if (config.group > 0) then
