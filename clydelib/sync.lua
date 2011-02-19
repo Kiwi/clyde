@@ -367,7 +367,7 @@ function sync_search(syncs, targets, shownumbers, install)
                                 get_installed_string_for(pkg:pkg_get_name(),
                                                          pkg:pkg_get_version())
 
-                        printf("%s%s%s %s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(repo_version), yelbold..installed_text..C.reset)
+                        printf("%s%s%s %s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()), yelbold..installed_text..C.reset)
                     else
                         printf("%s%s%s %s", numerize(pkgcount), dbcolor(db:db_get_name().."/"), C.bright(pkg:pkg_get_name()), C.greb(pkg:pkg_get_version()))
                     end
