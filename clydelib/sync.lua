@@ -10,6 +10,8 @@ local packages = require "clydelib.packages"
 local aur = require "clydelib.aur"
 local upgrade = require "clydelib.upgrade"
 local callback = require "clydelib.callback"
+local ui = require "clydelib.ui"
+local colorize_verstr = ui.colorize_verstr
 local rmrf = util.rmrf
 local makepath = util.makepath
 local eprintf = util.eprintf
@@ -259,21 +261,6 @@ local function get_installed_version ( pkg_name )
     end
 end
 
--- Enbolden the periods and hyphen in a version string.
-local function color_version( verstr, color )
-    local verstr = color( verstr )
-    verstr = verstr:gsub( "-(%d+)\27%[0m$",
-                          function ( pkgrel )
-                              -- I tried to use C.dim here but GNU Screen
-                              -- is buggy and thought it was underlined...
-                              -- TODO: patch GNU Screen?
-                              return C.bright .. "-" .. C.reset
-                                  .. color( pkgrel )
-                          end )
-    verstr = verstr:gsub( "%.", C.bright( "." ) .. color )
-    return verstr
-end
-
 -- Returns a tag (string) to print showing if a pkg is installed and
 -- if a different version is installed. If the pkg is not installed,
 -- returns nil.
@@ -285,7 +272,7 @@ local function installed_tag(pkg_name, pkg_version)
     -- print the installed version.
     local tagtext = ""
     if alpm.pkg_vercmp( installed_version, pkg_version ) ~= 0 then
-        tagtext = color_version( installed_version, C.yel ) .. " "
+        tagtext = colorize_verstr( installed_version, C.yel ) .. " "
     end
 
     tagtext = tagtext .. C.yel( "installed" )
@@ -355,7 +342,7 @@ local function print_fancy_match ( match, shownumbers )
     table.insert( words, longname )
 
     -- Package version is the next word
-    table.insert( words, color_version( match.version, C.gre ))
+    table.insert( words, colorize_verstr( match.version, C.gre ))
 
     -- Any of the following words might be nil...
     table.insert( words, installed_tag( match.name, match.version ))

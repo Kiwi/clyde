@@ -3,6 +3,7 @@ local lfs = require "lfs"
 local util = require "clydelib.util"
 local utilcore = require "clydelib.utilcore"
 local aur = require "clydelib.aur"
+local ui = require "clydelib.ui"
 local printf = util.printf
 local eprintf = util.eprintf
 local basename = util.basename
@@ -88,8 +89,9 @@ function dump_pkg_full(pkg, level)
         requiredby = pkg:pkg_compute_requiredby()
     end
     string_display(C.bright("Name           :"), C.bright(pkg:pkg_get_name()), bl)
-    string_display(C.bright("Version        :"), C.greb(pkg:pkg_get_version()), bl)
-    string_display(C.bright("URL            :"), C.cyab(pkg:pkg_get_url()), bl)
+    local verstr = ui.colorize_verstr( pkg:pkg_get_version(), C.gre )
+    string_display(C.bright("Version        :"), verstr, bl)
+    string_display(C.bright("URL            :"), C.cya(pkg:pkg_get_url()), bl)
     list_display(C.bright("Licenses       :"), pkg:pkg_get_licenses(), false, 0, bl - 1)
     list_display(C.bright("Groups         :"), pkg:pkg_get_groups(), false, 0, bl - 1)
     list_display(C.bright("Provides       :"), pkg:pkg_get_provides(), false, 0, bl - 1)
@@ -177,8 +179,11 @@ pkg)
     end
 
     string_display(C.bright("Name           :"), C.bright(pkg), bl)
-    string_display(C.bright("Version        :"), C.greb(gpa("pkgver").."-"..gpa("pkgrel")), bl)
-    string_display(C.bright("URL            :"), C.cyab(gpa("url")))
+
+    local verstr = gpa("pkgver") .. "-" .. gpa("pkgrel")
+    verstr = ui.colorize_verstr( verstr, C.gre )
+    string_display(C.bright("Version        :"), verstr, bl)
+    string_display(C.bright("URL            :"), C.cya(gpa("url")))
     list_display(C.bright("Licenses       :"), gpat("license"), false, 0, bl - 1)
     list_display(C.bright("Groups         :"), gpat("groups"), false, 0, bl - 1)
     list_display(C.bright("Provides       :"), gpat("provides"), false, 0, bl - 1)
@@ -197,7 +202,7 @@ function dump_pkg_sync_aur(pkg)
     if (pkg == nil) then
         return
     end
-    string_display(C.bright("Repository     :"), C.magb("aur"))
+    string_display(C.bright("Repository     :"), C.cyab("aur"))
     dump_pkg_full_aur(pkg, -1)
 end
 
