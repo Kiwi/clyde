@@ -486,7 +486,7 @@ function display_targets(pkgs, install)
     end
 end
 
-function display_aur_targets(pkgs, versions, install)
+function display_aur_targets(pkgs, install)
     local targets = {}
     local localdb = alpm.option_get_localdb()
 
@@ -496,13 +496,13 @@ function display_aur_targets(pkgs, versions, install)
 
     printf("\n")
     for i, pkg in ipairs(pkgs) do
-        local local_pkg = localdb:db_get_pkg(pkg)
+        local local_pkg = localdb:db_get_pkg(pkg.name)
 
         if (install and local_pkg ~= nil) then
-            str = string.format("%s: %s -> %s", pkg,
-                                local_pkg:pkg_get_version(), versions[pkg])
+            str = string.format("%s: %s -> %s", pkg.name,
+                                local_pkg:pkg_get_version(), pkg.version)
         else
-            str = string.format("%s: %s", pkg, versions[pkg])
+            str = string.format("%s: %s", pkg.name, pkg.version)
         end
 
         tblinsert(targets, str)
