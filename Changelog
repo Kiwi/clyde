@@ -8,6 +8,29 @@ Changelog -*- org -*-
          |___/                                      |___/           
 
 
+* Version 0.03.14 [2011-02-20 Sun]
+
+** Display versions when searching
+
+Thanks to a patch from RamsesDeNorre, now when you search for a package
+and it is already installed a version is printed if the search result
+does not match your installed version.
+
+** Color scheme change
+
+I (juster) changed the color scheme for search results. I find it to
+be less obnoxious. Let me know if you hate it. The colors for package
+info was changed slightly to match the search results colors.
+
+** PKGDEST / custom package cache problems                              :BUG:
+
+A user could have a custom built package cache by exporting the
+PKGDEST environment variable or setting it in /etc/makepkg.conf. Clyde
+was acting buggy when it went searching for where the binary package file
+ended up.
+
+Reported by smferris. Thanks!
+
 * Version 0.03.13 [2011-02-19 Sat]
 
 ** AUR Sysupgrade Is ... Upgraded

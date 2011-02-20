@@ -2,7 +2,7 @@
 # Contributor: Daniel J Griffiths <ghost1227@archlinux.us>
 # Contributor: Justin Davis <jrcd83@gmail.com>
 pkgname='clyde'
-pkgver='0.03.13'
+pkgver='0.03.14'
 pkgrel='1'
 pkgdesc="Next-generation libalpm/makepkg wrapper."
 arch=('i686' 'x86_64')
