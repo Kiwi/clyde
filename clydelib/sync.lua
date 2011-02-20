@@ -58,66 +58,6 @@ local aurmethod = {
     ['msearch'] = "type=msearch&";
 }
 
-yajl.to_value = function (string)
-    local result
-    local stack = {
-        function(val) result = val end
-    }
-    local obj_key
-    local events = {
-        value = function(_, val)
-            stack[#stack](val)
-        end,
-        open_array = function()
-            local arr = {}
-            local idx = 1
-            stack[#stack](arr)
-            table.insert(stack, function(val)
-                    arr[idx] = val
-                    idx = idx + 1
-                    end)
-        end,
-        open_object = function()
-            local obj = {}
-            stack[#stack](obj)
-            table.insert(stack, function(val)
-                    obj[obj_key] = val
-                    end)
-        end,
-        object_key = function(_, val)
-            obj_key = val
-        end,
-        close = function()
-            stack[#stack] = nil
-        end,
-    }
-
-    yajl.parser({ events = events })(string)
-    return result
-end
-
-local function sortaur(tbl)
-    local stbl = {}
-    local i = 1
-    for k, v in pairs(tbl) do
-        stbl[i] = v
-        i = i + 1
-    end
-    tblsort(stbl, function(a, b)
-        return tbl[a.name].name < tbl[b.name].name end)
-    return stbl
-end
-
-local function prune(tbl, terms)
-    for k, t in pairs(tbl) do
-        for i, term in ipairs(terms) do
-            if (not t.description:lower():find(term:lower(), 1, true) and not t.name:lower():find(term:lower(), 1, true)) then
-                tbl[k] = nil
-            end
-        end
-    end
-end
-
 local function sync_cleandb(dbpath, keep_used)
     local dir = lfs.chdir(dbpath)
     local found = false
@@ -564,102 +504,104 @@ local function sync_group(level, syncs, targets)
     return 0
 end
 
-local function sync_info(syncs, targets)
-    local ret = 0
-    if (next(targets)) then
-        for i, target in ipairs(targets) do
-            local foundpkg = false
-            local slash = target:find("/")
-            local pkgstr
-            local repo
-            local dbmatch = false
-            local db
+-- SYNC INFO -----------------------------------------------------------------
 
-            if (slash) then
-                pkgstr = target:sub(slash + 1)
-                repo = target:sub(1, slash - 1)
-            end
+-- Find a database by its name.
+local function find_repodb ( reponame )
+    for i, dbobj in ipairs( alpm.option_get_syncdbs()) do
+        if dbobj:db_get_name() == reponame then
+            return dbobj
+        end
+    end
 
-            if (slash and repo ~= "aur") then
-                for i, database in ipairs(syncs) do
-                    if (repo == database:db_get_name()) then
-                        dbmatch = true
-                        db = database
-                        break
-                    end
-                end
+    local errfmt = g( "repository '%s' does not exist\n" )
+    error( string.format( errfmt, reponame ), 0 )
+end
 
-                if (not dbmatch) then
-                    eprintf("LOG_ERROR", g("repository '%s' does not exist\n"), repo)
-                    return 1
-                end
+local function sync_info_alpm ( package_name, repo_name )
+    local repo_name = repo_name
+    local package_object
 
-                local pkgcache = db:db_get_pkgcache()
-                for i, pkg in ipairs(pkgcache) do
-                    if (pkgstr == pkg:pkg_get_name()) then
-                        dump_pkg_sync(pkg, db:db_get_name())
-                        foundpkg = true
-                        break
-                    end
-                end
+    if repo_name then
+        -- A repository name was explicitly specified.
+        local repodb   = find_repodb( repo_name )
+        package_object = repodb:db_get_pkg( package_name )
 
-                if (not foundpkg) then
-                    eprintf("LOG_ERROR", g("package '%s' was not found in repository '%s'\n"), pkgstr, repo)
-                    ret = ret + 1
-                end
-            elseif repo ~= "aur" then
-                pkgstr = target
-                for i, db in ipairs(syncs) do
-                    local pkgcache = db:db_get_pkgcache()
-                    for i, pkg in ipairs(pkgcache) do
-                        if (pkg:pkg_get_name() == pkgstr) then
-                            dump_pkg_sync(pkg, db:db_get_name())
-                            foundpkg = true
-                            break
-                        end
-                    end
-                end
-            end
-
-            if (repo == "aur") then
-                target = pkgstr
-            end
-            local infourl
-            local inforesults
-            local jsonresults = {results = {}}
-            if (not foundpkg) then
-                infourl = aururl..aurmethod.info.."arg="..url.escape(target)
-                inforesults = aur.getgzip(infourl)
-                if (not inforesults) then
-                    return 1
-                end
-                jsonresults = yajl.to_value(inforesults) or {}
-
-                if (type(jsonresults.results) ~= "table") then
-                    jsonresults.results = {}
-                end
-            end
-
-            if (jsonresults.results.Name)then
-                packages.dump_pkg_sync_aur(target)
-            elseif (not foundpkg and repo ~= "aur") then
-                eprintf("LOG_ERROR", g("package '%s' was not found\n"), pkgstr)
-                ret = ret + 1
-            elseif (not foundpkg) then
-                eprintf("LOG_ERROR", "package '%s' was not found in AUR\n", pkgstr)
-                ret = ret + 1
-            end
+        if not package_object then
+            local errfmt = g("package '%s' was not found "                                    .. "in repository '%s'\n")
+            error( string.format( errfmt, package_name, repo_name ), 0 )
         end
     else
-        for i, db in ipairs(syncs) do
-            local pkgcache = db:db_get_pkgcache()
-            for i, pkg in ipairs(pkgcache) do
-                dump_pkg_sync(pkg, db:db_get_name())
+        for i, syncdb in ipairs( alpm.option_get_syncdbs()) do
+            package_object = syncdb:db_get_pkg( package_name )
+            if package_object then
+                repo_name = syncdb:db_get_name()
+                break
             end
         end
     end
-    return ret
+
+    if package_object then
+        dump_pkg_sync( package_object, repo_name )
+        return true
+    end
+
+    return false
 end
+
+local function sync_info_aur ( package_name )
+    local length = aur.get_content_length( aur.pkgbuilduri( package_name ))
+
+    -- length will be nil if PKGBUILD for that package does not exist
+    if length then
+        packages.dump_pkg_sync_aur( package_name )
+        return
+    end
+
+    error( string.format( "package '%s' was not found in the AUR\n",
+                          package_name ), 0 )
+end
+
+local function sync_info_target ( target )
+    -- If a repo name was given by using "reponame/pkgname" then
+    -- this limits our search to one DB or the AUR.
+    do
+        local reponame
+        reponame, pkgname = target:match( "^([^/]+)/(.*)$" )
+
+        if reponame and pkgname then
+            if reponame == "aur" then
+                return sync_info_aur( pkgname )
+            else
+                return sync_info_alpm( pkgname, reponame )
+            end
+        end
+    end
+
+    -- First we check the ALPM repositories
+    if sync_info_alpm( target ) then return end
+
+    -- Then we try the AUR. sync_info_aur throws an error if not found.
+    if pcall( sync_info_aur, target ) then return end
+    
+    error( string.format( g("package '%s' was not found\n"), target ), 0 )
+end
+
+local function sync_info ( targets )
+    local error_occurred = false
+
+    for i, target in ipairs( targets ) do
+        local success, err = pcall( sync_info_target, target )
+        if not success then
+            error_occurred = true
+            eprintf( "LOG_ERROR", err )
+        end
+    end
+
+    return error_occurred and 1 or 0
+end
+
+------------------------------------------------------------------------------
 
 local function sync_list(syncs, targets)
     ls = {}
@@ -1537,8 +1479,19 @@ local function clyde_sync(targets)
         return sync_group(config.group, sync_dbs, targets)
     end
 
-    if (config.op_s_info) then
-        return sync_info(sync_dbs, targets)
+    if config.op_s_info then
+        if next( targets ) then
+            return sync_info( targets )
+        else
+            -- If no targets were given... dump everything in alpm repos!!
+            for i, db in ipairs( sync_dbs ) do
+                local dbname = db:db_get_name()
+                for i, pkg in ipairs( db:db_get_pkgcache()) do
+                    dump_pkg_sync( pkg, dbname )
+                end
+            end
+            return 0
+        end
     end
 
     if (config.op_q_list) then
