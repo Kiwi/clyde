@@ -1199,6 +1199,7 @@ local function find_installed_aur ()
     print( C.blub("::") .. C.bright(" Identifying AUR packages..."))
 
     local aurpkgs = {}
+    local aurversions = {}
     for i, foreigner in ipairs( foreign_pkgs ) do
         local name, version = foreigner.name, foreigner.version
 
@@ -1220,13 +1221,14 @@ local function find_installed_aur ()
         local aurver = aur_version( name )
         if aurver and alpm.pkg_vercmp( aurver, version ) > 0 then
             table.insert( aurpkgs, name )
+            aurversions[name] = aurver
         end
     end
 
     print( C.blub("  -> ") .. C.bright
        .. "Identified " .. #aurpkgs .. " AUR packages." .. C.reset )
 
-    return aurpkgs
+    return aurpkgs, aurversions
 end
 
 local function sync_trans(targets)
@@ -1235,6 +1237,7 @@ local function sync_trans(targets)
     local transret
     local data = {}
     local aurpkgs = {}
+    local aurversions = {}
     local sync_dbs = alpm.option_get_syncdbs()
     local function transcleanup()
         if (trans_release() == -1) then
@@ -1260,7 +1263,7 @@ local function sync_trans(targets)
 
         if (config.op_s_upgrade_aur) then
             config.op_s_upgrade = 0
-            aurpkgs = find_installed_aur()
+            aurpkgs, aurversions = find_installed_aur()
             targets = aurpkgs
         end
     else
@@ -1323,6 +1326,7 @@ local function sync_trans(targets)
                         if (jsonresults.results.Name) then
                             found = true
                             tblinsert(aurpkgs, targ)
+                            aurversions[targ] = jsonresults.results.Version
                         end
 
                     end
@@ -1423,8 +1427,7 @@ local function sync_trans(targets)
         end
 
         printf(C.greb("\n==>")..C.bright(" Installing the following packages from AUR\n"))
-        local str = string.format(g("Targets (%d):"), #needs)
-        list_display(str, needs)
+        util.display_aur_targets(aurpkgs, aurversions, true)
     else
         display_alpm_targets(packages)
     end

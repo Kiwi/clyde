@@ -437,6 +437,7 @@ function display_targets(pkgs, install)
     local isize, dlsize, mbisize, mbdlsize = 0, 0, 0, 0
     local str
     local targets = {}
+    local localdb = alpm.option_get_localdb()
 
     if (not next(pkgs)) then
         return
@@ -446,12 +447,21 @@ function display_targets(pkgs, install)
     for i, pkg in ipairs(pkgs) do
         dlsize = pkg:pkg_download_size() + dlsize
         isize = pkg:pkg_get_isize() + isize
+        local current_pkg = localdb:db_get_pkg(pkg:pkg_get_name())
 
         if (config.showsize) then
             local mbsize = pkg:pkg_get_size() / (1024 * 1024)
-            str = string.format("%s-%s [%.2f MB]", pkg:pkg_get_name(), pkg:pkg_get_version(), mbsize)
+            if (install and current_pkg ~= nil) then
+                str = string.format("%s: %s -> %s [%.2f MB]", pkg:pkg_get_name(),
+                                    current_pkg:pkg_get_version(),
+                                    pkg:pkg_get_version(), mbsize)
+            else -- either we're not installing or there is no previous version
+                str = string.format("%s: %s [%.2f MB]", pkg:pkg_get_name(),
+                                    pkg:pkg_get_version(), mbsize)
+            end
         else
-            str = string.format("%s-%s", pkg:pkg_get_name(), pkg:pkg_get_version())
+            str = string.format("%s: %s -> %s", pkg:pkg_get_name(),
+                                pkg:pkg_get_version(), pkg:pkg_get_version())
         end
 
         tblinsert(targets, str)
@@ -473,6 +483,39 @@ function display_targets(pkgs, install)
         printf("\n")
 
         printf(g("Total Removed Size:   %.2f MB\n"), mbisize)
+    end
+end
+
+function display_aur_targets(pkgs, versions, install)
+    local targets = {}
+    local localdb = alpm.option_get_localdb()
+
+    if (not next(pkgs)) then
+        return
+    end
+
+    printf("\n")
+    for i, pkg in ipairs(pkgs) do
+        local local_pkg = localdb:db_get_pkg(pkg)
+
+        if (install and local_pkg ~= nil) then
+            str = string.format("%s: %s -> %s", pkg,
+                                local_pkg:pkg_get_version(), versions[pkg])
+        else
+            str = string.format("%s: %s", pkg, versions[pkg])
+        end
+
+        tblinsert(targets, str)
+    end
+
+    if (install) then
+        str = string.format(g("Targets (%d):"), #targets)
+        list_display(str, targets)
+        printf("\n")
+    else
+        str = string.format(g("Remove (%d):"), #targets)
+        list_display(str, targets)
+        printf("\n")
     end
 end
 
