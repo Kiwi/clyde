@@ -352,8 +352,9 @@ function installpkg( target )
 
     local pkgfiles = {}
     for file in lfs.dir( pkgdir ) do
-        if ( file:match( "[.]pkg[.]tar[.]%az$" ) and
-             not file:match( "[.]src[.]pkg[.]tar[.]%az$" )) then
+        if file:sub( 1, #target ) == target and
+           file:match( "[.]pkg[.]tar[.]%az$" ) and
+           not file:match( "[.]src[.]pkg[.]tar[.]%az$" ) then
             table.insert( pkgfiles, pkgdir .. "/" .. file )
         end
     end
