@@ -155,6 +155,83 @@ function rpc_info ( name )
     return results
 end
 
+function rpc_search ( query )
+    -- Allow search queries to contain regexp anchors... only!
+    local regexp
+    if query:match( "^^" ) or query:match( "$$" ) then
+        regexp = query
+        regexp = regexp:gsub("([().%+*?[-])", "%%%1")
+        query  = query:gsub( "^^", "" )
+        query  = query:gsub( "$$", "" )
+    end
+
+    local url    = rpcuri( "search", query )
+    local chunks = {}
+    local ret, code = http.request { url    = url,
+                                     create = create_socket,
+                                     sink   = ltn12.sink.table( chunks ) }
+    if not ret or code ~= 200 then
+        error( "HTTP request for info RPC failed: " .. code )
+    end
+
+    local jsontxt = table.concat( chunks, "" )
+    if not jsontxt then error( "Failed to search AUR using RPC" ) end
+
+    --[[ Create a custom JSON SAX parser. On results with ~1k entries
+         yajl.to_value was bugging out. This is more efficient anyways.
+         We can insert values into our results directly... ]]--
+
+    local results = {}
+
+    local in_results, in_pkg, pkgkey, pkginfo = false, false, "", {}
+    local parser = yajl.parser {
+        events = { open_array  = function ( evts )
+                                     in_results = true
+                                 end,
+                   open_object = function ( evts )
+                                     if in_results then in_pkg = true end
+                                 end,
+                   close       = function ( evts, type )
+                                     if type == "array" and in_results then
+                                         in_results = false
+                                     elseif type == "object" and in_pkg then
+                                         in_pkg  = false
+                                         -- Prepare pkginfo for a new
+                                         -- package JSON-object entry
+                                         pkginfo = {}
+                                     end
+                                 end,
+                   object_key  = function ( evts, name )
+                                     if not in_pkg then return end
+                                     pkgkey = aur_rpc_keyname( name )
+                                 end,
+                   -- I think AUR does only string datatypes... heh
+                   value       = function ( evts, value, type )
+                                     if not in_pkg then return end
+                                     if pkgkey == "name" then
+                                         results[ value ] = pkginfo
+                                     elseif pkgkey == "outdated" then
+                                         value = ( value == "1" )
+                                     end
+
+                                     pkginfo[ pkgkey ] = value
+                                 end
+           } }
+
+    parser( jsontxt )
+
+    if not regexp then return results end
+
+    -- Filter out results if regexp-anchors were given
+    for name, info in pairs( results ) do
+        if not name:match( regexp ) then
+            results[ name ] = nil
+        end
+    end
+
+    return results
+end
+
 ------------------------------------------------------------------------------
 
 function download ( pkgname, destdir )
