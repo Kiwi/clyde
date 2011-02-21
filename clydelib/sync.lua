@@ -1133,7 +1133,7 @@ local function find_installed_aur ()
         -- If a newer version is on the AUR, then add it to our list
         local aurver = aur_version( name )
         if aurver and alpm.pkg_vercmp( aurver, version ) > 0 then
-            table.insert( aurpkgs, name )
+            aurpkgs[name] = aurver
         end
     end
 
@@ -1156,6 +1156,13 @@ local function sync_trans(targets)
         end
         return retval
     end
+    local function aurpkgs_to_names(pkgs)
+        local names = {}
+        for name, version in pairs(pkgs) do
+            tblinsert(names, name)
+        end
+        return names
+    end
 
     if (trans_init(config.flags) == -1) then
         return 1
@@ -1175,7 +1182,7 @@ local function sync_trans(targets)
         if (config.op_s_upgrade_aur) then
             config.op_s_upgrade = 0
             aurpkgs = find_installed_aur()
-            targets = aurpkgs
+            targets = aurpkgs_to_names(aurpkgs)
         end
     else
         for i, targ in ipairs(targets) do
@@ -1223,9 +1230,10 @@ local function sync_trans(targets)
 
                     if (not found) then
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
-                        if aur.package_exists( targ ) then
+                        local aurinfo = aur.rpc_info( targ )
+                        if aurinfo then
                             found = true
-                            tblinsert( aurpkgs, targ )
+                            aurpkgs[targ] = aurinfo.version
                         end
 
                     end
@@ -1326,8 +1334,7 @@ local function sync_trans(targets)
         end
 
         printf(C.greb("\n==>")..C.bright(" Installing the following packages from AUR\n"))
-        local str = string.format(g("Targets (%d):"), #needs)
-        list_display(str, needs)
+        util.display_aur_targets(aurpkgs, true)
     else
         display_alpm_targets(packages)
     end
@@ -1373,7 +1380,7 @@ local function sync_trans(targets)
 
     if (next(aurpkgs)) then
         transcleanup()
-        return aur_install(aurpkgs)
+        return aur_install(aurpkgs_to_names(aurpkgs))
     else
         return transcleanup()
     end
