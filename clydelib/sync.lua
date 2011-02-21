@@ -527,16 +527,13 @@ local function sync_info_alpm ( package_name, repo_name )
 end
 
 local function sync_info_aur ( package_name )
-    local length = aur.package_exists( package_name )
-
-    -- length will be nil if PKGBUILD for that package does not exist
-    if length then
-        packages.dump_pkg_sync_aur( package_name )
-        return
+    if not aur.package_exists( package_name ) then
+        error( string.format( "package '%s' was not found in the AUR\n",
+                              package_name ), 0 )
     end
 
-    error( string.format( "package '%s' was not found in the AUR\n",
-                          package_name ), 0 )
+    packages.dump_pkg_sync_aur( package_name )
+    return
 end
 
 local function sync_info_target ( target )
