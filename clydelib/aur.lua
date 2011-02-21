@@ -104,6 +104,11 @@ function get_content_length ( uri )
     else return h['content-length'] end
 end
 
+-- Check if a package is on the AUR.
+function package_exists ( pkgname )
+    return get_content_length( pkgbuilduri( pkgname )) ~= nil
+end
+
 -- RPC -----------------------------------------------------------------------
 
 local NEWKEYNAME_FOR = { Description = "desc",
