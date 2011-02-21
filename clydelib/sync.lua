@@ -1244,7 +1244,7 @@ local function sync_trans(targets)
     end
     local function aurpkgs_to_names(pkgs)
         local names = {}
-        for name, version in pairs(aurpkgs) do
+        for name, version in pairs(pkgs) do
             tblinsert(names, name)
         end
         return names
@@ -1329,7 +1329,7 @@ local function sync_trans(targets)
 
                         if (jsonresults.results.Name) then
                             found = true
-                            tblinsert(aurpkgs, {name=targ, version=jsonresults.results.Version})
+                            aurpkgs[targ] = jsonresults.results.Version
                         end
 
                     end
