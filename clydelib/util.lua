@@ -495,14 +495,14 @@ function display_aur_targets(pkgs, install)
     end
 
     printf("\n")
-    for i, pkg in ipairs(pkgs) do
-        local local_pkg = localdb:db_get_pkg(pkg.name)
+    for name, version in pairs(pkgs) do
+        local local_pkg = localdb:db_get_pkg(name)
 
         if (install and local_pkg ~= nil) then
-            str = string.format("%s: %s -> %s", pkg.name,
-                                local_pkg:pkg_get_version(), pkg.version)
+            str = string.format("%s: %s -> %s", name,
+                                local_pkg:pkg_get_version(), version)
         else
-            str = string.format("%s: %s", pkg.name, pkg.version)
+            str = string.format("%s: %s", name, version)
         end
 
         tblinsert(targets, str)

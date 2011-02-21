@@ -1219,7 +1219,7 @@ local function find_installed_aur ()
         -- If a newer version is on the AUR, then add it to our list
         local aurver = aur_version( name )
         if aurver and alpm.pkg_vercmp( aurver, version ) > 0 then
-            table.insert( aurpkgs, {name=name, version=aurver} )
+            aurpkgs[name] = aurver
         end
     end
 
@@ -1242,10 +1242,10 @@ local function sync_trans(targets)
         end
         return retval
     end
-    local function pkgs_to_names(pkgs)
+    local function aurpkgs_to_names(pkgs)
         local names = {}
-        for i, pkg in ipairs(aurpkgs) do
-            tblinsert(names, pkg.name)
+        for name, version in pairs(aurpkgs) do
+            tblinsert(names, name)
         end
         return names
     end
@@ -1268,7 +1268,7 @@ local function sync_trans(targets)
         if (config.op_s_upgrade_aur) then
             config.op_s_upgrade = 0
             aurpkgs = find_installed_aur()
-            targets = pkgs_to_names(aurpkgs)
+            targets = aurpkgs_to_names(aurpkgs)
         end
     else
         for i, targ in ipairs(targets) do
@@ -1476,7 +1476,7 @@ local function sync_trans(targets)
 
     if (next(aurpkgs)) then
         transcleanup()
-        return aur_install(pkgs_to_names(aurpkgs))
+        return aur_install(aurpkgs_to_names(aurpkgs))
     else
         return transcleanup()
     end
