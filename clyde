@@ -966,7 +966,7 @@ end
 -- Offer to install packages in the package_names list
 -- Returns the names of packages they want to install.
 function install_numprompt ( package_names )
-    bars = C.yelb("==>")
+    local bars = C.yelb("==>")
     printf("\n%s %s\n%s %s\n",
            bars,
            C.bright("Enter #'s (separated by blanks) of packages "
