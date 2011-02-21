@@ -49,16 +49,6 @@ local dump_pkg_sync = packages.dump_pkg_sync
 
 local tblsort = table.sort
 local tblconcat = table.concat
-require "socket"
-local http = require "socket.http"
-local url = require "socket.url"
-local ltn12 = require "ltn12"
-local aururl = "https://aur.archlinux.org:443/rpc.php?"
-local aurmethod = {
-    ['search'] = "type=search&";
-    ['info'] = "type=info&";
-    ['msearch'] = "type=msearch&";
-}
 
 local function sync_cleandb(dbpath, keep_used)
     local dir = lfs.chdir(dbpath)
@@ -537,7 +527,7 @@ local function sync_info_alpm ( package_name, repo_name )
 end
 
 local function sync_info_aur ( package_name )
-    local length = aur.get_content_length( aur.pkgbuilduri( package_name ))
+    local length = aur.package_exists( package_name )
 
     -- length will be nil if PKGBUILD for that package does not exist
     if length then
@@ -720,20 +710,9 @@ local function sync_aur_trans(targets)
 
                     if (not found) then
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
-                        local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
-                        local inforesults = aur.getgzip(infourl)
-                        if (not inforesults) then
-                            return 1
-                        end
-                        local jsonresults =  yajl.to_value(inforesults) or {}
-
-                        if (type(jsonresults.results) ~= "table") then
-                            jsonresults.results = {}
-                        end
-
-                        if (jsonresults.results.Name) then
+                        if aur.package_exists( targ ) then
                             found = true
-                            tblinsert(aurpkgs, targ)
+                            tblinsert( aurpkgs, targ )
                         end
 
                     end
@@ -879,10 +858,7 @@ local function getdepends(target, provided)
             end
         end
     end
-    local pkgbuildurl = string.format(
-            "https://aur.archlinux.org:443/packages/%s/%s/PKGBUILD",
-                target, target)
-    local pkgbuild = aur.getgzip(pkgbuildurl)
+    local pkgbuild = aur.getgzip( aur.pkgbuilduri( target ))
     if not pkgbuild then
         return ret, {}, {}
     end
@@ -1250,20 +1226,9 @@ local function sync_trans(targets)
 
                     if (not found) then
                         printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
-                        local infourl = aururl..aurmethod.info.."arg="..url.escape(targ)
-                        local inforesults = aur.getgzip(infourl)
-                        if (not inforesults) then
-                            return 1
-                        end
-                        local jsonresults = yajl.to_value(inforesults) or {}
-
-                        if (type(jsonresults.results) ~= "table") then
-                            jsonresults.results = {}
-                        end
-
-                        if (jsonresults.results.Name) then
+                        if aur.package_exists( targ ) then
                             found = true
-                            tblinsert(aurpkgs, targ)
+                            tblinsert( aurpkgs, targ )
                         end
 
                     end
