@@ -128,7 +128,9 @@ function rpc_info ( name )
                                      create = create_socket,
                                      sink   = ltn12.sink.table( chunks ) }
     if not ret or code ~= 200 then
-        error( "HTTP request for info RPC failed: " .. code )
+        -- Make clyde continue if retrieval of an AUR pkg fails
+        --TODO should we somehow show a warning?
+        return nil
     end
 
     local jsontxt = table.concat( chunks, "" )
