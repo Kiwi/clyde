@@ -1137,8 +1137,10 @@ local function find_installed_aur ()
         end
     end
 
+    local count = 0
+    for key, val in pairs( aurpkgs ) do count = count + 1 end
     print( C.blub("  -> ") .. C.bright
-       .. "Identified " .. #aurpkgs .. " AUR packages." .. C.reset )
+       .. "Identified " .. count .. " AUR packages." .. C.reset )
 
     return aurpkgs
 end
