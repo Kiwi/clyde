@@ -1131,8 +1131,9 @@ local function find_installed_aur ()
             dispname = dispname .. "..."
         end
 
-        local message = string.format( "\r %-23s%3.0f/%3.0f",
+        local message = string.format( " %-23s%3.0f/%3.0f",
                                        dispname, i, foreign_count )
+
         io.write( message )
         callback.fill_progress( math.floor( i*100/foreign_count ),
                                 math.ceil( i*100/foreign_count ),
