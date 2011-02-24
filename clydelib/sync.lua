@@ -1102,7 +1102,8 @@ local function find_installed_aur ()
         local success, result = pcall( aur.rpc_info, pkgname )
 
         if not success then
-            eprintf( "LOG_ERROR", result )
+            print() -- Print newline, skip the progress bar.
+            eprintf( "LOG_ERROR", result .. "\n" )
             return nil
         end
 
@@ -1124,7 +1125,7 @@ local function find_installed_aur ()
         local name, version = foreigner.name, foreigner.version
 
         -- Display the progress bar with package name...
-        local dispname = foreigner.name
+        local dispname = name
         if #dispname > 22 then
             dispname = string.sub( dispname, 1, 19 )
             dispname = dispname .. "..."
