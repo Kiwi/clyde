@@ -1099,9 +1099,16 @@ local function find_installed_aur ()
     -- to update the package from AUR...
 
     local function aur_version ( pkgname )
-        local pkginfo = aur.rpc_info( pkgname )
-        if not pkginfo then return nil
-        else return pkginfo.version end
+        local success, result = pcall( aur.rpc_info, pkgname )
+
+        if not success then
+            eprintf( "LOG_ERROR", result )
+            return nil
+        end
+
+        if result then return result.version
+        else return nil
+        end
     end
 
     -- Loop through the packages in alphabetical order...
