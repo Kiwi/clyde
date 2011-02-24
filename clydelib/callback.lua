@@ -382,7 +382,7 @@ trans_event_lookup = {
                    local msg = string.format("installed %s (%s)\n",
                                              evt.package:pkg_get_name(),
                                              evt.package:pkg_get_version())
-                   alpm.logaction()
+                   alpm.logaction(msg)
                    util.display_optdepends(evt.package)
                    io.stdout:flush()
                end
