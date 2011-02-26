@@ -157,9 +157,8 @@ function dump_pkg_full_aur(pkg, level)
         return
     end
     local reason, bdatestr, idatestr, bdate, idate, requiredby, depstrings
-    local pkgbuildurl = string.format("https://aur.archlinux.org:443/packages/%s/%s/PKGBUILD", pkg,
-pkg)
-    local pkgbuild = aur.getgzip(pkgbuildurl)
+    local pkgbuild = aur.pkgbuild_text(pkg)
+    assert(pkgbuild, "Failed to download PKGBUILD for " .. pkg)
     local tmp = os.tmpname()
     local tmpfile = io.open(tmp, "w")
     tmpfile:write(pkgbuild)

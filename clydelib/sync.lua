@@ -879,7 +879,7 @@ local function getdepends(target, provided)
             end
         end
     end
-    local pkgbuild = aur.getgzip( aur.pkgbuilduri( target ))
+    local pkgbuild = aur.pkgbuild_text( target )
     if not pkgbuild then
         return ret, {}, {}
     end

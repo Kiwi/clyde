@@ -32,7 +32,7 @@ local params = {
 }
 
 local AURURI    = "http://aur.archlinux.org:443"
-local PBURIFMT  = AURURI .. "/packages/%s/%s/PKGBUILD"
+local PBURIFMT  = AURURI .. "/packages/%s/PKGBUILD"
 local PKGURIFMT = AURURI .. "/packages/%s/%s.tar.gz"
 
 function srcpkguri ( pkgname )
@@ -107,6 +107,10 @@ end
 -- Check if a package is on the AUR.
 function package_exists ( pkgname )
     return get_content_length( pkgbuilduri( pkgname )) ~= nil
+end
+
+function pkgbuild_text ( pkgname )
+    return getgzip( pkgbuilduri( pkgname ))
 end
 
 -- RPC -----------------------------------------------------------------------
