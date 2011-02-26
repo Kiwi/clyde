@@ -966,6 +966,8 @@ end
 -- Offer to install packages in the package_names list
 -- Returns the names of packages they want to install.
 function install_numprompt ( package_names )
+    if not next( package_names ) then return {} end
+
     local bars = C.yelb("==>")
     printf("\n%s %s\n%s %s\n",
            bars,
@@ -1117,9 +1119,11 @@ function main()
          ran = true
     elseif next(pm_targets) then
         local found_names = sync.sync_search( pm_targets, true )
-        local install     = install_numprompt( found_names )
+        if not next( found_names ) then return 1 end
 
+        local install = install_numprompt( found_names )
         if not next( install ) then return 1 end
+
         if (myuid > 0) then
             -- See whether sudo (preferable) or su exist
             local sucmds = { { file   = "/usr/bin/sudo",
