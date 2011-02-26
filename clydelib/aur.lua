@@ -40,7 +40,7 @@ function srcpkguri ( pkgname )
 end
 
 function pkgbuilduri ( pkgname )
-    return string.format( PBURIFMT, pkgname, pkgname )
+    return string.format( PBURIFMT, pkgname )
 end
 
 -- Create a URI for RPC calls
