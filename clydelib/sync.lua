@@ -348,8 +348,9 @@ local function print_fancy_match ( match, shownumbers )
     return
 end
 
+-- Returns an array of packages which match the search queries.
 local function sync_search_alpm ( targets, printcb )
-    local found_names = {}
+    local found_pkgs = {}
     local syncsdbs = alpm.option_get_syncdbs()
 
     for i, syncdb in ipairs( syncsdbs ) do
@@ -363,7 +364,7 @@ local function sync_search_alpm ( targets, printcb )
         end
         
         for i, pkg in ipairs( matching_pkgs ) do
-            table.insert( found_names, pkg:pkg_get_name())
+            table.insert( found_pkgs, pkg )
             printcb { name    = pkg:pkg_get_name();
                       version = pkg:pkg_get_version();
                       desc    = pkg:pkg_get_desc();
@@ -373,9 +374,11 @@ local function sync_search_alpm ( targets, printcb )
         end
     end
 
-    return found_names
+    return found_pkgs
 end
 
+-- Returns an array of tables with info on packages who match the queries.
+-- An AND search is performed so packages must match ALL the strings given.
 local function sync_search_aur ( targets, printcb )
     if not targets or #targets == 0 then return {} end
 
@@ -394,28 +397,45 @@ local function sync_search_aur ( targets, printcb )
         end
     end
 
-    local found_names = {}
+    -- In an AND query, matches are an intersection of all the result sets.
+    local matches_int = {}
     for i, query in ipairs( targets ) do
-        local matches = aur.rpc_search( query )
-        for name, info in pairs( matches ) do
-            table.insert( found_names, name )
-            printcb { name    = name;
-                      version = info.version;
-                      desc    = info.desc;
-                      votes   = info.votes;
-                      dbname  = "aur";
-                      groups  = nil }
+        local query_matches = aur.rpc_search( query )
+        if i == 1 then
+            matches_int = query_matches
+        else
+            -- Remove matches from the match intersection which are not also
+            -- matches in our current query.
+            for pkgname, unused in pairs( matches_int ) do
+                if not query_matches[ pkgname ] then
+                    matches_int[ pkgname ] = nil
+                end
+            end
         end
     end
 
-    return found_names
+    local found = {}
+    for unused, pkginfo in pairs( matches_int ) do
+        table.insert( found, pkginfo )
+    end
+
+    local function by_name ( left, right ) return left.name < right.name end
+
+    table.sort( found, by_name )
+
+    for i, info in ipairs( found ) do
+        -- XXX: Should we make a new clean copy of the table?
+        info.dbname = "aur"
+        printcb( info )
+    end
+
+
+    return found
 end
 
 -- Searches for the given "targets" in ALPM and AUR. Returns a list of
 -- package names that were found.
 function sync_search ( targets, shownumbers )
-    local found_names = {}
-
     local function print_dumb ( match )
         print( C.bright( match.name ))
     end
@@ -425,17 +445,21 @@ function sync_search ( targets, shownumbers )
     end
 
     local match_printcb = config.quiet and print_dumb or print_fancy
+    local found_names   = {}
 
     -- First we search the ALPM repos...
     if not config.op_s_search_aur_only then
-        found_names = sync_search_alpm( targets, match_printcb )
+        local found_pkg_objs = sync_search_alpm( targets, match_printcb )
+        for i, pkgobj in ipairs( found_pkg_objs ) do
+            table.insert( found_names, pkgobj:pkg_get_name())
+        end
     end
 
     -- Next we search the AUR...
     if not config.op_s_search_repos_only then
-        local found_aur_names = sync_search_aur( targets, match_printcb )
-        for i, pkgname in ipairs( found_aur_names ) do
-            table.insert( found_names, pkgname )
+        local found_aur_pkgs = sync_search_aur( targets, match_printcb )
+        for i, pkginfo in ipairs( found_aur_pkgs ) do
+            table.insert( found_names, pkginfo.name )
         end
     end
 
