@@ -446,22 +446,23 @@ function display_targets(pkgs, install)
     printf("\n")
     for i, pkg in ipairs(pkgs) do
         dlsize = pkg:pkg_download_size() + dlsize
-        isize = pkg:pkg_get_isize() + isize
-        local current_pkg = localdb:db_get_pkg(pkg:pkg_get_name())
+        isize  = pkg:pkg_get_isize() + isize
+        str    = pkg:pkg_get_name()
 
-        if (config.showsize) then
-            local mbsize = pkg:pkg_get_size() / (1024 * 1024)
-            if (install and current_pkg ~= nil) then
-                str = string.format("%s: %s -> %s [%.2f MB]", pkg:pkg_get_name(),
-                                    current_pkg:pkg_get_version(),
-                                    pkg:pkg_get_version(), mbsize)
-            else -- either we're not installing or there is no previous version
-                str = string.format("%s: %s [%.2f MB]", pkg:pkg_get_name(),
-                                    pkg:pkg_get_version(), mbsize)
+        local local_pkg = localdb:db_get_pkg(str)
+        if install then
+            if local_pkg then
+                str = string.format("%s (%s>>%s)", str,
+                                    local_pkg:pkg_get_version(),
+                                    pkg:pkg_get_version())
+            else
+                str = string.format("%s-%s", str,
+                                    pkg:pkg_get_version())
             end
-        else
-            str = string.format("%s: %s -> %s", pkg:pkg_get_name(),
-                                pkg:pkg_get_version(), pkg:pkg_get_version())
+            if config.showsize then
+                local mbsize = pkg:pkg_get_size() / (1024 * 1024)
+                str = string.format("%s [%.2f MB]", str, mbsize)
+            end
         end
 
         tblinsert(targets, str)
@@ -498,11 +499,11 @@ function display_aur_targets(pkgs, install)
     for name, version in pairs(pkgs) do
         local local_pkg = localdb:db_get_pkg(name)
 
-        if (install and local_pkg ~= nil) then
-            str = string.format("%s: %s -> %s", name,
+        if (install and local_pkg) then
+            str = string.format("%s (%s => %s)", name,
                                 local_pkg:pkg_get_version(), version)
         else
-            str = string.format("%s: %s", name, version)
+            str = string.format("%s-%s", name, version)
         end
 
         tblinsert(targets, str)
@@ -511,11 +512,9 @@ function display_aur_targets(pkgs, install)
     if (install) then
         str = string.format(g("Targets (%d):"), #targets)
         list_display(str, targets)
-        printf("\n")
     else
         str = string.format(g("Remove (%d):"), #targets)
         list_display(str, targets)
-        printf("\n")
     end
 end
 
