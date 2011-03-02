@@ -273,16 +273,15 @@ function getgzip ( geturl )
     return inflated:read("*a")
 end
 
-function download_extract ( pkgname )
-    local builddir = make_builddir( pkgname )
-    local pkgpath  = download( pkgname, builddir )
-    local pkgfile  = pkgpath:gsub( "^.*/", "" )
+function download_extract ( pkgname, destdir )
+    local pkgpath = download( pkgname, destdir )
+    local pkgfile = pkgpath:gsub( "^.*/", "" )
 
     umask( tonumber( "033", 8 ))
     local cmdfmt = "bsdtar -x --file '%s'"
         .. " --no-same-owner --no-same-permissions"
         .. " --directory '%s'"
-    local cmdline = string.format( cmdfmt, pkgpath, builddir )
+    local cmdline = string.format( cmdfmt, pkgpath, destdir )
     if os.execute( cmdline ) ~= 0 then
         error( "bsdtar failed to extract " .. pkgpath )
     end
@@ -292,17 +291,17 @@ function download_extract ( pkgname )
         -- TODO: change owner group to something other than "users"?
         local builduser = get_builduser()
         cmdline = string.format( "chown '%s:users' -R '%s'",
-                                 builduser, builddir )
+                                 builduser, destdir )
 
         if os.execute( cmdline ) ~= 0 then
             error( string.format( "failed to chown '%s' to '%s'",
-                                  builddir, builduser ))
+                                  destdir, builduser ))
         end
     end
 
     -- Return the path to the directory that was (hopefully) extracted
-    local extdir = builddir .. "/" .. pkgname
-    if not lfs.attributes( extdir ) then
+    local extdir = destdir .. "/" .. pkgname
+    if not pcall( lfs.dir, extdir ) then
         error( extdir .. " was not extracted" )
     end
 

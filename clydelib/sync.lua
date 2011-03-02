@@ -984,23 +984,20 @@ function getpkgbuild(targets)
     local caninstall = {}
     local needsdeps = {}
     local aurpkgs = {}
-    updateprovided(provided)
 
+    updateprovided(provided)
     getalldeps(targets, needs, needsdeps, caninstall, provided)
+
+    local names
     if (config.op_g_get_deps) then
-        for i, pkg in ipairs(needs) do
-            if (not pacmaninstallable(pkg)) then
-           -- tblinsert(pacmanpkgs, pkg)
-        --else
-            --tblinsert(aurpkgs, pkg)
-                aur.download_extract(pkg, true)
-            end
-        end
+        names = needs
     else
-        for i, pkg in ipairs(targets) do
-            if (not pacmaninstallable(pkg)) then
-                aur.download_extract(pkg, true)
-            end
+        names = targets
+    end
+    
+    for i, pkgname in ipairs(names) do
+        if (not pacmaninstallable(pkgname)) then
+            aur.download_extract(pkgname, ".")
         end
     end
 end
@@ -1060,31 +1057,27 @@ local function aur_install(targets)
         getalldeps(targets, needs, needsdeps, caninstall, provided)
 
         for i, pkg in ipairs(aurpkgs) do
-            if (tblisin(caninstall, pkg) and not tblisin(installedtbl, pkg)) then
-                if (tblisin(targets, pkg) and not tflags["alldeps"])
-                    or (tflags["allexplicit"] and not tflags["alldeps"]) then
-                    local pkgdir = aur.download_extract(pkg)
-                    if not config.noconfirm then
-                        aur.customizepkg(pkg, pkgdir)
-                    end
-                    aur.makepkg(pkgdir)
-                    aur.installpkg(pkg)
+            if (tblisin(caninstall, pkg)
+                and not tblisin(installedtbl, pkg)) then
 
-                    installed = installed + 1
-                    tblinsert(installedtbl, pkg)
-                else
-                    config.flags["alldeps"] = true
-                    local pkgdir = aur.download_extract(pkg)
-                    if not config.noconfirm then
-                        aur.customizepkg(pkg, pkgdir)
-                    end
-                    aur.makepkg(pkgdir)
-                    aur.installpkg(pkg)
+                local oldflag = config.flags.alldeps
+                local newflag = not tflags.alldeps
+                    and (tblisin(targets, pkg) or tflags.allexplicit)
 
-                    config.flags["alldeps"] = false
-                    installed = installed + 1
-                    tblinsert(installedtbl, pkg)
+                config.flags.alldeps = newflag
+
+                local dldir  = aur.make_builddir(pkg)
+                local pkgdir = aur.download_extract(pkg, dldir)
+                if not config.noconfirm then
+                    aur.customizepkg(pkg, pkgdir)
                 end
+                aur.makepkg(pkgdir)
+                aur.installpkg(pkg)
+
+                installed = installed + 1
+                tblinsert(installedtbl, pkg)
+
+                config.flags.alldeps = oldflag
             end
         end
         until 1
