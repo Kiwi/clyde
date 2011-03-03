@@ -290,7 +290,7 @@ function rmrf(path)
 end
 
 function makepath(path)
-    local oldmask = utilcore.umask(0000)
+    local oldmask = utilcore.umask("0000")
     local ret = false
     local parts = strsplit(path:sub(2, #path-1), "/")
     local incr = ""

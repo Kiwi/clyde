@@ -246,7 +246,7 @@ end
 function download ( pkgname, destdir )
     local pkgfile = string.format( "%s/%s.src.tar.gz", destdir, pkgname )
 
-    local oldmask = umask( tonumber( "133", 8 ))
+    local oldmask = umask( "0133" )
     local pkgfh, err = io.open( pkgfile, "w" )
     assert( pkgfh, err )
 
@@ -254,6 +254,8 @@ function download ( pkgname, destdir )
     assert( http.request { url    = srcpkguri( pkgname ),
                            create = create_socket,
                            sink   = ltn12.sink.file( pkgfh ) } );
+
+    umask( oldmask );
     return pkgfile
 end
 
@@ -277,7 +279,7 @@ function download_extract ( pkgname, destdir )
     local pkgpath = download( pkgname, destdir )
     local pkgfile = pkgpath:gsub( "^.*/", "" )
 
-    umask( tonumber( "033", 8 ))
+    local oldumask = umask( "0033" )
     local cmdfmt = "bsdtar -x --file '%s'"
         .. " --no-same-owner --no-same-permissions"
         .. " --directory '%s'"
@@ -304,6 +306,8 @@ function download_extract ( pkgname, destdir )
     if not pcall( lfs.dir, extdir ) then
         error( extdir .. " was not extracted" )
     end
+
+    umask( oldumask )
 
     return extdir
 end

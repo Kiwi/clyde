@@ -1030,6 +1030,7 @@ function main()
     local ret = 0
 
     utilcore.setprocname( "clyde" )
+    utilcore.umask( "0333" ) -- TODO: should this be more restrictive?
 
     signal.signal("SIGINT", function()
         printf("\nInterrupt signal received\n\n")

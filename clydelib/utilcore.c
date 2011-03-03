@@ -188,10 +188,41 @@ static int clyde_mkdir(lua_State *L)
 
 static int clyde_umask(lua_State *L)
 {
-        mode_t cmask = luaL_checkint(L, 1);
-        cmask = umask(cmask);
-        lua_pushnumber(L, cmask);
-        return 1;
+    unsigned int len, i, oldmask, newmask;
+    const char * newmaskstr;
+    char oldmaskstr[4];
+
+    if ( lua_type( L, 1 ) != LUA_TSTRING ) { goto UMASK_ERROR; }
+    newmaskstr = lua_tolstring( L, 1, &len );
+    if ( len > 4 ) { goto UMASK_ERROR; }
+
+    /* Convert the string of digits from octal. */
+    newmask = 0;
+    for ( i=0 ; i<len ; ++i ) {
+        if ( newmaskstr[i] < '0' || newmaskstr[i] > '7' ) {
+            goto UMASK_ERROR;
+        }
+        newmask <<= 3; /* multiply by 8 */
+        newmask += newmaskstr[i] - '0';
+    }
+
+    oldmask = umask( newmask );
+    fprintf( stderr, "*DBG* %o = umask( %o )\n", oldmask, newmask );
+
+    /* Return a string of four octal digits. */
+    i = 3;
+    do {
+        oldmaskstr[i] = '0' + (oldmask & 7);
+        oldmask >>= 3; /* divide by 8 */
+    } while ( i-- > 0 );
+
+    lua_pushlstring( L, oldmaskstr, 4 );
+    return 1;
+
+UMASK_ERROR:
+    lua_pushliteral( L, "umask must be given a string of an octal number" );
+    lua_error( L );
+    return 0;
 }
 
 static int clyde_arch(lua_State *L)
