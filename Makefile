@@ -1,5 +1,5 @@
-LDFLAGS = -s
-CFLAGS = -Wall -W -O2 -fPIC `pkg-config --cflags lua` \
+LDFLAGS+= -s
+CFLAGS+= -Wall -W -O2 -fPIC `pkg-config --cflags lua` \
 	-std=c99 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
 CC = gcc
 SOFLAGS = -shared -pedantic -llua
