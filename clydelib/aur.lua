@@ -180,7 +180,7 @@ function rpc_search ( query )
                                      create = create_socket,
                                      sink   = ltn12.sink.table( chunks ) }
     if not ret or code ~= 200 then
-        error( "HTTP request for info RPC failed: " .. code )
+        error( "AUR search (" .. query .. ") failed: " .. code )
     end
 
     local jsontxt = table.concat( chunks, "" )
