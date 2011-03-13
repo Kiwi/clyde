@@ -531,6 +531,38 @@ trans_conv_lookup = {
     ["corrupted_package"] = function(evt)
         return yesno(g(C.yelb("::")..C.bright(" File %s is corrupted. Do you want to delete it?")), evt.filename)
     end;
+
+    ["select_provider"] = function ( event )
+        local providers, depstr = event["providers"], event["depstr"]
+        local count = #providers
+        print( ui.color_format( ":: There are %d providers available for %s:\n",
+                                count, depstr ))
+        local colorizer = ui.mk_pkg_colorizer {}
+
+        -- The colorizer expects a table of package information, not objects
+        for i, pkgobj in ipairs( providers ) do
+            local name   = pkgobj:pkg_get_name()
+            local ver    = pkgobj:pkg_get_version()
+            local dbname = pkgobj:pkg_get_db():db_get_name()
+
+            print( i, colorizer{ name = name; ver = ver; dbname = dbname })
+        end
+
+        -- TODO: stdout/stderr switching based on noconfirm
+        print()
+        local prompt = string.format( g("Enter a number (default=%d)"),
+                                      count ) .. ": "
+        local nums   = ui.prompt_for_numbers( prompt, count )
+
+        -- libalpm expects the callback to return a zero-based index
+        -- XXX: maybe decrementing by 1 in the lualpm C wrapper code
+        --      would be cleaner seperation of C-land and lua-land.
+        if not nums then
+            return count-1
+        else
+            return nums[1]-1 -- ignore extra numbers
+        end
+    end;
 }
 
 function cb_trans_conv ( event )
