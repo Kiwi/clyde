@@ -353,3 +353,17 @@ int lalpm_option_get_syncdbs(lua_State *L)
     return 1;
 }
 
+int lalpm_option_get_checkspace(lua_State *L)
+{
+    int do_checkspace = alpm_option_get_checkspace();
+    lua_pushboolean( L, do_checkspace );
+    return 1;
+}
+
+int lalpm_option_set_checkspace(lua_State *L)
+{
+    int do_checkspace;
+    do_checkspace = lua_toboolean( L, 1 );
+    alpm_option_set_checkspace( do_checkspace );
+    return 0;
+}

@@ -55,6 +55,9 @@ int lalpm_option_set_arch(lua_State *L);
 int lalpm_option_set_usedelta(lua_State *L);
 int lalpm_option_get_localdb(lua_State *L);
 int lalpm_option_get_syncdbs(lua_State *L);
+int lalpm_option_get_checkspace(lua_State *L);
+int lalpm_option_set_checkspace(lua_State *L);
+
 
 /* TRANSACTIONS */
 /* trans.c */

@@ -280,6 +280,8 @@ static luaL_Reg const pkg_funcs[] =
     { "option_set_usedelta",        lalpm_option_set_usedelta }, /* works */
     { "option_get_localdb",         lalpm_option_get_localdb }, /* works */
     { "option_get_syncdbs",         lalpm_option_get_syncdbs }, /* works */
+    { "option_get_checkspace",      lalpm_option_get_checkspace },
+    { "option_set_checkspace",      lalpm_option_set_checkspace },
     { "db_register_local",          lalpm_db_register_local }, /* works */
     { "db_register_sync",           lalpm_db_register_sync }, /* works */
     { "db_unregister_all",          lalpm_db_unregister_all },
