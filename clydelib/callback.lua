@@ -155,6 +155,8 @@ function cb_trans_progress( type, pkgname, percent, total_count, total_pos )
         ["upgrade"] = function() opr = g("upgrading") end;
         ["remove"] = function() opr = g("removing") end;
         ["conflicts"] = function() opr = g("checking for file conflicts") end;
+        ["diskspace"] = function() opr = g("checking available disk space") end;
+        ["integrity"] = function() opr = g("checking package integrity") end;
     }
     if (lookuptbl[type]) then
         lookuptbl[type]()
@@ -467,6 +469,14 @@ trans_event_lookup = {
                        C.bright(g(" Retrieving packages from %s...\n")), evt.db)
                     io.stdout:flush()
                 end ;
+    },
+    ["diskspace"] = {
+        ["start"] = function()
+                    if (config.noprogressbar) then
+                        printf(g("checking available disk space...\n"))
+                    end
+                end ;
+        ["done"] = flusher
     },
 }
 

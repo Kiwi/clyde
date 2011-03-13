@@ -417,6 +417,8 @@ void transcb_cfunc_progress ( pmtransprog_t type,
     case PM_TRANS_PROGRESS_UPGRADE_START:   name = "upgrade";   break;
     case PM_TRANS_PROGRESS_REMOVE_START:    name = "remove";    break;
     case PM_TRANS_PROGRESS_CONFLICTS_START: name = "conflicts"; break;
+    case PM_TRANS_PROGRESS_DISKSPACE_START: name = "diskspace"; break;
+    case PM_TRANS_PROGRESS_INTEGRITY_START: name = "integrity"; break;
     default:                                name = "UNKNOWN";   break;
     }
 
