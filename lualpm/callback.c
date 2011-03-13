@@ -381,7 +381,14 @@ BEGIN_TRANS_CALLBACK( conv, pmtransconv_t type,
 }
 
 /* We cannot use the generic transaction callback ending. */
-*response = lua_toboolean( L, -1 );
+
+if ( type == PM_TRANS_CONV_SELECT_PROVIDER ) {
+    *response = lua_tointeger( L, -1 );
+}
+else {
+    *response = lua_toboolean( L, -1 );
+}
+
 return;
 }
 
