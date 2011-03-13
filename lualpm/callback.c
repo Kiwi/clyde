@@ -307,19 +307,19 @@ BEGIN_TRANS_CALLBACK( event, pmtransevt_t event, void *arg_one, void *arg_two )
         EVT_STATUS("info")
         EVT_TEXT("text", arg_one)
 		break;
-        case PM_TRANS_EVT_RETRIEVE_START:
+    case PM_TRANS_EVT_RETRIEVE_START:
         EVT_NAME("retrieve")
         EVT_STATUS("start")
         EVT_TEXT("db", arg_one)
-                break;
-        case PM_TRANS_EVT_DISKSPACE_START:
+        break;
+    case PM_TRANS_EVT_DISKSPACE_START:
         EVT_NAME("diskspace")
         EVT_STATUS("start")
-                break;
-        case PM_TRANS_EVT_DISKSPACE_DONE:
+        break;
+    case PM_TRANS_EVT_DISKSPACE_DONE:
         EVT_NAME("diskspace")
         EVT_STATUS("done")
-                break;
+        break;
     default:
         return;
     }
@@ -328,6 +328,10 @@ END_TRANS_CALLBACK( event )
 
 #define EVT_PKGLIST( NAME, LIST ) \
     alpm_list_to_any_table( L, LIST, PMPKG_T ); \
+    lua_setfield( L, -2, NAME );
+
+#define EVT_DEPSTR( NAME, DEPPTR ) \
+    lua_pushstring( L, alpm_dep_compute_string( (pmdepend_t *) DEPPTR )); \
     lua_setfield( L, -2, NAME );
 
 BEGIN_TRANS_CALLBACK( conv, pmtransconv_t type,
@@ -363,6 +367,10 @@ BEGIN_TRANS_CALLBACK( conv, pmtransconv_t type,
         EVT_NAME( "corrupted_file" )
         EVT_TEXT( "filename", arg_one )
         break;
+    case PM_TRANS_CONV_SELECT_PROVIDER:
+        EVT_NAME   ( "select_provider"    )
+        EVT_PKGLIST( "providers", arg_one )
+        EVT_DEPSTR ( "depstr",    arg_two )
     default:
         return;
     }
