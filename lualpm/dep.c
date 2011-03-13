@@ -42,7 +42,7 @@ pmdepend_t **push_pmdepend_box(lua_State *L)
 /* MISC DEP FUNCTIONS********************************************************/
 
 /* int alpm_depcmp(pmpkg_t *pkg, pmdepend_t *dep); */
-int lalpm_depcmp(lua_State *L)
+/* int lalpm_depcmp(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     pmdepend_t *dep = check_pmdepend(L, 2);
@@ -51,6 +51,7 @@ int lalpm_depcmp(lua_State *L)
 
     return 1;
 }
+*/
 
 /* alpm_list_t *alpm_checkdeps(alpm_list_t *pkglist, int reversedeps,
 		alpm_list_t *remove, alpm_list_t *upgrade); */
@@ -69,7 +70,7 @@ int lalpm_checkdeps(lua_State *L)
     return 1;
 }
 /* alpm_list_t *alpm_deptest(pmdb_t *db, alpm_list_t *targets); */
-int lalpm_deptest(lua_State *L)
+/* int lalpm_deptest(lua_State *L)
 {
     pmdb_t *db = check_pmdb(L, 1);
     luaL_checktype(L, 2, LUA_TTABLE);
@@ -79,4 +80,4 @@ int lalpm_deptest(lua_State *L)
 
     return 1;
 }
-
+*/

@@ -14,6 +14,7 @@ Constants(transflag)
     Sym(NODEPS),
     Sym(FORCE),
     Sym(NOSAVE),
+    Sym(NODEPVERSION),
     Sym(CASCADE),
     Sym(RECURSE),
     Sym(DBONLY),

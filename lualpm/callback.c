@@ -109,7 +109,7 @@ cb_error_handler ( const char *cbname, int err )
     return;                                                 \
     } /* end of cb_cfunc */
 
-BEGIN_CALLBACK( log, pmloglevel_t level, char *fmt, va_list vargs )
+BEGIN_CALLBACK( log, pmloglevel_t level, const char *fmt, va_list vargs )
 {
     char * fmted = NULL;
     int err      = vasprintf( &fmted, fmt, vargs );
@@ -307,17 +307,25 @@ BEGIN_TRANS_CALLBACK( event, pmtransevt_t event, void *arg_one, void *arg_two )
         EVT_STATUS("info")
         EVT_TEXT("text", arg_one)
 		break;
-    case PM_TRANS_EVT_RETRIEVE_START:
+        case PM_TRANS_EVT_RETRIEVE_START:
         EVT_NAME("retrieve")
         EVT_STATUS("start")
         EVT_TEXT("db", arg_one)
-        break;        
+                break;
+        case PM_TRANS_EVT_DISKSPACE_START:
+        EVT_NAME("diskspace")
+        EVT_STATUS("start")
+                break;
+        case PM_TRANS_EVT_DISKSPACE_DONE:
+        EVT_NAME("diskspace")
+        EVT_STATUS("done")
+                break;
     default:
         return;
     }
 }
 END_TRANS_CALLBACK( event )
-    
+
 #define EVT_PKGLIST( NAME, LIST ) \
     alpm_list_to_any_table( L, LIST, PMPKG_T ); \
     lua_setfield( L, -2, NAME );
@@ -378,8 +386,8 @@ callback_key_t transcb_key_progress = { "progress callback" };
 void transcb_cfunc_progress ( pmtransprog_t type,
                               const char * desc,
                               int item_progress,
-                              int total_count,
-                              int total_pos )
+                              size_t total_count,
+                              size_t total_pos )
 {
     char * name;
     int lua_error;

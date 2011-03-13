@@ -28,7 +28,7 @@ extern callback_key_t cb_key_dl;
 extern callback_key_t cb_key_totaldl;
 extern callback_key_t cb_key_fetch;
 
-void cb_cfunc_log     ( pmloglevel_t level, char *fmt, va_list list );
+void cb_cfunc_log     ( pmloglevel_t level, const char *fmt, va_list list );
 void cb_cfunc_dl      ( const char *filename, off_t xfered, off_t total );
 void cb_cfunc_totaldl ( off_t total );
 int  cb_cfunc_fetch   ( const char *url, const char *localpath, int force );
@@ -44,7 +44,7 @@ void transcb_cfunc_event    ( pmtransevt_t event, void *arg_one,
 void transcb_cfunc_conv     ( pmtransconv_t type, void *arg_one,
                               void *arg_two, void *arg_three, int *response );
 void transcb_cfunc_progress ( pmtransprog_t type, const char * desc,
-                              int item_progress, int total_count,
-                              int total_pos );
+                              int item_progress, size_t total_count,
+                              size_t total_pos );
 
 #endif
