@@ -366,7 +366,7 @@ static int lalpm_pkg_has_scriptlet(lua_State *L)
 }
 
 /* int alpm_pkg_has_force(pmpkg_t *pkg); */
-static int lalpm_pkg_has_force(lua_State *L)
+/*static int lalpm_pkg_has_force(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
     int result = alpm_pkg_has_force(pkg);
@@ -374,6 +374,8 @@ static int lalpm_pkg_has_force(lua_State *L)
 
     return 1;
 }
+*/
+
 /* off_t alpm_pkg_download_size(pmpkg_t *newpkg); */
 static int lalpm_pkg_download_size(lua_State *L)
 {
@@ -422,7 +424,7 @@ pmpkg_t **push_pmpkg_box(lua_State *L)
             { "pkg_changelog_read",     lalpm_pkg_changelog_read },
             { "pkg_changelog_close",    lalpm_pkg_changelog_close },
             { "pkg_has_scriptlet",      lalpm_pkg_has_scriptlet },
-            { "pkg_has_force",          lalpm_pkg_has_force },
+/*            { "pkg_has_force",          lalpm_pkg_has_force }, */
             { "pkg_download_size",      lalpm_pkg_download_size },
             { NULL,                     NULL }
         };

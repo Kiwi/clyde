@@ -9,9 +9,9 @@
 /* DEPENDENCY FUNCTIONS ******************************************************/
 /* See dep.c */
 
-int lalpm_depcmp(lua_State *L);
+/* int lalpm_depcmp(lua_State *L); */
 int lalpm_checkdeps(lua_State *L);
-int lalpm_deptest(lua_State *L);
+/* int lalpm_deptest(lua_State *L); */
 
 /* OPTIONS ******************************************************************/
 
@@ -72,10 +72,10 @@ int lalpm_trans_get_remove(lua_State *L);
 /* sync.c */
 
 int lalpm_sync_sysupgrade(lua_State *L);
-int lalpm_sync_target(lua_State *L);
-int lalpm_sync_dbtarget(lua_State *L);
-int lalpm_add_target(lua_State *L);
-int lalpm_remove_target(lua_State *L);
+/* int lalpm_sync_target(lua_State *L); */
+/* int lalpm_sync_dbtarget(lua_State *L); */
+/* int lalpm_add_target(lua_State *L); */
+/* int lalpm_remove_target(lua_State *L); */
 
 int lalpm_pkg_load(lua_State *L);
 

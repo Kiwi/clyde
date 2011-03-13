@@ -80,7 +80,7 @@ static int lalpm_version(lua_State *L)
 }
 
 /* pmdb_t *alpm_db_register_local(void); */
-static int lalpm_db_register_local(lua_State *L)
+/*static int lalpm_db_register_local(lua_State *L)
 {
     pmdb_t **box = push_pmdb_box(L);
     *box = alpm_db_register_local();
@@ -90,6 +90,7 @@ static int lalpm_db_register_local(lua_State *L)
 
     return 1;
 }
+*/
 
 /* pmdb_t *alpm_db_register_sync(const char *treename); */
 static int lalpm_db_register_sync(lua_State *L)
@@ -176,6 +177,7 @@ static int lalpm_pm_errno(lua_State *L)
         Sym(NOT_A_FILE);
         Sym(NOT_A_DIR);
         Sym(WRONG_ARGS);
+        Sym(DISK_SPACE);
             /* Interface */
         Sym(HANDLE_NULL);
         Sym(HANDLE_NOT_NULL);
@@ -186,6 +188,7 @@ static int lalpm_pm_errno(lua_State *L)
         Sym(DB_NULL);
         Sym(DB_NOT_NULL);
         Sym(DB_NOT_FOUND);
+        Sym(DB_VERSION);
         Sym(DB_WRITE);
         Sym(DB_REMOVE);
             /* Servers */
@@ -218,6 +221,7 @@ static int lalpm_pm_errno(lua_State *L)
         Sym(FILE_CONFLICTS);
             /* Misc */
         Sym(RETRIEVE);
+        Sym(WRITE);
         Sym(INVALID_REGEX);
             /* External library errors */
         Sym(LIBARCHIVE);
@@ -280,7 +284,7 @@ static luaL_Reg const pkg_funcs[] =
     { "option_set_usedelta",        lalpm_option_set_usedelta }, /* works */
     { "option_get_localdb",         lalpm_option_get_localdb }, /* works */
     { "option_get_syncdbs",         lalpm_option_get_syncdbs }, /* works */
-    { "db_register_local",          lalpm_db_register_local }, /* works */
+/*    { "db_register_local",          lalpm_db_register_local }, */ /* works */
     { "db_register_sync",           lalpm_db_register_sync }, /* works */
     { "db_unregister_all",          lalpm_db_unregister_all },
     { "fetch_pkgurl",               lalpm_fetch_pkgurl },
@@ -295,14 +299,14 @@ static luaL_Reg const pkg_funcs[] =
     { "trans_release",              lalpm_trans_release },
 
     { "sync_sysupgrade",            lalpm_sync_sysupgrade },
-    { "sync_target",                lalpm_sync_target     },
-    { "sync_dbtarget",              lalpm_sync_dbtarget   },
-    { "add_target",                 lalpm_add_target      },
-    { "remove_target",              lalpm_remove_target   },
+/*    { "sync_target",                lalpm_sync_target     }, */
+/*    { "sync_dbtarget",              lalpm_sync_dbtarget   }, */
+/*    { "add_target",                 lalpm_add_target      }, */
+/*    { "remove_target",              lalpm_remove_target   }, */
 
-    { "depcmp",                     lalpm_depcmp },
+/*    { "depcmp",                     lalpm_depcmp }, */
     { "checkdeps",                  lalpm_checkdeps },
-    { "deptest",                    lalpm_deptest },
+/*     { "deptest",                    lalpm_deptest }, */
     { "sync_newversion",            lalpm_sync_newversion },
     { "compute_md5sum",             lalpm_compute_md5sum },
 
