@@ -46,15 +46,15 @@ lualpm/trans.o: lualpm/types.h lualpm/lualpm.h
 lualpm/types.o: lualpm/types.h
 
 lualpm.so: $(lualpm_objects)
-	$(CC) $(CFLAGS) $(SOFLAGS) -lalpm -o $@ $^
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SOFLAGS) -lalpm -o $@ $^
 
 lualpm: lualpm.so
 
 clydelib/signal.so: clydelib/signal.c
-	$(CC) $(CFLAGS) $(SOFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SOFLAGS) -o $@ $^
 
 clydelib/utilcore.so: clydelib/utilcore.c
-	$(CC) $(CFLAGS) $(SOFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $(LDFLAGS) $(SOFLAGS) -o $@ $^
 
 doc: man/clyde.8
 
