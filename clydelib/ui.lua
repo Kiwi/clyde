@@ -6,7 +6,10 @@ ui.lua - Input from and output to the user
 
 module( "clydelib.ui", package.seeall )
 
-local C = colorize
+local C = require "clydelib.colorize"
+
+local utilcore = require "clydelib.utilcore"
+local G = utilcore.gettext
 
 --- Creates a closure that convert pkginfo to a colorized line/string.
 -- This colorizes the repo name and package name as well as the
@@ -113,4 +116,16 @@ function prompt_for_numbers ( prompt, max )
             error( answer, 0 )
         end
     end
+end
+
+--- A more sophisticated translator and colorizer
+-- We must translate before we colorize or else gettext won't work properly.
+function color_format ( fmt, ... )
+    local fmt = G( fmt )
+    fmt = string.format( fmt, unpack( args ))
+    if fmt.match( "^::" ) then
+        fmt = fmt.gsub( "^::", "" )
+        fmt = C.yelb( "::" ) .. C.bright( fmt )
+    end
+    return fmt
 end
