@@ -14,6 +14,7 @@ local utilcore = require "clydelib.utilcore"
 local signal = require "clydelib.signal"
 local callback = require "clydelib.callback"
 local aur = require "clydelib.aur"
+local ui = require "clydelib.ui"
 local get_builduser = aur.get_builduser
 local needs_root = util.needs_root
 local printf = util.printf
@@ -30,7 +31,6 @@ local bindtextdomain = utilcore.bindtextdomain
 local textdomain = utilcore.textdomain
 local geteuid = utilcore.geteuid
 local C = colorize
-
 
 local ROOTDIR = "/"
 local CONFFILE = "/etc/pacman.conf"
@@ -965,7 +965,7 @@ end
 
 -- Offer to install packages in the package_names list
 -- Returns the names of packages they want to install.
-function install_numprompt ( package_names )
+local function offer_install_pkgs ( package_names )
     if not next( package_names ) then return {} end
 
     local bars = C.yelb("==>")
@@ -973,57 +973,18 @@ function install_numprompt ( package_names )
            bars,
            C.bright("Enter #'s (separated by blanks) of packages "
                     .. "to be installed"),
-           bars, C.bright(("-"):rep(60)), bars )
+           bars, C.bright(string.rep( "-", 60 )), bars )
 
-    local function ask_package_nums ( maxnum )
-        io.write( bars .. " " )
-        local nums_choice = io.read()
+    local max    = #package_names
+    local chosen = ui.prompt_for_numbers( bars, max )
 
-        if nums_choice == "" then return nil end
-
-        input_numbers = {}
-        for num in nums_choice:gmatch( "(%S+)" ) do
-            if num:match( "%D" ) then
-                error( "Invalid input", 0 )
-            else
-                num = tonumber( num )
-                if ( num < 1 or num > maxnum ) then
-                    error( "Out of range", 0 )
-                end
-                table.insert( input_numbers, num )
-            end
-        end
-
-        return input_numbers
+    if not chosen then
+        print( "Aborting." )
+        return {}
     end
 
-    local install_me = {}
-    local max        = table.maxn( package_names )
-    while ( true ) do
-        local success, answer
-            = pcall( ask_package_nums, max )
-
-        if ( success ) then
-            if ( answer ) then
-                for i, num in ipairs( answer ) do
-                    table.insert( install_me, package_names[num] )
-                end
-            else
-                print( "Aborting." )
-            end
-            break
-        elseif ( answer == "Invalid input" ) then
-            print( "Please enter only digits and/or whitespace." )
-        elseif ( answer == "Out of range" ) then
-            print( "Package numbers must be between 1 and "
-                   .. max .. "." )
-        else
-            -- Rethrow an unknown error.
-            error( answer, 0 )
-        end
-    end
-
-    return install_me
+    for i, n in ipairs( chosen ) do chosen[i] = package_names[n] end
+    return chosen
 end
 
 function main()
@@ -1122,8 +1083,12 @@ function main()
         local found_names = sync.sync_search( pm_targets, true )
         if not next( found_names ) then return 1 end
 
-        local install = install_numprompt( found_names )
+        local install = offer_install_pkgs( found_names )
         if not next( install ) then return 1 end
+
+        for i, pkg in ipairs( install ) do
+            print( "*DBG* " .. pkg )
+        end
 
         if (myuid > 0) then
             -- See whether sudo (preferable) or su exist

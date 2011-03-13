@@ -11,7 +11,6 @@ local aur = require "clydelib.aur"
 local upgrade = require "clydelib.upgrade"
 local callback = require "clydelib.callback"
 local ui = require "clydelib.ui"
-local colorize_verstr = ui.colorize_verstr
 local rmrf = util.rmrf
 local makepath = util.makepath
 local eprintf = util.eprintf
@@ -239,9 +238,9 @@ end
 
 -- SYNC SEARCH ---------------------------------------------------------------
 
--- These little helper functions are used by print_fancy_match. Their
--- results are gathered in a table, so if they don't want to be printed
--- they return nil.
+-- These little helper functions are used with mk_match_printer from
+-- ui.lua. Inside mk_match_printer, their results are gathered in a
+-- table, so if they don't want to be printed they return nil.
 
 -- Helper function for installed_tag().
 local function get_installed_version ( pkg_name )
@@ -254,7 +253,8 @@ end
 -- Returns a tag (string) to print showing if a pkg is installed and
 -- if a different version is installed. If the pkg is not installed,
 -- returns nil.
-local function installed_tag(pkg_name, pkg_version)
+local function installed_tag ( pkg )
+    local pkg_name, pkg_version = pkg.name, pkg.version
     local installed_version = get_installed_version( pkg_name )
     if not installed_version then return nil end
 
@@ -262,7 +262,7 @@ local function installed_tag(pkg_name, pkg_version)
     -- print the installed version.
     local tagtext = ""
     if alpm.pkg_vercmp( installed_version, pkg_version ) ~= 0 then
-        tagtext = colorize_verstr( installed_version, C.yel ) .. " "
+        tagtext = ui.colorize_verstr( installed_version, C.yel ) .. " "
     end
 
     tagtext = tagtext .. C.yel( "installed" )
@@ -272,7 +272,8 @@ local function installed_tag(pkg_name, pkg_version)
 end
 
 -- Returns the size of the download or nil if N/A.
-local function download_size_tag ( size )
+local function download_size_tag ( pkg )
+    local size = pkg.size
     if size and config.showsize then
         if size > (1024 * 1024) then
             return string.format( "[%.2f MB]", size / (1024 * 1024))
@@ -287,65 +288,47 @@ local function download_size_tag ( size )
 end
 
 -- Returns the colorized group list, as a string to be printed
-local function groups_tag ( group_names )
+local function groups_tag ( pkg )
+    local group_names = pkg.groups
     if not group_names or not next( group_names ) then return nil end
-    return C.blub( "(" ) .. C.blu( table.concat( group_names, " " )) .. C.blub( ")" )
+    return C.blub( "(" )
+        .. C.blu( table.concat( group_names, " " ))
+        .. C.blub( ")" )
 end
 
 -- Obviously, this only works for AUR packages...
-local function votes_tag ( votes )
-    if votes then
-        return C.yelb( "(" ) .. C.yel( votes ) .. C.yelb( ")" )
+local function votes_tag ( pkg )
+    if pkg.votes then
+        return C.yelb( "(" ) .. C.yel( pkg.votes ) .. C.yelb( ")" )
     else
         return nil
     end
 end
 
-local print_counter = 1
+-- Returns a closure that prints a fancy colorized entry for a search match.
+local function mk_match_printer ( shownumbers )
+    -- We use the package printer provided in the clydelib.ui module
+    -- and we provide our own custom tag generators...
+    local print_counter = 1
+    local taggers       = { installed_tag, download_size_tag, groups_tag,
+                            votes_tag }
+    local pkg_colorizer = ui.mk_pkg_colorizer( taggers )
 
--- Prints a fancy colorized entry for a search match.
--- TODO: shownumbers is kind of funky, better design?
-local function print_fancy_match ( match, shownumbers )
-    local dbcolors = {
-        extra = C.greb;
-        core = C.redb;
-        community = C.magb;
-        testing = C.yelb;
-        aur = C.cyab;
-    }
+    local function match_printer ( match )
+        if shownumbers then
+            io.write( print_counter .. " " )
+            print_counter = print_counter + 1
+        end
 
-    local words = {}
+        print( pkg_colorizer( match ))
 
-    local function revyel( str )
-        return C.yel .. C.onblab .. C.reverse .. str .. C.reset
+        -- pkg_printer only prints one line so we print the desc ourselves
+        io.write( "    " )
+        indentprint( match.desc, 3 )
+        print()
     end
 
-    if shownumbers then
-        io.write( print_counter .. " " )
-        print_counter = print_counter + 1
-    end
-    
-    -- Our package name is changed to dbname/pkgname
-    local dbcolor  = dbcolors[ match.dbname ] or C.bright
-    local longname = dbcolor .. match.dbname .. C.reset
-        .. "/" .. C.whib(match.name)
-    table.insert( words, longname )
-
-    -- Package version is the next word
-    table.insert( words, colorize_verstr( match.version, C.gre ))
-
-    -- Any of the following words might be nil...
-    table.insert( words, installed_tag( match.name, match.version ))
-    table.insert( words, download_size_tag( tonumber( match.size )))
-    table.insert( words, groups_tag( match.groups ))
-    table.insert( words, votes_tag( match.votes ))
-
-    print( table.concat( words, " " ))
-    io.write( "    " )
-    indentprint( match.desc, 3 )
-    print()
-
-    return
+    return match_printer
 end
 
 -- Returns an array of packages which match the search queries.
@@ -440,12 +423,9 @@ function sync_search ( targets, shownumbers )
         print( C.bright( match.name ))
     end
 
-    local function print_fancy ( match )
-        print_fancy_match( match, shownumbers )
-    end
-
-    local match_printcb = config.quiet and print_dumb or print_fancy
-    local found_names   = {}
+    local match_printcb = config.quiet and print_dumb
+        or mk_match_printer( shownumbers )
+    local found_names = {}
 
     -- First we search the ALPM repos...
     if not config.op_s_search_aur_only then
