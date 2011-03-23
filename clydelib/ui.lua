@@ -29,7 +29,7 @@ function mk_pkg_colorizer ( col_funcs )
         -- The package name printed is dbname/pkgname...
         local words    = {}
         local dbname   = colorize_dbname( pkg.dbname )
-        local longname = dbname .. "/" .. C.whib( pkg.name )
+        local longname = dbname .. "/" .. C.bright( pkg.name )
         table.insert( words, longname )
 
         -- Package version is the next word...
