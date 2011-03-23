@@ -1019,11 +1019,6 @@ function main()
     alpm.option_set_root(ROOTDIR)
     alpm.option_set_dbpath(DBPATH)
     alpm.option_set_logfile(LOGFILE)
-    db_local = alpm.db_register_local()
-    if (not db_local) then
-        eprintf("LOG_ERROR", g("could not register 'local' database (%s)\n"), alpm.strerrorlast())
-        cleanup(1)
-    end
     ret = parseargs()
     if (ret ~= 0) then
         cleanup(ret)
