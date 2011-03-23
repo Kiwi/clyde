@@ -207,7 +207,6 @@ static int clyde_umask(lua_State *L)
     }
 
     oldmask = umask( newmask );
-    fprintf( stderr, "*DBG* %o = umask( %o )\n", oldmask, newmask );
 
     /* Return a string of four octal digits. */
     i = 3;

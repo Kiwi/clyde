@@ -1089,10 +1089,6 @@ function main()
         local install = offer_install_pkgs( found_names )
         if not next( install ) then return 1 end
 
-        for i, pkg in ipairs( install ) do
-            print( "*DBG* " .. pkg )
-        end
-
         if (myuid > 0) then
             -- See whether sudo (preferable) or su exist
             local sucmds = { { file   = "/usr/bin/sudo",
