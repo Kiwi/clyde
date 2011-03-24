@@ -343,16 +343,16 @@ function customizepkg ( pkgname, pkgdir )
         -- JD
         if confirmedit then
             -- TODO error checking/recovery?
-            local olddir = lfs.currentdir()
-            assert( olddir, lfs.chdir( pkgdir ))
             os.execute( editor .. " " .. filename )
-            assert( lfs.chdir( olddir ))
         end
     end
 
     print(C.yelb .. C.blink("==>") .. C.yelb(" WARNING: ") .. C.bright
           .. "Packages from the AUR are potentially dangerous!"
           .. C.reset)
+
+    local olddir = lfs.currentdir()
+    assert( lfs.chdir( pkgdir ))
 
     local success, errmsg = pcall(
         function ()
@@ -364,6 +364,7 @@ function customizepkg ( pkgname, pkgdir )
             end
         end )
 
+    assert( lfs.chdir( olddir ))
     if not success then
         eprintf( "LOG_ERROR", "Error customizing %s: %s",
                  pkgdir, errmsg )
