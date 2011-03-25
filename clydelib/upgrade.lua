@@ -41,35 +41,40 @@ local function clyde_upgrade(targets)
     local retval = 0
     local data = {}
     local transret
+
+    print( "loading package data..." )
+
+    local targets = targets
+    targets = util.map( function ( arg )
+                            if arg:match( "://" ) then
+                                return alpm.fetch_pkgurl( arg )
+                            else
+                                return arg
+                            end
+                        end, targets )
+
+    targets = util.map( function ( filename )
+                            local pkgobj = alpm.pkg_load( filename )
+                            if not pkgobj then
+                                eprintf("LOG_ERROR", "'%s': %s\n",
+                                        filename, alpm.strerrorlast())
+                                return nil
+                            else
+                                return pkgobj
+                            end
+                        end, targets )
+
     if (not next(targets)) then
         lprintf("LOG_ERROR", g("no targets specified (use -h for help)\n"))
         return 1
     end
 
-    local temptargs = {}
-
-    for i, targ in ipairs(targets) do
-        if targ:match("://") then
-            local str = alpm.fetch_pkgurl(targ)
-            if (str == nil) then
-                return 1
-            else
-                tblinsert(temptargs, str)
-            end
-        else
-            tblinsert(temptargs, targ)
-        end
-    end
-    targets = nil
-    targets = tblstrdup(temptargs)
-
     if (trans_init(config.flags) == -1) then
         return 1
     end
 
-    printf(g("loading package data...\n"))
     for i, targ in ipairs(targets) do
-        if not add_pkg_file( targ ) then
+        if alpm.trans_add_pkg( targ ) == -1 then
             eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
             trans_release()
             return 1

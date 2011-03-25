@@ -6,6 +6,30 @@ local signal = require "clydelib.signal"
 local C = colorize
 local g = utilcore.gettext
 
+-- Applies function f to table t.
+-- If f returns nil, do not return it as result but move to next elem.
+function map_iter ( f, t )
+    local i = 0
+    local n = #t
+    return function ()
+               local x
+               repeat
+                   i = i + 1
+                   if i > n then return nil end
+                   x = f( t[i] )
+               until x ~= nil
+               return x
+           end
+end
+
+function map ( f, t )
+    local result = {}
+    for elem in map_iter( f, t ) do
+        table.insert( result, elem )
+    end
+    return result
+end
+
 function dump(o)
     if type(o) == 'table' then
         local s = '{ '
