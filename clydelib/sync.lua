@@ -637,6 +637,17 @@ local function syncfirst()
     return res
 end
 
+-- Awesome hack to emulate old behavior.
+-- Returns trans_add_pkg's return value if found or nil if not found.
+local function sync_target ( pkg_name ) 
+    for i, db in ipairs( alpm.option_get_syncdbs()) do
+        local pkg_obj = db:db_get_pkg( pkg_name )
+        if pkg_obj then return alpm.trans_add_pkg( pkg_obj ) end
+    end
+
+    return nil
+end
+
 local function sync_aur_trans(targets)
     local retval = 0
     local found
@@ -668,62 +679,69 @@ local function sync_aur_trans(targets)
     else
         for i, targ in ipairs(targets) do
             repeat
-                if (alpm.sync_target(targ) == -1) then
-                    found = false
-                    if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
-                        alpm.pm_errno() == "P_E_PKG_IGNORED") then
-                        lprintf("LOG_WARNING", g("skipping target: %s\n"), targ)
-                        break
-                    end
-                    if (alpm.pm_errno() ~= "P_E_PKG_NOT_FOUND") then
-                        eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
+                local addret = sync_target(targ)
+                if addret then
+                    if addret == -1 then
+                        if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
+                            alpm.pm_errno() == "P_E_PKG_IGNORED") then
+                            lprintf("LOG_WARNING", g("skipping target: %s\n"),
+                                    targ)
+                            found = false
+                            break
+                        end
+                        eprintf("LOG_ERROR", "'%s': %s\n", targ,
+                                alpm.strerrorlast())
                         retval = 1
                         return transcleanup()
                     end
-                    printf(g(C.blub("::")..C.bright(" %s package not found, searching for group...\n")), targ)
-                    for i, db in ipairs(sync_dbs) do
-                        local grp = db:db_readgrp(targ)
-                        if (grp) then
-                            found = true
-                            printf(g(C.blub("::")..C.bright(" group %s (including ignored packages):\n")), targ)
-                            local grppkgs = grp:grp_get_pkgs()
-                            local pkgs = tblremovedupes(grppkgs)
-                            local pkgnames = {}
-                            for i, pkgname in ipairs(pkgs) do
-                                tblinsert(pkgnames, pkgname:pkg_get_name())
+
+                    found = true
+                    break
+                end
+
+                print( ui.color_fmt( ":: %s package not found, "
+                                     .. "searching for group...", targ))
+                for i, db in ipairs(sync_dbs) do
+                    local grp = db:db_readgrp(targ)
+                    if (grp) then
+                        found = true
+                        printf(g(C.blub("::")..C.bright(" group %s (including ignored packages):\n")), targ)
+                        local grppkgs = grp:grp_get_pkgs()
+                        local pkgs = tblremovedupes(grppkgs)
+                        local pkgnames = {}
+                        for i, pkgname in ipairs(pkgs) do
+                            tblinsert(pkgnames, pkgname:pkg_get_name())
+                        end
+                        list_display("   ", pkgnames)
+                        if (yesno(g(C.yelb("::")..C.bright(" Install whole content?")))) then
+                            for i, pkgname in ipairs(pkgnames) do
+                                tblinsert(targets, pkgname)
                             end
-                            list_display("   ", pkgnames)
-                            if (yesno(g(C.yelb("::")..C.bright(" Install whole content?")))) then
-                                for i, pkgname in ipairs(pkgnames) do
+                        else
+                            for i, pkgname in ipairs(pkgnames) do
+                                if (yesno(g(C.yelb("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
                                     tblinsert(targets, pkgname)
                                 end
-                            else
-                                for i, pkgname in ipairs(pkgnames) do
-                                    if (yesno(g(C.yelb("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
-                                        tblinsert(targets, pkgname)
-                                    end
-                                end
                             end
-                            pkgnames = nil
-                            pkgs = nil
                         end
+                        pkgnames = nil
+                        pkgs = nil
+                    end
+                end
+
+                if (not found) then
+                    printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
+                    if aur.package_exists( targ ) then
+                        found = true
+                        tblinsert( aurpkgs, targ )
                     end
 
-                    if (not found) then
-                        printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
-                        if aur.package_exists( targ ) then
-                            found = true
-                            tblinsert( aurpkgs, targ )
-                        end
+                end
 
-                    end
---                    local pkgs = db_local:db_get_pkgcache()
-
-                    if (not found) then
-                        eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
-                        retval = 1
-                        return transcleanup()
-                    end
+                if (not found) then
+                    eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
+                    retval = 1
+                    return transcleanup()
                 end
             until 1
         end
@@ -1186,62 +1204,68 @@ local function sync_trans(targets)
     else
         for i, targ in ipairs(targets) do
             repeat
-                if (alpm.sync_target(targ) == -1) then
-                    found = false
-                    if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
-                        alpm.pm_errno() == "P_E_PKG_IGNORED") then
-                        lprintf("LOG_WARNING", g("skipping target: %s\n"), targ)
-                        break
-                    end
-                    if (alpm.pm_errno() ~= "P_E_PKG_NOT_FOUND") then
-                        eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
+                local addret = sync_target(targ)
+                if addret then
+                    if addret == -1 then
+                        if (alpm.pm_errno() == "P_E_TRANS_DUP_TARGET" or
+                            alpm.pm_errno() == "P_E_PKG_IGNORED") then
+                            lprintf("LOG_WARNING", g("skipping target: %s\n"),
+                                    targ)
+                            found = false
+                            break
+                        end
+                        eprintf("LOG_ERROR", "'%s': %s\n", targ,
+                                alpm.strerrorlast())
                         retval = 1
                         return transcleanup()
                     end
-                    printf(g(C.blub("::")..C.bright(" %s package not found, searching for group...\n")), targ)
-                    for i, db in ipairs(sync_dbs) do
-                        local grp = db:db_readgrp(targ)
-                        if (grp) then
-                            found = true
-                            printf(g(C.blub("::")..C.bright(" group %s (including ignored packages):\n")), targ)
-                            local grppkgs = grp:grp_get_pkgs()
-                            local pkgs = tblremovedupes(grppkgs)
-                            local pkgnames = {}
-                            for i, pkgname in ipairs(pkgs) do
-                                tblinsert(pkgnames, pkgname:pkg_get_name())
+
+                    found = true
+                    break
+                end
+
+                printf(g(C.blub("::")..C.bright(" %s package not found, searching for group...\n")), targ)
+                for i, db in ipairs(sync_dbs) do
+                    local grp = db:db_readgrp(targ)
+                    if (grp) then
+                        found = true
+                        printf(g(C.blub("::")..C.bright(" group %s (including ignored packages):\n")), targ)
+                        local grppkgs = grp:grp_get_pkgs()
+                        local pkgs = tblremovedupes(grppkgs)
+                        local pkgnames = {}
+                        for i, pkgname in ipairs(pkgs) do
+                            tblinsert(pkgnames, pkgname:pkg_get_name())
+                        end
+                        list_display("   ", pkgnames)
+                        if (yesno(g(C.yelb("::")..C.bright(" Install whole content?")))) then
+                            for i, pkgname in ipairs(pkgnames) do
+                                tblinsert(targets, pkgname)
                             end
-                            list_display("   ", pkgnames)
-                            if (yesno(g(C.yelb("::")..C.bright(" Install whole content?")))) then
-                                for i, pkgname in ipairs(pkgnames) do
+                        else
+                            for i, pkgname in ipairs(pkgnames) do
+                                if (yesno(g(C.yelb("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
                                     tblinsert(targets, pkgname)
                                 end
-                            else
-                                for i, pkgname in ipairs(pkgnames) do
-                                    if (yesno(g(C.yelb("::")..C.bright(" Install %s from group %s?")), pkgname, targ)) then
-                                        tblinsert(targets, pkgname)
-                                    end
-                                end
                             end
-                            pkgnames = nil
-                            pkgs = nil
                         end
+                        pkgnames = nil
+                        pkgs = nil
+                    end
+                end
+
+                if (not found) then
+                    printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
+                    if aur.package_exists( targ ) then
+                        found = true
+                        tblinsert( aurpkgs, targ )
                     end
 
-                    if (not found) then
-                        printf(C.blub("::")..C.bright(" %s group not found, searching AUR...\n"), targ)
-                        if aur.package_exists( targ ) then
-                            found = true
-                            tblinsert( aurpkgs, targ )
-                        end
+                end
 
-                    end
---                    local pkgs = db_local:db_get_pkgcache()
-
-                    if (not found) then
-                        eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
-                        retval = 1
-                        return transcleanup()
-                    end
+                if (not found) then
+                    eprintf("LOG_ERROR", g("'%s': not found in sync db\n"), targ)
+                    retval = 1
+                    return transcleanup()
                 end
             until 1
         end
