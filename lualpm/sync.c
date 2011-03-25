@@ -3,6 +3,7 @@
 #include <lua.h>
 #include <lualib.h>
 #include <lauxlib.h>
+#include "types.h"
 
 /* Functions that modify a transaction to add or remove packages
    are located here. */
@@ -15,6 +16,26 @@ int lalpm_sync_sysupgrade(lua_State *L)
     lua_pushnumber(L, result);
 
     return 1;
+}
+
+int lalpm_add_pkg ( lua_State *L )
+{
+    pmpkg_t *pkg;
+    int ret;
+    pkg = check_pmpkg( L, 1 );
+    ret = alpm_add_pkg( pkg );
+    lua_pushnumber( L, ret );
+    return 1;
+}
+
+int lalpm_remove_pkg ( lua_State *L )
+{
+    pmpkg_t *pkg;
+    int ret;
+    pkg = check_pmpkg( L, 1 );
+    ret = alpm_add_pkg( pkg );
+    lua_pushnumber( L, ret );
+    return 1;    
 }
 
 /* int alpm_sync_target(char *target); */

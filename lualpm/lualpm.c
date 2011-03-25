@@ -305,6 +305,9 @@ static luaL_Reg const pkg_funcs[] =
 /*    { "add_target",                 lalpm_add_target      }, */
 /*    { "remove_target",              lalpm_remove_target   }, */
 
+    { "trans_add_pkg",              lalpm_add_pkg      },
+    { "trans_remove_pkg",           lalpm_remove_pkg   },
+
 /*    { "depcmp",                     lalpm_depcmp }, */
     { "checkdeps",                  lalpm_checkdeps },
 /*     { "deptest",                    lalpm_deptest }, */
