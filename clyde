@@ -41,8 +41,8 @@ local clydeconf = require "clydelib.config"
 
 local PACKAGE = "clyde"
 local LOCALEDIR = "/usr/share/locale"
-local VERSION   = '0.03.14'
-local LUALPM_VERSION = '0.02'
+local VERSION   = '0.03.15'
+local LUALPM_VERSION = '0.03'
 
 local function usage(op, myname)
     local str_opt = g("options")

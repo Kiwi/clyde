@@ -1,12 +1,37 @@
 Changelog -*- org -*-
 
-  ____ _           _         ____ _                                 
- / ___| |_   _  __| | ___   / ___| |__   __ _ _ __   __ _  ___  ___ 
-| |   | | | | |/ _` |/ _ \ | |   | '_ \ / _` | '_ \ / _` |/ _ \/ __|
-| |___| | |_| | (_| |  __/ | |___| | | | (_| | | | | (_| |  __/\__ \
- \____|_|\__, |\__,_|\___|  \____|_| |_|\__,_|_| |_|\__, |\___||___/
-         |___/                                      |___/           
+:   ____ _           _         ____ _                                 
+:  / ___| |_   _  __| | ___   / ___| |__   __ _ _ __   __ _  ___  ___ 
+: | |   | | | | |/ _` |/ _ \ | |   | '_ \ / _` | '_ \ / _` |/ _ \/ __|
+: | |___| | |_| | (_| |  __/ | |___| | | | (_| | | | | (_| |  __/\__ \
+:  \____|_|\__, |\__,_|\___|  \____|_| |_|\__,_|_| |_|\__, |\___||___/
+:          |___/                                      |___/           
+: 
 
+* Version 0.03.15 [2011-03-26 Sat]
+
+** Updated for pacman 3.5
+
+The new libalpm changes have been incorporated into lualpm and
+clyde has been updated to use the new API. Here is a list of
+new features from libalpm, they should be the same as pacman.
+
+ - CheckSpace option added to config file.
+ - -d allows for less dep ignorance, -dd for full power.
+ - You can now select from multiple providers of deps.
+
+** Progress bar padding fixed                                           :BUG:
+
+Extra space was added for the progress bar to make things line up
+properly.
+
+** PKGBUILD customizing would not find .install files                   :BUG:
+
+I (Justin) did not chdir into the source package directory before
+parsing the PKGBUILDs so it never actually found any .install files.
+Oops!
+
+Reported by anish #116
 
 * Version 0.03.14 [2011-02-20 Sun]
 
