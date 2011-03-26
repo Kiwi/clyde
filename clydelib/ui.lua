@@ -120,7 +120,7 @@ end
 
 --- A more sophisticated translator and colorizer
 -- We must translate before we colorize or else gettext won't work properly.
-function color_format ( fmt, ... )
+function format ( fmt, ... )
     local fmt = G( fmt )
     fmt = string.format( fmt, unpack( args ))
     if fmt.match( "^::" ) then

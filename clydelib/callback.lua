@@ -545,8 +545,8 @@ trans_conv_lookup = {
     ["select_provider"] = function ( event )
         local providers, depstr = event["providers"], event["depstr"]
         local count = #providers
-        print( ui.color_format( ":: There are %d providers available for %s:\n",
-                                count, depstr ))
+        print( ui.format( ":: There are %d providers available for %s:\n",
+                          count, depstr ))
         local colorizer = ui.mk_pkg_colorizer {}
 
         -- The colorizer expects a table of package information, not objects
