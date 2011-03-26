@@ -33,7 +33,7 @@ int lalpm_remove_pkg ( lua_State *L )
     pmpkg_t *pkg;
     int ret;
     pkg = check_pmpkg( L, 1 );
-    ret = alpm_add_pkg( pkg );
+    ret = alpm_remove_pkg( pkg );
     lua_pushnumber( L, ret );
     return 1;    
 }
