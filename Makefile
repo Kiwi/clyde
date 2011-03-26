@@ -2,7 +2,7 @@ LDFLAGS+= -s
 CFLAGS+= -Wall -W -O2 -fPIC `pkg-config --cflags lua` \
 	-std=c99 -D_FILE_OFFSET_BITS=64 -D_GNU_SOURCE
 CC = gcc
-SOFLAGS = -shared -pedantic -llua
+SOFLAGS = -shared -pedantic
 
 INSTALL = install
 INSTALL_DIR = $(INSTALL) -dm755
@@ -46,15 +46,15 @@ lualpm/trans.o: lualpm/types.h lualpm/lualpm.h
 lualpm/types.o: lualpm/types.h
 
 lualpm.so: $(lualpm_objects)
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SOFLAGS) -lalpm -o $@ $^
+	$(CC) $(CFLAGS) -lalpm -llua $(SOFLAGS) $(LDFLAGS) -o $@ $^
 
 lualpm: lualpm.so
 
 clydelib/signal.so: clydelib/signal.c
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SOFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -llua $(SOFLAGS) $(LDFLAGS) -o $@ $^
 
 clydelib/utilcore.so: clydelib/utilcore.c
-	$(CC) $(CFLAGS) $(LDFLAGS) $(SOFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -llua $(SOFLAGS) $(LDFLAGS) -o $@ $^
 
 doc: man/clyde.8
 
