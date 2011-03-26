@@ -122,9 +122,9 @@ end
 -- We must translate before we colorize or else gettext won't work properly.
 function format ( fmt, ... )
     local fmt = G( fmt )
-    fmt = string.format( fmt, unpack( args ))
-    if fmt.match( "^::" ) then
-        fmt = fmt.gsub( "^::", "" )
+    fmt = string.format( fmt, unpack( arg ))
+    if fmt:match( "^::" ) then
+        fmt = fmt:gsub( "^::", "" )
         fmt = C.yelb( "::" ) .. C.bright( fmt )
     end
     return fmt
