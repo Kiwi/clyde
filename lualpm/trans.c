@@ -13,7 +13,7 @@ static const char * trans_flag_names[] =
     { "nodeps",
       "force",
       "nosave",
-      "",
+      "nodepver",
       "cascade",
       "recurse",
       "dbonly",

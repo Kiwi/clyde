@@ -439,9 +439,20 @@ local longopts = {
             config.op_q_changelog = true
         end;
         ['d'] = function()
-            config.op_q_deps = true
-            config.flags["nodeps"] = true
-            config.op_g_get_deps = true
+            -- -d sets nodepver, -dd sets nodeps
+            -- ignore more than two, it would just confuse us...
+            if config.flags.nodeps then return end
+ 
+            if not config.flags.nodepver then
+                -- first time we see -d
+                config.op_q_deps      = true
+                config.op_g_get_deps  = true
+                config.flags.nodepver = true
+            else
+                -- second time
+                config.flags.nodepver = false
+                config.flags.nodeps   = true
+            end
         end;
         ['e'] = function() config.op_q_explicit = true end;
         ['f'] = function() config.flags["force"] = true end;
