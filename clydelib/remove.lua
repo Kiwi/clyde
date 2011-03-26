@@ -33,120 +33,149 @@ local dump_pkg_changelog = packages.dump_pkg_changelog
 local dump_pkg_files = packages.dump_pkg_files
 local dump_pkg_sync = packages.dump_pkg_sync
 local C = colorize
+local ui = require "clydelib.ui"
 
-local function clyde_remove(targets)
-    local retval = 0
-    local function removecleanup()
-        if (trans_release() == -1) then
-            print("trans_release fail")
-            retval = 1
-        end
-        return(retval)
+local function queue_pkg_remove ( pkgobj )
+    if alpm.trans_remove_pkg( pkgobj ) == -1 then
+        error{ errmsg = { "'%s': %s\n", pkgobj:pkg_get_name() } }
     end
-
-    local transret
-    local data = {}
-    if (not next(targets)) then
-        lprintf("LOG_ERROR", g("no targets specified (use -h for help)\n"))
-        return 1
-    end
-
-    if (trans_init(config.flags) == -1) then
-        return 1
-    end
-
-    for i, targ in ipairs(targets) do
-        if (alpm.remove_target(targ) == -1) then
-            if (alpm.pm_errno() == "P_E_PKG_NOT_FOUND") then
-                printf(g("%s not found, searching for group...\n"), targ)
-                local grp = db_local:db_readgrp(targ)
-                if (not grp) then
-                    eprintf("LOG_ERROR", g("'%s': not found in local db\n"), targ)
-                    retval = 1
-                    return removecleanup()
-                else
-                    local packages = grp:grp_get_pkgs()
-                    local pkgnames = {}
-                    for i, pkgname in ipairs(packages) do
-                        tblinsert(pkgnames, pkgname:pkg_get_name())
-                    end
-                    printf(g(C.blub("::")..C.bright(" group %s:\n")), targ)
-                    list_display("   ", pkgnames)
-                    local all = yesno(g("    Remove whole content?"))
-                    for i, pkgn in ipairs(pkgnames) do
-                        if (all or yesno(g(C.yelb("::")..C.bright(" Remove %s from group %s?")), pkgn, targ)) then
-                            if (alpm.remove_target(pkgn) == -1) then
-                                eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
-                                retval = 1
-                                pkgnames = nil
-                                return removecleanup()
-                            end
-                        end
-                    end
-                    pkgnames = nil
-                end
-            else
-                eprintf("LOG_ERROR", "'%s': %s\n", targ, alpm.strerrorlast())
-                retval = 1
-                return removecleanup()
-            end
-        end
-    end
-
-    transret, data = alpm.trans_prepare(data)
-
-    if (transret == -1) then
-        eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), alpm.strerrorlast())
-        if (alpm.pm_errno() == "P_E_UNSATISFIED_DEPS") then
-            for i, miss in ipairs(data) do
-                local dep = miss:miss_get_dep()
-                local depstring = dep:dep_compute_string()
-                printf(g(C.blub("::")..C.bright(" %s: requires %s\n")), miss:miss_get_target(), depstring)
-                depstring = nil
-            end
-            data =  nil
-        end
-        retval = 1
-        return removecleanup()
-    end
-
-    local holdpkg = false
-    local transpkgs = alpm.trans_get_remove()
-    for i, pkg in ipairs(transpkgs) do
-        if (tblisin(config.holdpkg, pkg:pkg_get_name())) then
-            lprintf("LOG_WARNING", g("%s is designated as a HoldPkg.\n"), pkg:pkg_get_name())
-            holdpkg = true
-        end
-    end
-    if (holdpkg and (noyes(g("HoldPkg was found in target list. Do you want to continue?"))
-            == false)) then
-        retval = true
-        return removecleanup()
-    end
-
-    if (config.flags["recurse"] or config.flags["cascade"]) then
-        local pkglist = alpm.trans_get_remove()
-        display_targets(pkglist, false)
-        printf("\n")
-
-        if (yesno(g("Do you want to remove these packages?")) == false) then
-            retval = 1
-            return removecleanup()
-        end
-    end
-
-    if (alpm.trans_commit({}) == -1) then
-        eprintf("LOG_ERROR", g("failed to commit transaction (%s)\n"), alpm.strerrorlast())
-        retval = 1
-        return removecleanup()
-    end
-    return removecleanup()
 end
 
-function main(targets)
-    local result = clyde_remove(targets)
-    if (not result) then
-        result = 1
+local function queue_grp_remove ( grpobj )
+    local grpname  = grpobj:grp_get_name()
+    local packages = grpobj:grp_get_pkgs()
+    local pkgnames = {}
+    for i, obj in ipairs( packages ) do
+        table.insert( pkgnames, obj:pkg_get_name())
     end
-    return result
+
+    print( ui.format( ":: There are %d members in group %s:\n",
+                      #packages, grpname ))
+    list_display( "    ", pkgnames )
+    print()
+
+    -- no translations for the below messages
+    local rem_all = yesno( "    Remove entire group?" )
+    print()
+
+    local function confirmed ( pkgname )
+        return yesno( ui.format( ":: Remove %s from group %s?",
+                                 pkgname, grpname ))
+    end
+                                       
+    for i, pkgobj in ipairs( packages ) do
+        if rem_all or confirmed( pkgnames[i] ) then
+            queue_pkg_remove( pkgobj )
+        end
+    end
+end
+
+local function queue_remove ( target, localdb )
+    local pkgobj = localdb:db_get_pkg( target )
+    if pkgobj then
+        queue_pkg_remove( pkgobj )
+        return true
+    end
+
+    -- no translation
+    -- print( target .. " not found, searching for group..." )
+    local grpobj = localdb:db_readgrp( target )
+    if grpobj then
+        queue_grp_remove( grpobj )
+        return true
+    end
+
+    return false
+end
+
+local function clyde_remove(targets)
+    local localdb = alpm.option_get_localdb()
+
+    local found_one
+    for i, target in ipairs( targets ) do
+        if queue_remove( target, localdb ) then
+            found_one = true
+        else
+            eprintf( "LOG_ERROR", "target not found: %s\n", target )
+        end
+    end
+    if not found_one then return end
+
+    local transret, errlist = alpm.trans_prepare({})
+    if transret == -1 then
+        error{ errmsg  = { "failed to prepare transaction (%s)\n" };
+               errlist = errlist; }
+    end
+
+    local found_holdpkg
+    for i, pkg in ipairs( alpm.trans_get_remove()) do
+        local name = pkg:pkg_get_name()
+        if config.holdpkg[ name ] then
+            lprintf( "LOG_WARNING",
+                     g("%s is designated as a HoldPkg.\n"), name )
+            found_holdpkg = true
+        end
+    end
+
+    local holdmsg = g("HoldPkg was found in target list. "
+                      .. "Do you want to continue?")
+    if found_holdpkg and not noyes( holdmsg ) then return end
+
+    if config.flags.recurse or config.flags.cascade then
+        local pkglist = alpm.trans_get_remove()
+        display_targets( pkglist, false )
+        print()
+
+        if not yesno( g("Do you want to remove these packages?" )) then
+            return
+        end
+    end
+
+    if alpm.trans_commit({}) == -1 then
+        error{ errmsg = { "failed to commit transaction (%s)\n" }}
+    end
+
+    return
+end
+
+local error_handlers = {
+    -- can occur when preparing transaction
+    P_E_UNSATISFIED_DEPS =
+        function ( err )
+            for i, miss in ipairs( err.errlist ) do
+                local msg =
+                    ui.format( g( ":: %s: requires %s\n" ),
+                               miss:miss_get_target(),
+                               miss:miss_get_dep():dep_compute_string())
+                print( msg )
+            end
+        end ;
+}
+
+function main( targets )
+    if not next( targets ) then
+        lprintf( "LOG_ERROR", g("no targets specified (use -h for help)\n" ))
+        return 1
+    end
+
+    if trans_init( config.flags ) == -1 then return 1 end
+
+    local success, err = pcall( clyde_remove, targets )
+    trans_release()
+
+    if not success then
+        -- rethrow error if it is not internally generated
+        if type( err ) ~= "table" then error( err, 0 ) end
+
+        err.errmsg[1] = g( err.errmsg[1] )
+        -- supply strerrorlast even if it is not needed
+
+        eprintf( "LOG_ERROR", unpack( err.errmsg ), alpm.strerrorlast())
+        local handler = error_handlers[ alpm.pm_errno() ]
+        if handler then handler( err ) end
+
+        return 1
+    end
+
+    return 0
 end
