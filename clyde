@@ -695,7 +695,7 @@ local function config_free(conf)
 end
 
 local function option_add_holdpkg(name)
-    tblinsert(config.holdpkg, name)
+    config.holdpkg[ name ] = true
 end
 
 local function option_add_syncfirst(name)

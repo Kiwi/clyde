@@ -30,6 +30,12 @@ function map ( f, t )
     return result
 end
 
+function keys ( t )
+    local keylist = {}
+    for k, v in pairs( t ) do table.insert( keylist, k ) end
+    return keylist
+end
+
 function dump(o)
     if type(o) == 'table' then
         local s = '{ '
