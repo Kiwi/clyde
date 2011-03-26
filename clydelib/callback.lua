@@ -177,7 +177,11 @@ function cb_trans_progress( type, pkgname, percent, total_count, total_pos )
         wcstr = wcstr.."..."
         padwid = 0
     end
-    printf("(%d/%d) %s %s", total_pos, total_count, wcstr, string.rep(" ", padwid ))
+
+    local pos_pad = string.rep( ' ', digits - string.len( total_pos ))
+    total_pos = pos_pad .. total_pos
+    printf("(%s/%d) %s %s", total_pos, total_count,
+           wcstr, string.rep(" ", padwid ))
     fill_progress(percent, percent, getcols() - infolen)
 
     if (percent == 100) then
