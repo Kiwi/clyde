@@ -1,38 +1,21 @@
-module(..., package.seeall)
-local lfs = require "lfs"
+module( ..., package.seeall )
+
 local alpm = require "lualpm"
-local util = require "clydelib.util"
+
 local utilcore = require "clydelib.utilcore"
-local packages = require "clydelib.packages"
-local eprintf = util.eprintf
-local lprintf = util.lprintf
-local printf = util.printf
-local basename = util.basename
-local cleanup = util.cleanup
-local tblinsert = util.tblinsert
-local realpath = util.realpath
-local indentprint = util.indentprint
-local list_display = util.list_display
+local g        = utilcore.gettext
+
+local util            = require "clydelib.util"
+local eprintf         = util.eprintf
+local lprintf         = util.lprintf
+local printf          = util.printf
+local list_display    = util.list_display
 local display_targets = util.display_targets
-local tbljoin = util.tbljoin
-local tblisin = util.tblisin
-local fastremove = util.fastremove
-local tblremovedupes = util.tblremovedupes
-local tbldiff = util.tbldiff
-local tblstrdup = util.tblstrdup
-local trans_init = util.trans_init
-local yesno = util.yesno
-local noyes = util.noyes
-local trans_release = util.trans_release
-local access = utilcore.access
-local strerror = utilcore.strerror
-local g = utilcore.gettext
-local pm_targets = pm_targets
-local community = community
-local dump_pkg_changelog = packages.dump_pkg_changelog
-local dump_pkg_files = packages.dump_pkg_files
-local dump_pkg_sync = packages.dump_pkg_sync
-local C = colorize
+local trans_init      = util.trans_init
+local yesno           = util.yesno
+local noyes           = util.noyes
+local trans_release   = util.trans_release
+
 local ui = require "clydelib.ui"
 
 local function queue_pkg_remove ( pkgobj )
@@ -144,7 +127,7 @@ local error_handlers = {
         function ( err )
             for i, miss in ipairs( err.errlist ) do
                 local msg =
-                    ui.format( g( ":: %s: requires %s\n" ),
+                    ui.format( ":: %s: requires %s\n",
                                miss:miss_get_target(),
                                miss:miss_get_dep():dep_compute_string())
                 print( msg )
@@ -161,7 +144,7 @@ function main( targets )
     if trans_init( config.flags ) == -1 then return 1 end
 
     local success, err = pcall( clyde_remove, targets )
-    trans_release()
+    if trans_release() == -1 then return 1 end
 
     if not success then
         -- rethrow error if it is not internally generated
