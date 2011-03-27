@@ -288,15 +288,6 @@ local function download_size_tag ( pkg )
     end
 end
 
--- Returns the colorized group list, as a string to be printed
-local function groups_tag ( pkg )
-    local group_names = pkg.groups
-    if not group_names or not next( group_names ) then return nil end
-    return C.blub( "(" )
-        .. C.blu( table.concat( group_names, " " ))
-        .. C.blub( ")" )
-end
-
 -- Obviously, this only works for AUR packages...
 local function votes_tag ( pkg )
     if pkg.votes then
@@ -311,10 +302,9 @@ local function mk_match_printer ( shownumbers )
     -- We use the package printer provided in the clydelib.ui module
     -- and we provide our own custom tag generators...
     local print_counter = 1
-    local taggers       = { installed_tag, download_size_tag, groups_tag,
-                            votes_tag }
-    local pkg_colorizer = ui.mk_pkg_colorizer( taggers )
-
+    local pkg_colorizer = ui.mk_pkg_colorizer( installed_tag,
+                                               download_size_tag,
+                                               ui.groups_tag, votes_tag )
     local function match_printer ( match )
         if shownumbers then
             io.write( print_counter .. " " )

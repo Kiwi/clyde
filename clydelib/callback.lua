@@ -551,7 +551,7 @@ trans_conv_lookup = {
         local count = #providers
         print( ui.format( ":: There are %d providers available for %s:\n",
                           count, depstr ))
-        local colorizer = ui.mk_pkg_colorizer {}
+        local colorizer = ui.mk_pkg_colorizer()
 
         -- The colorizer expects a table of package information, not objects
         for i, pkgobj in ipairs( providers ) do

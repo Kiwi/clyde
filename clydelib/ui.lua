@@ -19,8 +19,8 @@ local G = utilcore.gettext
 --                  table at runtime. These return a string they would
 --                  like added to the package line or nil if they
 --                  don't want to add anything.
-function mk_pkg_colorizer ( col_funcs )
-    local col_funcs = col_funcs
+function mk_pkg_colorizer ( ... )
+    local col_funcs = arg
     local function pkg_colorizer ( pkg )
 
         -- Every colorizer made shows at least the package name and
@@ -46,6 +46,15 @@ function mk_pkg_colorizer ( col_funcs )
     return pkg_colorizer
 end
 
+-- Returns the colorized group list, as a string to be printed
+function groups_tag ( pkg )
+    local group_names = pkg.groups
+    if not group_names or not next( group_names ) then return nil end
+    return C.blub( "(" )
+        .. C.blu( table.concat( group_names, " " ))
+        .. C.blub( ")" )
+end
+
 function colorize_dbname ( dbname )
     local dbcolors = {
         extra = C.greb;
@@ -53,6 +62,7 @@ function colorize_dbname ( dbname )
         community = C.magb;
         testing = C.yelb;
         aur = C.cyab;
+        ["local"] = C.yelb;
     }
 
     local dbcolor = dbcolors[ dbname ] or C.bright
