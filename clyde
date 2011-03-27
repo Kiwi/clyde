@@ -788,7 +788,7 @@ local function _parseconfig(file, givensection, givendb)
         lprintf("LOG_DEBUG", "config: totaldownload\n") end;
     ['CheckSpace'] = function ()
         alpm.option_set_checkspace(true)
-        lrpintf("LOG_DEBUG", "config: checkspace\n")
+        lprintf("LOG_DEBUG", "config: checkspace\n")
     end;
 
     ['NoUpgrade'] = function(str)
