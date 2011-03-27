@@ -33,7 +33,9 @@ local function print_package ( dbname, pkgobj )
                                                ui.groups_tag )
         print( colorizer{ name    = pkgobj:pkg_get_name();
                           dbname  = dbname or "local";
-                          version = pkgobj:pkg_get_version() })
+                          version = pkgobj:pkg_get_version();
+                          groups  = pkgobj:pkg_get_groups();
+                          isize   = pkgobj:pkg_get_isize() })
     else
         print( name )
     end
