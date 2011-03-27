@@ -9,7 +9,7 @@ arch=('i686' 'x86_64')
 url='https://github.com/Kiwi/clyde'
 license=('custom')
 makedepends=('make')
-depends=('lua-lzlib' 'lua-yajl-git' 'luasocket'
+depends=('pacman>=3.5' 'lua-lzlib' 'lua-yajl-git' 'luasocket'
          'luafilesystem' 'luasec')
 provides=('lualpm=0.03')
 conflicts=('clyde-git')
