@@ -88,11 +88,23 @@ function create_socket()
     return setmetatable(t, {__index = idx})
 end
 
+function chown_builduser ( path, ... )
+    local buser = get_builduser()
+    local pwent = utilcore.getpwnam( buser )
+    util.chown( buser, pwent.gid, path, ... )
+end
+
 function make_builddir ( pkgname )
     local bdir = get_builddir()
-    if not pcall( lfs.opendir, bdir ) then lfs.mkdir( bdir ) end
+    if not pcall( lfs.dir, bdir ) then
+        utilcore.mkdir( bdir, "0755" )
+        chown_builduser( bdir )
+    end
     local pkgdir = bdir .. "/" .. pkgname
-    if not pcall( lfs.opendir, bdir ) then lfs.mkdir( pkgdir ) end
+    if not pcall( lfs.dir, pkgdir ) then
+        utilcore.mkdir( pkgdir, "0755" )
+        chown_builduser( pkgdir )
+    end
     return pkgdir
 end
 
@@ -290,15 +302,7 @@ function download_extract ( pkgname, destdir )
 
     -- Don't let root hog our package files...
     if utilcore.geteuid() == 0 then
-        -- TODO: change owner group to something other than "users"?
-        local builduser = get_builduser()
-        cmdline = string.format( "chown '%s:users' -R '%s'",
-                                 builduser, destdir )
-
-        if os.execute( cmdline ) ~= 0 then
-            error( string.format( "failed to chown '%s' to '%s'",
-                                  destdir, builduser ))
-        end
+        chown_builduser( destdir, '-R' )
     end
 
     -- Return the path to the directory that was (hopefully) extracted

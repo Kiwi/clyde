@@ -299,14 +299,6 @@ local function getopt_long(argv, sh_opts, long_opts, option_tbl)
 end
 
 local function set_builddir ( builddir )
-    if config.builddir then return end
-
-    if not pcall( lfs.dir, builddir ) then
-        eprintf( "LOG_ERROR",
-                 "The specified builddir (" .. builddir .. ") does not exist!\n" )
-        os.exit( 1 )
-    end
-
     lprintf("LOG_DEBUG", "config: builddir: %s\n", str)
     config.builddir = builddir
 end

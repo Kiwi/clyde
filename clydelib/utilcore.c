@@ -13,7 +13,7 @@
 #include <sys/time.h>
 #include <sys/utsname.h>
 #include <sys/prctl.h> /* for setprocname */
-
+#include <pwd.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -168,47 +168,92 @@ static int clyde_ioctl(lua_State *L)
     return 2;
 }
 
-static int clyde_mkdir(lua_State *L)
+static int clyde_getpwnam ( lua_State *L )
 {
-    char const *path = luaL_checkstring(L, 1);
-    mode_t mode = luaL_checknumber(L, 2);
-    if (-1 != mkdir(path, mode)) {
-        lua_pushnumber(L, 0);
+    const char * name;
+    struct passwd * p;
 
-        return 1;
-    } else {
-        int err = errno;
-        lua_pushnil(L);
-        lua_pushstring(L, strerror(err));
-        lua_pushinteger(L, err);
+    name = luaL_checkstring( L, 1 );
+    p = getpwnam( name );
 
-        return 3;
+    if ( p == NULL ) {
+        if ( errno == 0 ) { return 0; }
+
+        lua_pushstring( L, strerror( errno ));
+        lua_error( L );
     }
+
+    lua_newtable( L );
+    lua_pushstring( L, p->pw_name );
+    lua_setfield( L, -2, "name" );
+    lua_pushstring( L, p->pw_passwd );
+    lua_setfield( L, -2, "passwd" );
+    lua_pushinteger( L, p->pw_uid );
+    lua_setfield( L, -2, "uid" );
+    lua_pushinteger( L, p->pw_gid );
+    lua_setfield( L, -2, "gid" );
+    lua_pushstring( L, p->pw_gecos );
+    lua_setfield( L, -2, "gecos" );
+    lua_pushstring( L, p->pw_dir );
+    lua_setfield( L, -2, "dir" );
+    lua_pushstring( L, p->pw_shell );
+    lua_setfield( L, -2, "shell" );
+
+    return 1;
 }
 
-static int clyde_umask( lua_State *L )
+static mode_t lua_tomode( lua_State *L, int index )
 {
-    mode_t oldmask, newmask;
+    const char *newmaskstr;
+    mode_t newmask;
     size_t len;
     int i;
 
-    const char *newmaskstr;
-    char oldmaskstr[4];
-
-    if ( lua_type( L, 1 ) != LUA_TSTRING ) { goto UMASK_ERROR; }
-    newmaskstr = lua_tolstring( L, 1, &len );
-    if ( len > 4 ) { goto UMASK_ERROR; }
+    if ( lua_type( L, index ) != LUA_TSTRING ) { goto MASK_ERROR; }
+    newmaskstr = lua_tolstring( L, index, &len );
 
     /* Convert the string of digits from octal. */
     newmask = 0;
     for ( i = 0 ; i < (int)len ; ++i ) {
         if ( newmaskstr[i] < '0' || newmaskstr[i] > '7' ) {
-            goto UMASK_ERROR;
+            goto MASK_ERROR;
         }
         newmask <<= 3; /* multiply by 8 */
         newmask += newmaskstr[i] - '0';
     }
 
+    return newmask;
+
+ MASK_ERROR:
+    lua_pushliteral( L, "file mode must be a string of an octal number" );
+    lua_error( L );
+    return 0; /* should not reach this point */
+}
+
+static int clyde_mkdir ( lua_State *L )
+{
+    const char *path = luaL_checkstring( L, 1 );
+    mode_t mode, oldmask;
+
+    mode    = lua_tomode( L, 2 );
+    oldmask = umask( 0 );
+
+    if ( mkdir( path, mode ) != 0 ) {
+        lua_pushstring( L, strerror( errno ));
+        lua_error( L );
+    }
+    umask( oldmask );
+
+    return 0;
+}
+
+static int clyde_umask( lua_State *L )
+{
+    char oldmaskstr[4];
+    mode_t oldmask, newmask;
+    int i;
+
+    newmask = lua_tomode( L, 1 );
     oldmask = umask( newmask );
 
     /* Return a string of four octal digits. */
@@ -219,11 +264,6 @@ static int clyde_umask( lua_State *L )
 
     lua_pushlstring( L, oldmaskstr, 4 );
     return 1;
-
-UMASK_ERROR:
-    lua_pushliteral( L, "umask must be given a string of an octal number" );
-    lua_error( L );
-    return 0;
 }
 
 static int clyde_arch(lua_State *L)
@@ -352,6 +392,7 @@ static luaL_Reg const pkg_funcs[] = {
     { "access",                     clyde_access },
     { "isatty",                     clyde_isatty },
     { "ioctl",                      clyde_ioctl },
+    { "getpwnam",                   clyde_getpwnam },
     { "mkdir",                      clyde_mkdir },
     { "umask",                      clyde_umask },
     { "arch",                       clyde_arch },

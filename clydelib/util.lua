@@ -6,6 +6,17 @@ local signal = require "clydelib.signal"
 local C = colorize
 local g = utilcore.gettext
 
+function chown ( user, group, path, ... )
+    local flags = table.concat( arg, " " )
+    cmdline = string.format( "chown '%s:%s' %s '%s'",
+                             user, group, flags, path )
+
+    if os.execute( cmdline ) ~= 0 then
+        error( string.format( "failed to chown '%s' to '%s'",
+                              path, user ))
+    end
+end
+
 -- Applies function f to table t.
 -- If f returns nil, do not return it as result but move to next elem.
 function map_iter ( f, t )
