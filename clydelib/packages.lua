@@ -16,7 +16,6 @@ local list_display = util.list_display
 local list_display_linebreak = util.list_display_linebreak
 local g = utilcore.gettext
 local pm_targets = pm_targets
-local db_local = db_local
 local C = colorize
 
 module(..., package.seeall)
@@ -376,8 +375,9 @@ local function get_dependencies(paccache)
     return ret
 end
 
-function packagestats(db_local)
-    local pkgcache = db_local:db_get_pkgcache()
+function packagestats()
+    local localdb = alpm.option_get_localdb()
+    local pkgcache = localdb:db_get_pkgcache()
     local orphans = get_orphans(pkgcache)
     local syncdbs = alpm.option_get_syncdbs()
     local ignorepkgs = alpm.option_get_ignorepkgs()

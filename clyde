@@ -1041,7 +1041,7 @@ function main()
     end
 
     if (config.stats) then
-        packages.packagestats(db_local)
+        packages.packagestats()
         cleanup(0)
     end
 

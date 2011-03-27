@@ -33,7 +33,7 @@ local function query_fileowner(targets)
         local filepth = filepath:gsub("^/","")
         gsubtargets[i] = filepth
     end
-    local pkgcache = db_local:db_get_pkgcache()
+    local pkgcache = alpm.option_get_localdb():db_get_pkgcache()
     for i, pkg in ipairs(pkgcache) do
         local thispkg = {}
         local files = pkg:pkg_get_files()
@@ -119,11 +119,12 @@ local function query_search(targets)
         end
     end
 
+    local localdb = alpm.option_get_localdb()
     if (targets and next(targets)) then
-        searchlist = db_local:db_search(targets)
+        searchlist = localdb:db_search(targets)
         freelist = true
     else
-        searchlist = db_local:db_get_pkgcache()
+        searchlist = localdb:db_get_pkgcache()
         freelist = false
     end
 
@@ -180,7 +181,7 @@ local function query_group(targets)
     local ret = 0
 
     if (not next(targets)) then
-        local cache = db_local:db_get_grpcache()
+        local cache = alpm.option_get_localdb():db_get_grpcache()
         for i, grp in ipairs(cache) do
 
             local grpname = grp:grp_get_name()
@@ -193,7 +194,7 @@ local function query_group(targets)
     else
         for i, target in ipairs(targets) do
             local grpname = target
-            grp = db_local:db_readgrp(grpname)
+            grp = alpm.option_localdb():db_readgrp(grpname)
             if (grp) then
                 local packages = grp:grp_get_pkgs()
                 for j, package in ipairs(packages) do
@@ -376,8 +377,7 @@ local function clyde_query(targets)
             return 1
         end
 
-        local pkgcache = db_local:db_get_pkgcache()
-
+        local pkgcache = alpm.option_get_localdb():db_get_pkgcache()
         for k, pkg in ipairs(pkgcache) do
             if (filter(pkg)) then
                 value = display(pkg)
@@ -403,7 +403,7 @@ local function clyde_query(targets)
         if (config.op_q_isfile) then
             pkg = alpm.pkg_load(strname, true)
         else
-            pkg = db_local:db_get_pkg(strname)
+            pkg = alpm.option_get_localdb():db_get_pkg(strname)
         end
 
         if (pkg == nil) then

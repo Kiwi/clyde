@@ -158,7 +158,8 @@ local function sync_cleancache(level)
             end
 
             if (config.cleanmethod == "CLEAN_KEEPINST") then
-                local pkg = db_local:db_get_pkg(localpkg:pkg_get_name())
+                local localdb = alpm.option_get_localdb()
+                local pkg     = localdb:db_get_pkg(localpkg:pkg_get_name())
                 if (pkg and alpm.pkg_vercmp(localpkg:pkg_get_version(), pkg:pkg_get_version()) == 0) then
                     delete = false
                 end
@@ -849,8 +850,8 @@ local function sync_aur_trans(targets)
 end
 
 local function updateprovided(tbl)
-    local db_local = alpm.option_get_localdb()
-    local pkgcache = db_local:db_get_pkgcache()
+    local localdb  = alpm.option_get_localdb()
+    local pkgcache = localdb:db_get_pkgcache()
     for i, pkg in ipairs(pkgcache) do
         tbl[pkg:pkg_get_name()] = pkg:pkg_get_version()
         local provides = pkg:pkg_get_provides()
@@ -1100,7 +1101,8 @@ local function find_installed_aur ()
     local foreign_count, foreign_pkgs = 0, {}
     local is_ignorepkg = get_ignore_pkgs()
 
-    for i, pkg in ipairs( db_local:db_get_pkgcache()) do
+    local localdb = alpm.option_get_localdb()
+    for i, pkg in ipairs( localdb:db_get_pkgcache()) do
         local name = pkg:pkg_get_name()
 
         if not is_ignorepkg[name] and not pacmaninstallable(name) then
