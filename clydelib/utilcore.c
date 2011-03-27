@@ -189,7 +189,7 @@ static int clyde_mkdir(lua_State *L)
 static int clyde_umask( lua_State *L )
 {
     mode_t oldmask, newmask;
-    uint len;
+    size_t len;
     int i;
 
     const char *newmaskstr;
@@ -201,7 +201,7 @@ static int clyde_umask( lua_State *L )
 
     /* Convert the string of digits from octal. */
     newmask = 0;
-    for ( i = 0 ; (uint)i < len ; ++i ) {
+    for ( i = 0 ; i < (int)len ; ++i ) {
         if ( newmaskstr[i] < '0' || newmaskstr[i] > '7' ) {
             goto UMASK_ERROR;
         }
