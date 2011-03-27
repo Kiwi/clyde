@@ -16,12 +16,30 @@ local eprintf = util.eprintf
 local g = utilcore.gettext
 local access = utilcore.access
 local strerror = utilcore.strerror
-local pm_targets = pm_targets
-local community = community
 local dump_pkg_changelog = packages.dump_pkg_changelog
 local dump_pkg_files = packages.dump_pkg_files
-local extra = extra
-local core = core
+
+local ui = require "clydelib.ui"
+
+
+local function isize_tag ( pkginfo )
+    if not config.showsize then return nil end
+    return string.format( "[%0.2f MB]", pkginfo.isize / (1024*1024))
+end
+
+local function print_package ( dbname, pkgobj )
+    if not config.quiet then
+        local colorizer = ui.mk_pkg_colorizer( isize_tag,
+                                               ui.groups_tag )
+        print( colorizer{ name    = pkgobj:pkg_get_name();
+                          dbname  = dbname or "local";
+                          version = pkgobj:pkg_get_version() })
+    else
+        print( name )
+    end
+end
+
+------------------------------------------------------------------------------
 
 local function query_fileowner(targets)
     local ret = 0
@@ -101,12 +119,6 @@ local function query_fileowner(targets)
 end
 
 local function query_search(targets)
-    local dbcolors = {
-        extra = C.greb;
-        core = C.redb;
-        community = C.magb;
-        testing = C.yelb;
-    }
     local searchlist
     local freelist
     local packages = {}
@@ -133,42 +145,11 @@ local function query_search(targets)
     end
 
     for i, pkg in ipairs(searchlist) do
-        local name = pkg:pkg_get_name()
-        if (not config.quiet) then
-            if packages[name] then
-                local dbcolor = dbcolors[packages[name]] or C.magb
-                printf("%s%s %s", dbcolor(packages[name].."/"), C.bright(name), C.greb(pkg:pkg_get_version()))
-            else
-                printf("%s%s %s", C.yelb("local/"), C.bright(name), C.greb(pkg:pkg_get_version()))
-            end
-        else
-            printf("%s", C.bright(name))
-        end
-
-        if (not config.quiet and config.showsize) then
-            local mbsize = pkg:pkg_get_size() / (1024 * 1024)
-
-            printf(" [%.2f MB]", mbsize)
-        end
-
-        if (not config.quiet) then
-            local grp = pkg:pkg_get_groups()
-            if (next(grp)) then
-                local size = #grp
-                printf(C.blub.." (")
-                for i, group in ipairs(grp) do
-                    printf("%s", group)
-                    if i < size then
-                        printf(" ")
-                    end
-                end
-                printf(")"..C.reset)
-            end
-
+        print_package( packages[pkg:pkg_get_name()], pkg )
+        if not config.quiet then
             printf("\n    ")
             indentprint(C.italic(pkg:pkg_get_desc()), 3)
         end
-        print()
     end
 
     if (freelist) then
@@ -294,13 +275,6 @@ local packagetbl = {}
 local repos = {}
 
 local function display(pkg)
-    local dbcolors = {
-        extra = C.greb;
-        core = C.redb;
-        community = C.magb;
-        testing = C.yelb;
-    }
-
     if (not next(packagetbl)) then
 
         repos = alpm.option_get_syncdbs()
@@ -330,19 +304,9 @@ local function display(pkg)
     if (config.op_q_check) then
         ret = check(pkg)
     end
-    if (config.op_q_info == 0 and not config.op_q_list
-            and not config.op_q_changelog and not config.op_q_check) then
-        local name = pkg:pkg_get_name()
-        if (not config.quiet) then
-            local dbcolor = dbcolors[packagetbl[name]] or C.magb
-            if packagetbl[name] then
-                printf("%s%s %s\n", dbcolor(packagetbl[name].."/"), C.bright(name), C.greb(pkg:pkg_get_version(pkg)))
-            else
-                printf("%s%s %s\n", C.yelb("local/"), C.bright(name), C.greb(pkg:pkg_get_version(pkg)))
-            end
-        else
-            printf("%s\n", C.bright(name))
-        end
+    if (config.op_q_info == 0 and not
+        (config.op_q_list or config.op_q_changelog or config.op_q_check)) then
+        print_package( packagetbl[pkg:pkg_get_name()], pkg )
     end
 
     return ret
