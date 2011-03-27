@@ -186,10 +186,13 @@ static int clyde_mkdir(lua_State *L)
     }
 }
 
-static int clyde_umask(lua_State *L)
+static int clyde_umask( lua_State *L )
 {
-    unsigned int len, i, oldmask, newmask;
-    const char * newmaskstr;
+    mode_t oldmask, newmask;
+    uint len;
+    int i;
+
+    const char *newmaskstr;
     char oldmaskstr[4];
 
     if ( lua_type( L, 1 ) != LUA_TSTRING ) { goto UMASK_ERROR; }
@@ -198,7 +201,7 @@ static int clyde_umask(lua_State *L)
 
     /* Convert the string of digits from octal. */
     newmask = 0;
-    for ( i=0 ; i<len ; ++i ) {
+    for ( i = 0 ; (uint)i < len ; ++i ) {
         if ( newmaskstr[i] < '0' || newmaskstr[i] > '7' ) {
             goto UMASK_ERROR;
         }
@@ -209,11 +212,10 @@ static int clyde_umask(lua_State *L)
     oldmask = umask( newmask );
 
     /* Return a string of four octal digits. */
-    i = 3;
-    do {
+    for ( i = 3 ; i >= 0 ; --i ) {
         oldmaskstr[i] = '0' + (oldmask & 7);
         oldmask >>= 3; /* divide by 8 */
-    } while ( i-- > 0 );
+    }
 
     lua_pushlstring( L, oldmaskstr, 4 );
     return 1;
