@@ -24,9 +24,14 @@ lualpm_objects = lualpm/callback.o lualpm/db.o lualpm/delta.o		\
 	lualpm/dep.o lualpm/group.o lualpm/option.o lualpm/package.o	\
 	lualpm/sync.o lualpm/trans.o lualpm/types.o lualpm/lualpm.o
 
+# also remove wtf from after clyde: and lualpm: below
+wtf:
+	@cat README.md
+	@false
+
 all: clyde lualpm
 
-.PHONY: all lualpm clyde install install_lualpm install_clyde \
+.PHONY: wtf all lualpm clyde install install_lualpm install_clyde \
         clean uninstall uninstall_lualpm uninstall_clyde doc
 
 lualpm/callback.o: lualpm/lualpm.h
@@ -48,7 +53,7 @@ lualpm/types.o: lualpm/types.h
 lualpm.so: $(lualpm_objects)
 	$(CC) $(CFLAGS) -lalpm -llua $(SOFLAGS) $(LDFLAGS) -o $@ $^
 
-lualpm: lualpm.so
+lualpm: wtf lualpm.so
 
 clydelib/signal.so: clydelib/signal.c
 	$(CC) $(CFLAGS) -llua $(SOFLAGS) $(LDFLAGS) -o $@ $^
@@ -61,7 +66,7 @@ doc: man/clyde.8
 man/clyde.8: man/clyde.ronn
 	ronn man/clyde.ronn
 
-clyde: clydelib/signal.so clydelib/utilcore.so
+clyde: wtf clydelib/signal.so clydelib/utilcore.so
 
 install: install_lualpm install_clyde
 
