@@ -339,7 +339,7 @@ function makepath(path)
     for i, part in ipairs(parts) do
         incr = incr .. "/" .. part
         if (utilcore.access(incr, "F_OK") ~= 0) then
-            if (utilcore.mkdir(incr, tonumber("755", 8)) ~= 0) then
+            if (utilcore.mkdir(incr,"755") ~= 0) then
                 ret = true
                 break
             end
