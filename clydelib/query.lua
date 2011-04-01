@@ -149,8 +149,9 @@ local function query_search(targets)
     for i, pkg in ipairs(searchlist) do
         print_package( packages[pkg:pkg_get_name()], pkg )
         if not config.quiet then
-            printf("\n    ")
+            io.write("    ")
             indentprint(C.italic(pkg:pkg_get_desc()), 3)
+            print()
         end
     end
 
