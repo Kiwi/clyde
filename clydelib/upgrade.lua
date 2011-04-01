@@ -30,13 +30,6 @@ local g = utilcore.gettext
 local pm_targets = pm_targets
 local community = community
 
-local function add_pkg_file ( filename )
-    local pkg, ret = alpm.pkg_load( filename )
-    if not pkg then return nil end
-
-    return alpm.trans_add_pkg( pkg ) ~= -1
-end
-
 local function clyde_upgrade(targets)
     local retval = 0
     local data = {}
@@ -54,7 +47,7 @@ local function clyde_upgrade(targets)
                         end, targets )
 
     targets = util.map( function ( filename )
-                            local pkgobj = alpm.pkg_load( filename )
+                            local pkgobj = alpm.pkg_load( filename, true )
                             if not pkgobj then
                                 eprintf("LOG_ERROR", "'%s': %s\n",
                                         filename, alpm.strerrorlast())
