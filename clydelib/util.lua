@@ -330,25 +330,14 @@ function rmrf(path)
     end
 end
 
-function makepath(path)
-    local oldmask = utilcore.umask("0000")
-    local ret = false
-    local parts = strsplit(path:sub(2, #path-1), "/")
-    local incr = ""
-
-    for i, part in ipairs(parts) do
-        incr = incr .. "/" .. part
-        if (utilcore.access(incr, "F_OK") ~= 0) then
-            if (utilcore.mkdir(incr,"755") ~= 0) then
-                ret = true
-                break
-            end
+function makepath ( destpath )
+    local path = ""
+    for comp in destpath:gmatch( "([^/]+)" ) do
+        path = path .. "/" .. comp
+        if utilcore.access( path, "F_OK" ) ~= 0 then
+            utilcore.mkdir( path, "0755" )
         end
     end
-
-    utilcore.umask(oldmask)
-
-    return ret
 end
 
 function indentprint(str, indent, space)

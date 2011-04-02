@@ -196,8 +196,11 @@ local function sync_cleancache(level)
             return 1
         end
 
-        if (makepath(cachedir)) then
-            eprintf("LOG_ERROR", g("could not create new cache directory\n"))
+        local success, err = pcall( makepath, cachedir )
+        if not success then
+            eprintf("LOG_ERROR", "%smkdir: %s\n",
+                    g("could not create new cache directory\n"),
+                    err )
             return 1
         end
     end
