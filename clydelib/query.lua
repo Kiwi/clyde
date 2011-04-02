@@ -178,7 +178,7 @@ local function query_group(targets)
     else
         for i, target in ipairs(targets) do
             local grpname = target
-            grp = alpm.option_localdb():db_readgrp(grpname)
+            grp = alpm.option_get_localdb():db_readgrp(grpname)
             if (grp) then
                 local packages = grp:grp_get_pkgs()
                 for j, package in ipairs(packages) do
