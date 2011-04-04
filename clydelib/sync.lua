@@ -490,82 +490,84 @@ local function find_repodb ( reponame )
     end
 
     local errfmt = g( "repository '%s' does not exist\n" )
-    error( string.format( errfmt, reponame ), 0 )
+    return nil, string.format( errfmt, reponame )
 end
 
-local function sync_info_alpm ( package_name, repo_name )
-    local repo_name = repo_name
-    local package_object
+local function search_repo_for_pkg ( reponame, pkgname )
+    local db, err = find_repodb( reponame )
+    if not db then return nil, err end
 
-    if repo_name then
+    local pkgobj = db:db_get_pkg( pkgname )
+    if pkgobj then return pkgobj end
+
+    local errfmt = g("package '%s' was not found in repository '%s'\n")
+    return nil, string.format( errfmt, pkgname, reponame )
+end
+
+local function search_for_pkg ( pkgname )
+    for i, syncdb in ipairs( alpm.option_get_syncdbs()) do
+        local pkgobj   = syncdb:db_get_pkg( pkgname )
+        local reponame = syncdb:db_get_name()
+
+        if pkgobj then return pkgobj, reponame end
+    end
+
+    local err = string.format( g("package '%s' was not found\n"), pkgname )
+    return nil, nil, err
+end
+
+local function sync_info_alpm ( pkgname, reponame )
+    local pkgobj, err
+
+    if reponame then
         -- A repository name was explicitly specified.
-        local repodb   = find_repodb( repo_name )
-        package_object = repodb:db_get_pkg( package_name )
-
-        if not package_object then
-            local errfmt = g("package '%s' was not found "                                    .. "in repository '%s'\n")
-            error( string.format( errfmt, package_name, repo_name ), 0 )
-        end
+        pkgobj, err = search_repo_for_pkg( reponame, pkgname )
     else
-        for i, syncdb in ipairs( alpm.option_get_syncdbs()) do
-            package_object = syncdb:db_get_pkg( package_name )
-            if package_object then
-                repo_name = syncdb:db_get_name()
-                break
-            end
-        end
+        pkgobj, reponame, err = search_for_pkg( pkgname )
     end
 
-    if package_object then
-        dump_pkg_sync( package_object, repo_name )
-        return true
-    end
+    if err then return nil, err end
 
-    return false
+    dump_pkg_sync( pkgobj, reponame )
+    return true
 end
 
-local function sync_info_aur ( package_name )
-    if not aur.package_exists( package_name ) then
-        error( string.format( "package '%s' was not found in the AUR\n",
-                              package_name ), 0 )
+local function sync_info_aur ( pkgname )
+    if not aur.package_exists( pkgname ) then
+        local err = string.format( "package '%s' was not found in the AUR\n",
+                                   pkgname )
+        return nil, err
     end
 
-    packages.dump_pkg_sync_aur( package_name )
-    return
+    packages.dump_pkg_sync_aur( pkgname )
+    return true
 end
 
 local function sync_info_target ( target )
     -- If a repo name was given by using "reponame/pkgname" then
     -- this limits our search to one DB or the AUR.
-    do
-        local reponame
-        reponame, pkgname = target:match( "^([^/]+)/(.*)$" )
-
-        if reponame and pkgname then
-            if reponame == "aur" then
-                return sync_info_aur( pkgname )
-            else
-                return sync_info_alpm( pkgname, reponame )
-            end
+    local reponame, pkgname = target:match( "^([^/]+)/(%S+)$" )
+    if reponame and pkgname then
+        local success, err
+        if reponame == "aur" then
+            success, err = sync_info_aur( pkgname )
+        else
+            success, err = sync_info_alpm( pkgname, reponame )
         end
+        return success, err
     end
 
-    -- First we check the ALPM repositories
-    if sync_info_alpm( target ) then return end
-
-    -- Then we try the AUR. sync_info_aur throws an error if not found.
-    if pcall( sync_info_aur, target ) then return end
-    
-    error( string.format( g("package '%s' was not found\n"), target ), 0 )
+    if sync_info_alpm( target ) or sync_info_aur( target ) then return true end
+    return nil, string.format( g("package '%s' was not found\n"), target )
 end
 
 local function sync_info ( targets )
     local error_occurred = false
 
     for i, target in ipairs( targets ) do
-        local success, err = pcall( sync_info_target, target )
+        local success, err = sync_info_target( target )
         if not success then
-            error_occurred = true
+            error_occurred = true -- note error but keep looping
             eprintf( "LOG_ERROR", err )
         end
     end
