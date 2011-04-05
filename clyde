@@ -704,11 +704,9 @@ BuildUser = %s
 ]]
             clydeopts = string.format( clydeopts, editor, get_builduser())
 
-            local oldmask = utilcore.umask( "0122" )
             local fdclyde = io.open(CLYDECFG_PATH, "w")
             fdclyde:write( header, "\n", clydeopts, table.concat( paclines ))
             fdclyde:close()
-            utilcore.umask( oldmask )
 
             printf( [[Congratulations! Your new config file is ready to use.
 Additional defaults have been set. Please double-check %s.
