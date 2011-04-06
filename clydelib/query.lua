@@ -37,7 +37,7 @@ local function print_package ( dbname, pkgobj )
                           groups  = pkgobj:pkg_get_groups();
                           isize   = pkgobj:pkg_get_isize() })
     else
-        print( name )
+        print( pkgobj:pkg_get_name())
     end
 end
 
