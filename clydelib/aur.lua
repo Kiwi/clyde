@@ -291,7 +291,7 @@ function download_extract ( pkgname, destdir )
     local pkgpath = download( pkgname, destdir )
     local pkgfile = pkgpath:gsub( "^.*/", "" )
 
-    local oldumask = umask( "0033" )
+    local oldumask = umask( "0000" )
     local cmdfmt = "bsdtar -x --file '%s'"
         .. " --no-same-owner --no-same-permissions"
         .. " --directory '%s'"
