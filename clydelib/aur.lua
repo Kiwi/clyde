@@ -289,6 +289,10 @@ end
 
 function download_extract ( pkgname, destdir )
     local pkgpath = download( pkgname, destdir )
+    if utilcore.geteuid() == 0 then
+        chown_builduser( pkgpath )
+    end
+
     local pkgfile = pkgpath:gsub( "^.*/", "" )
 
     local oldumask = umask( "0033" )
@@ -297,18 +301,18 @@ function download_extract ( pkgname, destdir )
         .. " --directory '%s'"
     local cmdline = string.format( cmdfmt, pkgpath, destdir )
     if os.execute( cmdline ) ~= 0 then
-        error( "bsdtar failed to extract " .. pkgpath )
-    end
-
-    -- Don't let root hog our package files...
-    if utilcore.geteuid() == 0 then
-        chown_builduser( destdir, '-R' )
+        error( "bsdtar failed to extract " .. pkgpath, 0 )
     end
 
     -- Return the path to the directory that was (hopefully) extracted
     local extdir = destdir .. "/" .. pkgname
     if not pcall( lfs.dir, extdir ) then
-        error( extdir .. " was not extracted" )
+        error( extdir .. " was not extracted", 0 )
+    end
+
+    -- Don't let root hog our package files...
+    if utilcore.geteuid() == 0 then
+        chown_builduser( extdir, '-R' )
     end
 
     umask( oldumask )
