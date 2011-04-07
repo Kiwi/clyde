@@ -289,10 +289,6 @@ end
 
 function download_extract ( pkgname, destdir )
     local pkgpath = download( pkgname, destdir )
-    if utilcore.geteuid() == 0 then
-        chown_builduser( pkgpath )
-    end
-
     local pkgfile = pkgpath:gsub( "^.*/", "" )
 
     local oldumask = umask( "0033" )
@@ -310,14 +306,9 @@ function download_extract ( pkgname, destdir )
         error( extdir .. " was not extracted", 0 )
     end
 
-    -- Don't let root hog our package files...
-    if utilcore.geteuid() == 0 then
-        chown_builduser( extdir, '-R' )
-    end
-
     umask( oldumask )
 
-    return extdir
+    return pkgpath, extdir
 end
 
 function customizepkg ( pkgname, pkgdir )

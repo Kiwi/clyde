@@ -1061,7 +1061,14 @@ local function aur_install(targets)
                 config.flags.alldeps = newflag
 
                 local dldir  = aur.make_builddir(pkg)
-                local pkgdir = aur.download_extract(pkg, dldir)
+                local pkgpath, pkgdir = aur.download_extract(pkg, dldir)
+
+                -- Don't let root hog our new package files...
+                if utilcore.geteuid() == 0 then
+                    aur.chown_builduser( pkgpath )
+                    aur.chown_builduser( pkgdir, '-R' )
+                end
+
                 if not config.noconfirm then
                     aur.customizepkg(pkg, pkgdir)
                 end
