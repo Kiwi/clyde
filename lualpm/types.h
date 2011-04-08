@@ -87,6 +87,7 @@ pmtransflag_t check_transflags_table( lua_State *L, int narg );
 
 int raise_last_pm_error(lua_State *L);
 alpm_list_t *lstring_table_to_alpm_list(lua_State *L, int narg);
+alpm_list_t *lpackage_table_to_alpm_list(lua_State *L, int narg);
 alpm_list_t *ldatabase_table_to_alpm_list(lua_State *L, int narg);
 int alpm_list_to_any_table(lua_State *L, alpm_list_t *list,
                            enum types value_type);

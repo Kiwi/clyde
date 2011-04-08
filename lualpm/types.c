@@ -78,6 +78,26 @@ alpm_list_t *lstring_table_to_alpm_list(lua_State *L, int narg)
     return(newlist);
 }
 
+alpm_list_t *lpackage_table_to_alpm_list( lua_State *L, int pos )
+{
+    alpm_list_t * pkglist = NULL;
+    void * pkg;
+    size_t i, last;
+
+    luaL_checktype( L, pos, LUA_TTABLE );
+    last = lua_objlen( L, pos );
+
+    for ( i = 1 ; i <= last ; i++ ) {
+        lua_rawgeti( L, pos, i );
+        pkg = check_pmpkg( L, -1 );
+        lua_pop( L, 1 );
+
+        pkglist = alpm_list_add( pkglist, pkg );
+    }
+
+    return pkglist;
+}
+
 alpm_list_t *ldatabase_table_to_alpm_list(lua_State *L, int narg)
 {
     alpm_list_t *newlist = NULL;

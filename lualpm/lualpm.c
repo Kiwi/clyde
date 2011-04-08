@@ -235,7 +235,6 @@ static int lalpm_pm_errno(lua_State *L)
     return 0;
 }
 
-
 static luaL_Reg const pkg_funcs[] =
 {
     { "pkg_load",                   lalpm_pkg_load },
@@ -308,9 +307,8 @@ static luaL_Reg const pkg_funcs[] =
     { "trans_add_pkg",              lalpm_add_pkg      },
     { "trans_remove_pkg",           lalpm_remove_pkg   },
 
-/*    { "depcmp",                     lalpm_depcmp }, */
     { "checkdeps",                  lalpm_checkdeps },
-/*     { "deptest",                    lalpm_deptest }, */
+    { "find_satisfier",             lalpm_find_satisfier },
     { "sync_newversion",            lalpm_sync_newversion },
     { "compute_md5sum",             lalpm_compute_md5sum },
 
