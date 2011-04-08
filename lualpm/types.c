@@ -101,6 +101,8 @@ alpm_list_t *lpackage_table_to_alpm_list( lua_State *L, int pos )
 alpm_list_t *ldatabase_table_to_alpm_list(lua_State *L, int narg)
 {
     alpm_list_t *newlist = NULL;
+
+    luaL_checktype(L, narg, LUA_TTABLE);
     size_t i, len = lua_objlen(L, narg);
     for (i = 1; i <= len; i++) {
         lua_rawgeti(L, narg, i);

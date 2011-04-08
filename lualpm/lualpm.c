@@ -42,7 +42,6 @@ lalpm_logaction(lua_State *L)
 static int lalpm_sync_newversion(lua_State *L)
 {
     pmpkg_t *pkg = check_pmpkg(L, 1);
-    luaL_checktype(L, 2, LUA_TTABLE);
     alpm_list_t *dbs_sync = ldatabase_table_to_alpm_list(L, 2);
     pmpkg_t **box = push_pmpkg_box(L);
     *box = alpm_sync_newversion(pkg, dbs_sync);
@@ -309,6 +308,7 @@ static luaL_Reg const pkg_funcs[] =
 
     { "checkdeps",                  lalpm_checkdeps },
     { "find_satisfier",             lalpm_find_satisfier },
+    { "find_dbs_satisfier",         lalpm_find_dbs_satisfier },
     { "sync_newversion",            lalpm_sync_newversion },
     { "compute_md5sum",             lalpm_compute_md5sum },
 

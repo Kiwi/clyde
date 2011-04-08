@@ -78,3 +78,24 @@ int lalpm_find_satisfier ( lua_State *L )
 
     return 1;
 }
+
+int lalpm_find_dbs_satisfier ( lua_State * L )
+{
+    const char  * depstring;
+    alpm_list_t * dblist;
+    pmpkg_t     * found;
+
+    dblist    = ldatabase_table_to_alpm_list( L, 1 );
+    depstring = luaL_checkstring( L, 2 );
+    found     = alpm_find_dbs_satisfier( dblist, depstring );
+    alpm_list_free( dblist );
+
+    if ( found == NULL ) {
+        lua_pushnil( L );
+    }
+    else {
+        push_pmpkg( L, found );
+    }
+
+    return 1;
+}

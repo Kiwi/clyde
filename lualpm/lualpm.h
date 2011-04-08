@@ -11,6 +11,7 @@
 
 int lalpm_checkdeps(lua_State *L);
 int lalpm_find_satisfier(lua_State *L);
+int lalpm_find_dbs_satisfier(lua_State *L);
 
 /* OPTIONS ******************************************************************/
 
