@@ -291,7 +291,7 @@ function download_extract ( pkgname, destdir )
     local pkgpath = download( pkgname, destdir )
     local pkgfile = pkgpath:gsub( "^.*/", "" )
 
-    local oldumask = umask( "0000" )
+    local oldumask = umask( "0022" )
     local cmdfmt = "bsdtar -x --file '%s'"
         .. " --no-same-owner --no-same-permissions"
         .. " --directory '%s'"
@@ -403,28 +403,20 @@ function makepkg ( target )
     else
         -- Since we are already root we can use su to switch users...
         maker = function ()
-            return os.execute("su "..user.." -c 'makepkg -f' "..cmdlineopts)
+            local cmdline = string.format( "su %s -c 'makepkg -f %s'",
+                                           user, cmdlineopts )
+            return os.execute( cmdline )
         end
     end
 
-    -- A simple wrapper function to check makepkg's return code.
-    local function wrapmaker ()
-        local ret = maker()
-        if ret ~= 0 then
-            error( "Build failed. makepkg returned " .. ret )
-        else
-            return true
-        end
-    end
+    local oldmask = umask( "022" )
+    local retcode = maker()
 
-    local success, err = pcall( wrapmaker )
     lfs.chdir( oldwd ) -- always chdir back
+    umask( oldmask )   -- and restore umask
 
-    if not success then
-        eprintf( "LOG_ERROR", "%s\n", err )
-        util.cleanup( 1 )
-    end
-
+    -- util.cleanup exits clyde...
+    if retcode ~= 0 then util.cleanup( retcode ) end
     return
 end
 
