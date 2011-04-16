@@ -636,12 +636,11 @@ end
 -- Awesome hack to emulate old behavior.
 -- Returns trans_add_pkg's return value if found or nil if not found.
 local function sync_target ( pkg_name ) 
-    for i, db in ipairs( alpm.option_get_syncdbs()) do
-        local pkg_obj = db:db_get_pkg( pkg_name )
-        if pkg_obj then return alpm.trans_add_pkg( pkg_obj ) end
-    end
+    local syncdbs = alpm.option_get_syncdbs()
+    local pkg     = alpm.find_dbs_satisfier( syncdbs, pkg_name )
 
-    return nil
+    if pkg then return alpm.trans_add_pkg( pkg )
+    else return nil end
 end
 
 local function sync_aur_trans(targets)
