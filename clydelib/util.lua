@@ -604,11 +604,6 @@ function mkversion(s)
         return t;
 end
 
---a = mkversion "2.0.3"
---b = mkversion "2.1.0"
-
---print(a > b, a == b, a < b)
-
 function getbasharray(file, str)
     local fd = io.popen(string.format([[
         /bin/bash -c '. %s &> /dev/null
