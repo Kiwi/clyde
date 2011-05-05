@@ -1,11 +1,11 @@
 #compdef clyde clyde.static=clyde
 # vim:nosta:noet
 
-# copy this file to /usr/share/zsh/site-functions/_pacman
+# copy this file to /usr/share/zsh/site-functions/_clyde
 
 typeset -A opt_args
 
-# options for passing to _arguments: main pacman commands
+# options for passing to _arguments: main clyde commands
 _clyde_opts_commands=(
 	'-Q[Query the package database]'
 	'-R[Remove a package from the system]'
@@ -279,7 +279,7 @@ _clyde_completions_repositories() {
 	compadd "$@" -a repositories
 }
 
-# builds command for invoking pacman in a _call_program command - extracts
+# builds command for invoking clyde in a _call_program command - extracts
 # relevant options already specified (config file, etc)
 # $cmd must be declared by calling function
 _clyde_get_command() {
