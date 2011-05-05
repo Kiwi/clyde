@@ -425,22 +425,23 @@ function installpkg( target )
     local builddir = get_builddir()
 
     local pkgdir = os.getenv( "PKGDEST" )
-        or util.getbasharrayuser("/etc/makepkg.conf", "PKGDEST", user)
+        or util.getbasharrayuser( "/etc/makepkg.conf", "PKGDEST", user )
 
     if not pkgdir or #pkgdir == 0 then
         pkgdir = builddir.."/"..target.."/"..target
     end
 
+    extmatch = util.getbasharray( "/etc/makepkg.conf", "PKGEXT" )
+    extmatch = extmatch:gsub( "%.", "%%." )
     local pkgfiles = {}
     for file in lfs.dir( pkgdir ) do
-        if file:sub( 1, #target ) == target and
-           file:match( "[.]pkg[.]tar[.]%az$" ) and
-           not file:match( "[.]src[.]pkg[.]tar[.]%az$" ) then
+        if ( file:sub( 1, #target ) == target
+             and file:match( extmatch .. "$" )) then
             table.insert( pkgfiles, pkgdir .. "/" .. file )
         end
     end
 
-    local maxn = table.maxn( pkgfiles )
+    local maxn = #pkgfiles
     if maxn == 0 then
         eprintf( "LOG_ERROR", "Could not find a built package in %s.",
                  pkgdir )
