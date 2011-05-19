@@ -742,7 +742,7 @@ local function sync_aur_trans(targets)
         end
     end
 
-    transret, data = alpm.trans_prepare(data)
+    transret, data = alpm.trans_prepare()
 
     if (transret == -1) then
         eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), alpm.strerrorlast())
@@ -1274,7 +1274,7 @@ local function sync_trans(targets)
         end
     end
 
-    transret, data = alpm.trans_prepare(data)
+    transret, data = alpm.trans_prepare()
 
     if (transret == -1) then
         eprintf("LOG_ERROR", g("failed to prepare transaction (%s)\n"), alpm.strerrorlast())

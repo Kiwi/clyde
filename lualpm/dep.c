@@ -54,7 +54,9 @@ int lalpm_checkdeps(lua_State *L)
     alpm_list_t *upgrade = lstring_table_to_alpm_list(L, 3);
     alpm_list_t *result = alpm_checkdeps(pkglist, reversedeps, remove, upgrade);
     alpm_list_to_any_table(L, result, PMPKG_T);
-
+    FREELIST(pkglist);
+    FREELIST(remove);
+    FREELIST(upgrade);
     return 1;
 }
 

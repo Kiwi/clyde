@@ -91,8 +91,7 @@ int lalpm_trans_init ( lua_State *L )
 
 int lalpm_trans_prepare(lua_State *L)
 {
-    luaL_checktype(L, 1, LUA_TTABLE);
-    alpm_list_t *list = lstring_table_to_alpm_list(L, 1);
+    alpm_list_t *list = NULL;
     const int result = alpm_trans_prepare(&list);
     lua_pushnumber(L, result);
     if (result == -1) {
