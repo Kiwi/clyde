@@ -1271,7 +1271,7 @@ local function sync_trans(targets)
 					else
 						eprintf("LOG_ERROR", g("'%s': not found in sync db, skipping\n"), targ)
 					end
-					targets[i] = "nfound"
+					targets[i] = 0
                 end
             until 1
         end
@@ -1323,7 +1323,7 @@ local function sync_trans(targets)
         {}, {}, {}, {}, {}
 
     for i, pkg in ipairs(targets) do
-        if (not pacmaninstallable(pkg) and not (pkg == "nfound")) then
+        if (not pacmaninstallable(pkg) and not (pkg == 0)) then
             tblinsert(possibleaur, pkg)
         end
     end
