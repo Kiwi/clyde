@@ -1064,8 +1064,13 @@ local function aur_install(targets)
 
                 -- Don't let root hog our new package files...
                 if utilcore.geteuid() == 0 then
-                    aur.chown_builduser( pkgpath )
-                    aur.chown_builduser( pkgdir, '-R' )
+                    local chown_status = pcall(function ()
+                        aur.chown_builduser( pkgpath )
+                        aur.chown_builduser( pkgdir, '-R' )
+                    end)
+                    if not chown_status then
+                        lprintf("LOG_WARNING", g("unable to change ownership of build directory\n"))
+                    end
                 end
 
                 if not config.noconfirm then

@@ -91,6 +91,7 @@ end
 function chown_builduser ( path, ... )
     local buser = get_builduser()
     local pwent = utilcore.getpwnam( buser )
+        or error( "unable to find user " .. buser )
     util.chown( buser, pwent.gid, path, ... )
 end
 
