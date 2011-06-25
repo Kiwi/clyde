@@ -785,11 +785,23 @@ local function _parseconfig(file, givensection, givendb)
             lprintf("LOG_DEBUG", "config: reposonly\n")
         end
     end;
-    ['BuildUser'] = function(str)
-        if (not config.op_s_build_user) then
-            config.op_s_build_user = str
-            lprintf("LOG_DEBUG", "config: builduser\n")
+    ['BuildUser'] = function (user)
+        if config.build_user then
+            lprintf("LOG_WARNING", "overwriting previous BuildUser")
         end
+        local success, result = pcall(utilcore.getpwnam, user)
+        if not success then
+            if not result then
+                result = "unknown username "..user
+            end
+            lprintf("LOG_ERROR", "could not set BuildUser: "..result)
+            ret = 1
+            return configcleanup()
+        end
+        config.build_user = { name = result.name;
+                              uid  = result.uid;
+                              gid  = result.gid }
+        lprintf("LOG_DEBUG", "config: builduser = "..user.."\n")
     end;
     ['BuildDir'] = function(str) set_builddir(str) end;
         --[[

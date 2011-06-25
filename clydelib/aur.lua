@@ -54,11 +54,24 @@ function rpcuri ( method, arg )
 end
 
 function get_builduser()
-    return config.op_s_build_user or os.getenv("SUDO_USER") or "root"
+    if config.build_user then
+        return config.build_user
+    end
+
+    sudoer = os.getenv("SUDO_USER")
+    if sudoer then
+        pwent = utilcore.getpwnam(sudoer)
+        if pwent then
+            return { name = pwent.name; uid = pwent.uid; gid = pwent.gid }
+        end
+        -- fall through when user doesn't exist
+    end
+
+    return { name = "root"; uid = 0; gid = 0 }
 end
 
 function get_builddir ()
-    return config.builddir or "/tmp/clyde-" .. get_builduser()
+    return config.builddir or "/tmp/clyde-" .. get_builduser().name
 end
 
 local try = socket.try
@@ -89,10 +102,8 @@ function create_socket()
 end
 
 function chown_builduser ( path, ... )
-    local buser = get_builduser()
-    local pwent = utilcore.getpwnam( buser )
-        or error( "unable to find user " .. buser )
-    util.chown( buser, pwent.gid, path, ... )
+    local user = get_builduser()
+    util.chown( user.uid, user.gid, path, ... )
 end
 
 function make_builddir ( pkgname )
@@ -379,7 +390,7 @@ function makepkg ( target )
     local oldwd = lfs.currentdir()
     assert( lfs.chdir( target ))
 
-    local user = get_builduser()
+    local user = get_builduser().name
     local maker
 
     -- We assume we are being run as root but whether the "build user"
@@ -422,7 +433,7 @@ function makepkg ( target )
 end
 
 function installpkg( target )
-    local user     = get_builduser()
+    local user     = get_builduser().name
     local builddir = get_builddir()
 
     local pkgdir = os.getenv( "PKGDEST" )
