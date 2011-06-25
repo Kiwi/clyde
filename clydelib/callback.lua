@@ -204,7 +204,7 @@ function cb_dl_total(total)
 end
 
 function cb_dl_progress(filename, file_xfered, file_total)
-    local infolen = 50
+    local infolen = getcols() * 6 / 10
     local filenamelen = infolen - 27
     local fname, len, wclen, padwid, wcfname
 
@@ -214,6 +214,10 @@ function cb_dl_progress(filename, file_xfered, file_total)
     local rate, timediff, f_xfered = 0.0, 0.0, 0.0
     local eta_h, eta_m, eta_s = 0, 0, 0
     local rate_size, xfered_size = "K", "K"
+
+    if (infolen < 50) then
+        infolen = 50
+    end
 
     if (config.noprogressbar or file_total == -1) then
         if (file_xfered == 0) then
