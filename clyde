@@ -787,14 +787,15 @@ local function _parseconfig(file, givensection, givendb)
     end;
     ['BuildUser'] = function (user)
         if config.build_user then
-            lprintf("LOG_WARNING", "overwriting previous BuildUser")
+            lprintf("LOG_WARNING", "overwriting previous BuildUser\n")
         end
         local success, result = pcall(utilcore.getpwnam, user)
+        if not result then
+            result = "unknown user "..user
+            success = false
+        end
         if not success then
-            if not result then
-                result = "unknown username "..user
-            end
-            lprintf("LOG_ERROR", "could not set BuildUser: "..result)
+            lprintf("LOG_ERROR", "could not set BuildUser: %s\n", result)
             ret = 1
             return configcleanup()
         end
