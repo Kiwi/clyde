@@ -14,7 +14,6 @@ local signal = require "clydelib.signal"
 local callback = require "clydelib.callback"
 local aur = require "clydelib.aur"
 local ui = require "clydelib.ui"
-local get_builduser = aur.get_builduser
 local needs_root = util.needs_root
 local printf = util.printf
 local lprintf = util.lprintf
@@ -658,21 +657,21 @@ local function config_init(uid)
             while true do
                 local line = fdpacman:read("*l")
                 if line == nil then break end
-                table.insert( paclines, line .. "\n" )
+                table.insert(paclines, line .. "\n")
             end
             fdpacman:close()
 
             -- move the header from pacman.conf to the top of clyde.conf
-            local header  = ""
-            while paclines[1]:match( "^#" ) do
+            local header = ""
+            while paclines[1]:match("^#") do
                 header = header .. table.remove( paclines, 1 )
             end
-            if paclines[1]:match( "^%s*$" ) then
+            if paclines[1]:match("^%s*$") then
                 -- blank line too
                 table.remove( paclines, 1 )
             end
-            header = header:gsub( PACMANCFG_PATH:gsub( "%.", "%%." ),
-                                  CLYDECFG_PATH:gsub ( "%.", "%%." ))
+            header = header:gsub(PACMANCFG_PATH:gsub("%.", "%%."),
+                                 CLYDECFG_PATH:gsub ("%.", "%%."))
 
             local confirm = false
             local editor
@@ -702,13 +701,15 @@ BuildUser = %s
 #BuildDir = /tmp/clyde-<BuildUser> (default when unset)
 
 ]]
-            clydeopts = string.format( clydeopts, editor, get_builduser())
+            -- Not sure what to set for default BuildUser
+            local username = os.getenv("SUDO_USER") or "nobody"
+            clydeopts = string.format(clydeopts, editor, username)
 
             local fdclyde = io.open(CLYDECFG_PATH, "w")
-            fdclyde:write( header, "\n", clydeopts, table.concat( paclines ))
+            fdclyde:write(header, "\n", clydeopts, table.concat(paclines))
             fdclyde:close()
 
-            printf( [[Congratulations! Your new config file is ready to use.
+            printf([[Congratulations! Your new config file is ready to use.
 Additional defaults have been set. Please double-check %s.
 ]], CLYDECFG_PATH)
             config.configfile = CLYDECFG_PATH
